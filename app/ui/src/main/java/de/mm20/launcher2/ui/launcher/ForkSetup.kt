@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 1
+    private const val Version = 2
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -40,7 +40,8 @@ object ForkSetup : KoinComponent {
 
     fun run(context: Context) {
         val prefs = context.getSharedPreferences(Prefs, Context.MODE_PRIVATE)
-        if (prefs.getInt("version", 0) >= Version) return
+        val from = prefs.getInt("version", 0)
+        if (from >= Version) return
 
         // Slovak UI regardless of the phone's language (spec). Changeable later in Android's per-app language.
         if (AppCompatDelegate.getApplicationLocales().isEmpty) {
@@ -48,11 +49,21 @@ object ForkSetup : KoinComponent {
         }
 
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            // The blocks live on the home screen (Kvaesitso's default put them on a swipe-up page),
-            // which is also what lets the unfolded Fold show two panes.
+            if (from < 1) setupV1()
+            // v2 (device test): one app list only. Kvaesitso's list with favorites on swipe up and down;
+            // the extra app page and the unfolded split view are gone.
+            if (gestureSettings.swipeUp.first().let { it is GestureAction.AppPage || it is GestureAction.Widgets }) {
+                gestureSettings.setSwipeUp(GestureAction.Search)
+            }
+            if (gestureSettings.swipeRight.first() is GestureAction.AppPage) gestureSettings.setSwipeRight(GestureAction.NoAction)
+            prefs.edit().putInt("version", Version).apply()
+        }
+    }
+
+    private suspend fun setupV1() {
+        run {
+            // The blocks live on the home screen (Kvaesitso's default put them on a swipe-up page).
             uiSettings.setHomeScreenWidgets(true)
-            // Swipe up opens the app page, like the Samsung app drawer; swipe right still works too.
-            if (gestureSettings.swipeUp.first() is GestureAction.Widgets) gestureSettings.setSwipeUp(GestureAction.AppPage)
 
             // Replace Kvaesitso's default widgets, which duplicate the school blocks, with the spec's five blocks.
             val parent = WidgetScreenTarget.Default.id
@@ -67,8 +78,6 @@ object ForkSetup : KoinComponent {
                 ContextWidget(UUID.randomUUID()),
                 AssistantWidget(UUID.randomUUID()),
             ).forEachIndexed { i, w -> if (w::class !in have) widgets.create(w, i, parent) }
-
-            prefs.edit().putInt("version", Version).apply()
         }
     }
 }

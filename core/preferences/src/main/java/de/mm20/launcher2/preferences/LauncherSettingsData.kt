@@ -65,7 +65,8 @@ data class LauncherSettingsData internal constructor(
 
     val homeScreenDock: Boolean = false,
     val homeScreenDockRows: Int = 1,
-    val homeScreenWidgets: Boolean = false,
+    // Fork default: the school blocks are the home screen.
+    val homeScreenWidgets: Boolean = true,
 
     val favoritesEnabled: Boolean = true,
     val favoritesFrequentlyUsed: Boolean = true,
@@ -156,9 +157,9 @@ data class LauncherSettingsData internal constructor(
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
     val gesturesSwipeLeft: GestureAction = GestureAction.NoAction,
-    // Fork default: swipe right opens the app page.
-    val gesturesSwipeRight: GestureAction = GestureAction.AppPage,
-    val gesturesSwipeUp: GestureAction = GestureAction.Widgets(),
+    val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
+    // Fork default: one app list (Kvaesitso's, with favorites) on swipe up and swipe down.
+    val gesturesSwipeUp: GestureAction = GestureAction.Search,
     val gesturesDoubleTap: GestureAction = GestureAction.ScreenLock,
     val gesturesLongPress: GestureAction = GestureAction.NoAction,
     val gesturesHomeButton: GestureAction = GestureAction.NoAction,

@@ -69,6 +69,12 @@ fun WidgetColumn(
         val scope = rememberCoroutineScope()
         Column {
             val widgets by viewModel.widgets.collectAsState()
+            // Fork: unfolded Fold / tablet: the blocks become a two-column dashboard (edit mode stays one column).
+            val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= WideDashboardMinWidthDp
+            if (wide && !editMode) {
+                WideDashboard(widgets, onWidgetUpdate = { viewModel.updateWidget(it) })
+                return@Column
+            }
             val swapThresholds = remember(widgets) {
                 Array(widgets.size) { floatArrayOf(0f, 0f) }
             }
@@ -194,4 +200,36 @@ fun WidgetColumn(
             addNewWidget = false
         },
     )
+}
+
+/** Fork: width from which the home blocks sit in two columns (Fold 5 inner screen ~ 775dp, tablets). */
+internal const val WideDashboardMinWidthDp = 600
+
+/**
+ * Fork: two-column dashboard for wide screens. Blocks alternate between the columns in their
+ * order (Lesson, Tasks | Brief, Context); the Gemini button spans the full width below.
+ */
+@Composable
+private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWidgetUpdate: (de.mm20.launcher2.widgets.Widget) -> Unit) {
+    val full = widgets.filter { it is de.mm20.launcher2.widgets.AssistantWidget }
+    val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget }
+    androidx.compose.foundation.layout.Row(
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        for (col in 0..1) {
+            Column(Modifier.weight(1f)) {
+                rest.filterIndexed { i, _ -> i % 2 == col }.forEachIndexed { i, w ->
+                    key(w.id) {
+                        WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth().padding(top = if (i > 0) 8.dp else 0.dp))
+                    }
+                }
+            }
+        }
+    }
+    for (w in full) {
+        key(w.id) {
+            WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+        }
+    }
 }

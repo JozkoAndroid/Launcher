@@ -1048,4 +1048,18 @@
     <string name="lesson_starts_at">začína o %1$s</string>
     <string name="brief_title">Prehľad dňa</string>
     <string name="tasks_more">Ďalšie v Schoolhelp: %1$d</string>
+    <string name="context_lunch">Obed: %1$s</string>
+    <string name="context_nameday">Meniny: %1$s</string>
+    <string name="context_nameday_contact">Dnes má meniny %1$s</string>
+    <string name="folder_empty">V tomto priečinku zatiaľ nie sú aplikácie. Podrž aplikáciu v zozname aplikácií a pridaj jej tento štítok.</string>
+    <string name="context_lunch_app">Obed: aplikácia s upozornením na jedálny lístok</string>
+    <string name="context_lunch_auto">Rozpoznať automaticky</string>
+    <string name="context_folders">Priečinky na domovskej obrazovke</string>
+    <string name="context_folders_hint">Priečinky sú štítky: podrž aplikáciu v zozname aplikácií → Štítky. Ak nevyberieš žiadne, zobrazia sa prvé 4.</string>
+    <string name="recording_start">Nahrávať v Schoolhelp</string>
+    <string name="recording_on">Nahráva sa</string>
+    <string name="recording_paused">Pozastavené</string>
+    <string name="recording_pause">Pozastaviť</string>
+    <string name="recording_resume">Pokračovať</string>
+    <string name="recording_stop">Ukončiť</string>
 </resources>

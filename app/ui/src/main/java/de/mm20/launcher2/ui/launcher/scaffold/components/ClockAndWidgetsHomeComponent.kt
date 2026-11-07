@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
-import de.mm20.launcher2.ui.launcher.apppage.TwoPane
 import de.mm20.launcher2.ui.theme.transparency.transparency
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -153,12 +152,8 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
             }
         }
 
-        // Fork, step 6: wide screens (Fold inner screen, tablet) show home and the app page side by side.
-        TwoPane.Layout(
-            modifier = modifier,
-            home = homeColumn,
-            side = { AppPageComponent.Component(Modifier.fillMaxSize(), insets, state) },
-        )
+        // Fork: one home screen on every size; wide screens get a two-column dashboard (see WidgetColumn).
+        homeColumn(modifier.fillMaxSize())
         if (editMode) {
             BackHandler {
                 editMode = false

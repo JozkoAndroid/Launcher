@@ -61,13 +61,23 @@ internal fun AssistantButton(onClick: () -> Unit) {
 }
 
 /**
- * Opens Gemini. Device test (Fold 5): the assist request went to the Google app and opened
- * Google search, so it is not used. Every intent names one exact target, so no chooser appears:
- * 1. the Gemini app, 2. gemini.google.com in the Gemini app, 3. gemini.google.com in the browser.
+ * Opens Gemini.
+ * 1. System assistant overlay: the same internal call the system makes for a power-button long
+ *    press (SearchManager.launchAssist). Not public API, so it can fail; then:
+ * 2. the Gemini app, 3. gemini.google.com in the Gemini app, 4. in the browser.
+ * Device test: the generic assist intent opened Google search, so it is not used.
  */
 object AssistantLauncher {
     const val GeminiPackage = "com.google.android.apps.bard"
     const val GeminiUrl = "https://gemini.google.com/app"
+
+    /** Asks the system to show the default assistant as an overlay. True if the call went through. */
+    fun launchSystemAssist(context: Context): Boolean = runCatching {
+        val sm = context.getSystemService(Context.SEARCH_SERVICE) as android.app.SearchManager
+        val m = android.app.SearchManager::class.java.getMethod("launchAssist", android.os.Bundle::class.java)
+        m.invoke(sm, android.os.Bundle())
+        true
+    }.getOrDefault(false)
 
     fun candidates(context: Context): List<Intent> {
         val pm = context.packageManager
@@ -79,6 +89,7 @@ object AssistantLauncher {
     }
 
     fun open(context: Context) {
+        if (launchSystemAssist(context)) return
         for (intent in candidates(context)) {
             try {
                 context.startActivity(intent); return

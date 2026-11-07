@@ -1214,4 +1214,18 @@
     <string name="lesson_starts_at">starts at %1$s</string>
     <string name="brief_title">Today</string>
     <string name="tasks_more">%1$d more in Schoolhelp</string>
+    <string name="context_lunch">Lunch: %1$s</string>
+    <string name="context_nameday">Name day: %1$s</string>
+    <string name="context_nameday_contact">%1$s has a name day today</string>
+    <string name="folder_empty">No apps in this folder yet. Long-press an app in the app list and add this tag.</string>
+    <string name="context_lunch_app">Lunch: app with the menu notification</string>
+    <string name="context_lunch_auto">Detect automatically</string>
+    <string name="context_folders">Folders on the home screen</string>
+    <string name="context_folders_hint">Folders are tags: long-press an app in the app list → Tags. With none chosen, the first 4 tags show.</string>
+    <string name="recording_start">Record in Schoolhelp</string>
+    <string name="recording_on">Recording</string>
+    <string name="recording_paused">Paused</string>
+    <string name="recording_pause">Pause</string>
+    <string name="recording_resume">Resume</string>
+    <string name="recording_stop">Stop</string>
 </resources>

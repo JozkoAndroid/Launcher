@@ -5,6 +5,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 
+/** A lesson recording running in Schoolhelp. */
+data class Recording(val subject: String, val paused: Boolean, val seconds: Long)
+
 sealed interface BriefStatus {
     data object NeedsLogin : BriefStatus
     data object Ok : BriefStatus
@@ -32,6 +35,13 @@ interface BriefRepository {
 
     /** Stored encrypted on the device; null removes it (the brief then uses the template). */
     fun setGeminiKey(key: String?)
+
+    /** Lesson recording in Schoolhelp, checked every 2 minutes on school days while visible. */
+    val recording: StateFlow<Recording?>
+
+    /** Pause/continue or stop: Schoolhelp asks for a tap to confirm, so the caller opens Schoolhelp. */
+    fun pauseRecording(pause: Boolean)
+    fun stopRecording()
 }
 
 /** Invented data for screenshots and tests. */
@@ -44,4 +54,7 @@ class SampleBriefRepository : BriefRepository {
     override fun handleLoginCallback(uri: String) {}
     override fun logout() {}
     override fun setGeminiKey(key: String?) {}
+    override val recording = MutableStateFlow<Recording?>(null)
+    override fun pauseRecording(pause: Boolean) {}
+    override fun stopRecording() {}
 }

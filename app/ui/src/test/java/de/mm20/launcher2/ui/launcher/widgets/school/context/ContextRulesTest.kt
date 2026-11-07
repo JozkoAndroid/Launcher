@@ -61,6 +61,32 @@ class ContextRulesTest {
             ContextCard.Instagram(47), ContextCard.Steps(3120, 8000), ContextCard.Birthday("Jana", 1),
             ContextCard.MobileData(3_000_000_000L, 3_500_000_000L), ContextCard.Music("Song", null, true),
         )
-        assertEquals(listOf(0, 1, 2), ContextRules.pick(cards).map { it.rank })
+        assertEquals(
+            listOf(ContextCard.Music::class, ContextCard.MobileData::class, ContextCard.Birthday::class),
+            ContextRules.pick(cards).map { it::class },
+        )
+    }
+
+    @Test
+    fun lunchOutranksBirthdayAndNameDay() {
+        val cards = listOf(ContextCard.NameDay(listOf("René"), null, null), ContextCard.Lunch("Rizoto", "x"), ContextCard.Birthday("Jana", 1))
+        assertEquals(ContextCard.Lunch::class, ContextRules.pick(cards).first()::class)
+    }
+
+    @Test
+    fun lunchAppAndTextDetection() {
+        assertTrue(ContextRules.looksLikeLunchApp("EduPage Jedálny lístok"))
+        assertTrue(ContextRules.looksLikeLunchApp("School Food"))
+        assertFalse(ContextRules.looksLikeLunchApp("Instagram"))
+        assertEquals("Polievka, rizoto", ContextRules.lunchText("Obed", "Polievka,\n  rizoto", null))
+        assertEquals("Obed dnes", ContextRules.lunchText("Obed dnes", " ", null))
+    }
+
+    @Test
+    fun nameDaysAndContactMatch() {
+        val cal = mapOf("11-11" to listOf("Martin", "Maroš"))
+        assertEquals(listOf("Martin", "Maroš"), ContextRules.nameDay(cal, LocalDate.parse("2026-11-11")))
+        assertTrue(ContextRules.firstNameMatches("Martin Novák", listOf("Martin")))
+        assertFalse(ContextRules.firstNameMatches("Martina Nová", listOf("Martin")))
     }
 }

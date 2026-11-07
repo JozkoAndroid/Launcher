@@ -18,6 +18,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -52,7 +55,48 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     private var job: Job? = null
     private var lastAttempt = 0L
 
+    override val recording = MutableStateFlow<de.mm20.launcher2.schoolbrief.Recording?>(null)
+    private var recordingJob: Job? = null
+    private var lastRecordingCheck = 0L
+
+    /** Every 2 minutes, Monday to Friday 7:00 to 17:00, while the home screen asks. */
+    private fun checkRecordingIfDue() {
+        val now = LocalDateTime.now()
+        val schoolHours = now.dayOfWeek.value <= 5 && now.hour in 7..16
+        if (!schoolHours) { recording.value = null; return }
+        if (recordingJob?.isActive == true || System.currentTimeMillis() - lastRecordingCheck < 2 * 60_000L) return
+        lastRecordingCheck = System.currentTimeMillis()
+        recordingJob = scope.launch { readRecording() }
+    }
+
+    private suspend fun readRecording() {
+        runCatching { mcp.appCall("lessons.status") }.onSuccess { s ->
+            recording.value = (s["lesson"] as? JsonObject)?.let { l ->
+                de.mm20.launcher2.schoolbrief.Recording(
+                    subject = l["folder"]?.jsonPrimitive?.contentOrNull ?: l["subject"]?.jsonPrimitive?.contentOrNull ?: "",
+                    paused = l["paused"]?.jsonPrimitive?.booleanOrNull == true,
+                    seconds = l["audio_seconds"]?.jsonPrimitive?.doubleOrNull?.toLong() ?: 0,
+                )
+            }
+        }
+    }
+
+    override fun pauseRecording(pause: Boolean) {
+        scope.launch {
+            runCatching { mcp.appCall("lessons.pause", buildJsonObject { put("on", pause) }) }
+            lastRecordingCheck = 0
+        }
+    }
+
+    override fun stopRecording() {
+        scope.launch {
+            runCatching { mcp.appCall("lessons.stop") }
+            lastRecordingCheck = 0
+        }
+    }
+
     override fun refreshIfDue() {
+        if (auth.isLoggedIn) checkRecordingIfDue()
         if (job?.isActive == true) return
         if (!auth.isLoggedIn) {
             if (status.value !is BriefStatus.LoggingIn) status.value = BriefStatus.NeedsLogin

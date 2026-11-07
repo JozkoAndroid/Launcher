@@ -16,16 +16,26 @@ sealed interface ContextCard {
         override val rank = 1
     }
 
-    data class Birthday(val name: String, val contactId: Long) : ContextCard {
+    /** Today's school lunch, from the EduPage food app's notification. */
+    data class Lunch(val text: String, val packageName: String) : ContextCard {
         override val rank = 2
     }
 
-    data class Steps(val steps: Long, val goal: Long) : ContextCard {
+    data class Birthday(val name: String, val contactId: Long) : ContextCard {
         override val rank = 3
     }
 
-    data class Instagram(val minutes: Long) : ContextCard {
+    /** Today's Slovak name day; [contactName] = a contact who celebrates it, if any. */
+    data class NameDay(val names: List<String>, val contactName: String?, val contactId: Long?) : ContextCard {
         override val rank = 4
+    }
+
+    data class Steps(val steps: Long, val goal: Long) : ContextCard {
+        override val rank = 5
+    }
+
+    data class Instagram(val minutes: Long) : ContextCard {
+        override val rank = 6
     }
 }
 
@@ -84,4 +94,25 @@ object ContextRules {
     }
 
     fun pick(cards: List<ContextCard>): List<ContextCard> = cards.sortedBy { it.rank }.take(MaxCards)
+
+    /** Lunch is only relevant until the afternoon. */
+    val LunchUntil: java.time.LocalTime = java.time.LocalTime.of(15, 0)
+
+    /** App names that look like the EduPage food app (used when no app is chosen in settings). */
+    private val lunchKeywords = listOf("edupage", "jedál", "jedal", "obed", "lunch", "food", "menu", "mensa", "essen")
+
+    fun looksLikeLunchApp(label: String): Boolean = lunchKeywords.any { label.contains(it, ignoreCase = true) }
+
+    /** The notification text worth showing: big text if present, else text, else title; one line. */
+    fun lunchText(title: String?, text: String?, bigText: String?): String? =
+        listOf(bigText, text, title).firstOrNull { !it.isNullOrBlank() }?.replace(Regex("\\s+"), " ")?.trim()
+
+    /** Name-day lookup: "MM-dd" -> names. Contacts whose first name matches are offered first. */
+    fun nameDay(calendar: Map<String, List<String>>, today: LocalDate): List<String> =
+        calendar["%02d-%02d".format(today.monthValue, today.dayOfMonth)].orEmpty()
+
+    fun firstNameMatches(displayName: String, names: List<String>): Boolean {
+        val first = displayName.trim().substringBefore(' ')
+        return names.any { it.equals(first, ignoreCase = true) }
+    }
 }

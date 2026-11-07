@@ -97,7 +97,10 @@ class SchoolScreenshotTest {
                             listOf(
                                 ContextItem("music", "Bohemian Rhapsody · Queen", icon = de.mm20.launcher2.ui.R.drawable.music_note_24px, onClick = {}, playing = true, onTogglePlay = {}),
                                 ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", icon = de.mm20.launcher2.ui.R.drawable.data_usage_24px, onClick = {}),
-                                ContextItem("birthday", "Dnes má narodeniny Jana", icon = de.mm20.launcher2.ui.R.drawable.cake_24px, onClick = {}),
+                                ContextItem("lunch", "Obed: Paradajková polievka, kuracie rizoto", icon = de.mm20.launcher2.ui.R.drawable.restaurant_24px, onClick = {}),
+                                ContextItem("nameday", "Dnes má meniny René", icon = de.mm20.launcher2.ui.R.drawable.celebration_24px),
+                                ContextItem("folder:Škola", "Škola", icon = de.mm20.launcher2.ui.R.drawable.folder_24px, onClick = {}),
+                                ContextItem("folder:Banky", "Banky", icon = de.mm20.launcher2.ui.R.drawable.folder_24px, onClick = {}),
                                 ContextItem("instagram", "Instagram dnes: 47 min"),
                             )
                         )
@@ -158,7 +161,7 @@ class SchoolScreenshotTest {
                                 onDate = {}, onWeather = {},
                             )
                         }
-                        LessonContent(feed, this@SchoolScreenshotTest.now)
+                        LessonContent(feed, this@SchoolScreenshotTest.now, de.mm20.launcher2.schoolbrief.Recording("Physik", false, 1834))
                         Box(Modifier.padding(top = 8.dp)) { BriefContent(feed, now) }
                         Box(Modifier.padding(top = 8.dp)) { TasksContent(feed, this@SchoolScreenshotTest.now.toLocalDate(), now) }
                         Box(Modifier.padding(top = 8.dp)) {

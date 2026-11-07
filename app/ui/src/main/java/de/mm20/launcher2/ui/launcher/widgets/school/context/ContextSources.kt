@@ -97,6 +97,47 @@ internal object ContextSources {
         }.getOrDefault(emptyList())
     }
 
+    // --- Name days (official Slovak calendar, bundled) ---
+
+    @Volatile private var nameDays: Map<String, List<String>>? = null
+
+    fun nameDays(context: Context): Map<String, List<String>> = nameDays ?: runCatching {
+        val json = context.assets.open("namedays_sk.json").bufferedReader().use { it.readText() }
+        kotlinx.serialization.json.Json.decodeFromString<Map<String, List<String>>>(json)
+    }.getOrDefault(emptyMap()).also { nameDays = it }
+
+    /** First contact whose first name has its name day today: (display name, contact id). */
+    suspend fun nameDayContact(context: Context, names: List<String>): Pair<String, Long>? = withContext(Dispatchers.IO) {
+        if (names.isEmpty() || !hasContacts(context)) return@withContext null
+        runCatching {
+            context.contentResolver.query(
+                ContactsContract.Contacts.CONTENT_URI,
+                arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME_PRIMARY),
+                null, null, null,
+            )?.use { c ->
+                while (c.moveToNext()) {
+                    val name = c.getString(1) ?: continue
+                    if (ContextRules.firstNameMatches(name, names)) return@runCatching name to c.getLong(0)
+                }
+            }
+            null
+        }.getOrNull()
+    }
+
+    /** Launcher apps whose name looks like the EduPage food app. */
+    fun lunchAppCandidates(context: Context): List<Pair<String, String>> = runCatching {
+        val pm = context.packageManager
+        pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .filter { ContextRules.looksLikeLunchApp(it.second) }
+            .distinctBy { it.first }
+    }.getOrDefault(emptyList())
+
+    fun appLabel(context: Context, pkg: String): String = runCatching {
+        val pm = context.packageManager
+        pm.getApplicationInfo(pkg, 0).loadLabel(pm).toString()
+    }.getOrDefault(pkg)
+
     // --- Health Connect (steps, synced from Samsung Health) ---
 
     fun healthConnectAvailable(context: Context): Boolean =
@@ -122,6 +163,27 @@ internal object ContextSources {
 /** Plan size, cycle start and steps goal; defaults from the spec. */
 internal class ContextSettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("schoolbrief_context", Context.MODE_PRIVATE)
+
+    /** Package of the EduPage food app; null = detect by name. */
+    var lunchPackage: String?
+        get() = prefs.getString("lunch_package", null)
+        set(v) { prefs.edit().putString("lunch_package", v).apply() }
+
+    /** Folders (Kvaesitso tags) shown as chips; empty = all, at most 4. */
+    var folders: List<String>
+        get() = prefs.getString("folders", null)?.split('\u001F')?.filter { it.isNotEmpty() } ?: emptyList()
+        set(v) { prefs.edit().putString("folders", v.joinToString("\u001F")).apply() }
+
+    /** Today's lunch, kept after the notification is dismissed: "yyyy-MM-dd|pkg|text". */
+    fun storedLunch(today: LocalDate): Pair<String, String>? {
+        val raw = prefs.getString("lunch_today", null) ?: return null
+        val parts = raw.split('|', limit = 3)
+        return if (parts.size == 3 && parts[0] == today.toString()) parts[1] to parts[2] else null
+    }
+
+    fun storeLunch(today: LocalDate, pkg: String, text: String) {
+        prefs.edit().putString("lunch_today", "$today|$pkg|$text").apply()
+    }
 
     fun load(): ContextSettings {
         val d = ContextSettings()

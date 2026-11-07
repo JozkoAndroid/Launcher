@@ -42,6 +42,17 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     fun logout() = repository.logout()
     fun setGeminiKey(key: String?) = repository.setGeminiKey(key)
     fun retry() = repository.refreshIfDue()
+
+    val recording: StateFlow<de.mm20.launcher2.schoolbrief.Recording?> = repository.recording
+
+    /** Schoolhelp confirms pause/stop with a tap, so its app opens right after the request. */
+    fun pauseRecording(context: Context, pause: Boolean) {
+        repository.pauseRecording(pause); Links.openSchoolhelp(context)
+    }
+
+    fun stopRecording(context: Context) {
+        repository.stopRecording(); Links.openSchoolhelp(context)
+    }
 }
 
 /** One quiet line in the Context block; music adds an inline play/pause button. */

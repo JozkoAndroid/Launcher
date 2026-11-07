@@ -87,17 +87,30 @@ fun LessonWidget(widget: LessonWidget) {
     val vm: SchoolBriefVM = viewModel(key = "school-brief")
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
+    val recording by vm.recording.collectAsState()
+    val context = LocalContext.current
     val f = feed ?: return
-    LessonContent(f, now)
+    LessonContent(
+        f, now, recording,
+        onPause = { vm.pauseRecording(context, it) },
+        onStop = { vm.stopRecording(context) },
+    )
 }
 
 /** "Teraz": the current or next lesson as one glanceable card. */
 @Composable
-internal fun LessonContent(f: Feed, now: LocalDateTime) {
+internal fun LessonContent(
+    f: Feed,
+    now: LocalDateTime,
+    recording: de.mm20.launcher2.schoolbrief.Recording? = null,
+    onPause: (Boolean) -> Unit = {},
+    onStop: () -> Unit = {},
+) {
     val context = LocalContext.current
     RegisterSubjects(f)
     SchoolCard(onClick = { Links.openSchoolhelp(context) }) {
-        when (val s = BriefLogic.lessonState(f, now)) {
+        val state = BriefLogic.lessonState(f, now)
+        when (val s = state) {
             is LessonState.InLesson -> {
                 LessonHeadline(s.current, stringResource(R.string.lesson_time_range, s.current.start, s.current.end))
                 Spacer(Modifier.height(12.dp))
@@ -112,6 +125,38 @@ internal fun LessonContent(f: Feed, now: LocalDateTime) {
             is LessonState.DayOff -> FreeHeadline(R.drawable.event_24px, s.title, s.next, now.toLocalDate())
             is LessonState.Weekend -> FreeHeadline(R.drawable.light_mode_24px, stringResource(R.string.lesson_weekend), s.next, now.toLocalDate())
         }
+        if (recording != null) {
+            Spacer(Modifier.height(10.dp))
+            RecordingRow(recording, onPause, onStop)
+        } else if (state is LessonState.InLesson) {
+            TextButton(onClick = { Links.openSchoolhelp(context) }, modifier = Modifier.heightIn(min = SchoolTokens.RowMin)) {
+                Text(stringResource(R.string.recording_start))
+            }
+        }
+    }
+}
+
+/** "● Nahráva sa · 2:34" with Pozastaviť/Pokračovať and Ukončiť (confirmed in Schoolhelp). */
+@Composable
+private fun RecordingRow(r: de.mm20.launcher2.schoolbrief.Recording, onPause: (Boolean) -> Unit, onStop: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // A dot that marks a real state (recording), no glow, no pulse.
+        Box(
+            Modifier.size(8.dp).clip(CircleShape)
+                .background(if (r.paused) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+        )
+        Spacer(Modifier.width(8.dp))
+        val time = "%d:%02d".format(r.seconds / 60, r.seconds % 60)
+        Text(
+            // The subject is the card's title already; the line stays short enough for the time.
+            stringResource(if (r.paused) R.string.recording_paused else R.string.recording_on) + " · " + time,
+            style = MaterialTheme.typography.bodyMedium.merge(SchoolTokens.Tabular),
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { onPause(!r.paused) }) {
+            Text(stringResource(if (r.paused) R.string.recording_resume else R.string.recording_pause))
+        }
+        TextButton(onClick = onStop) { Text(stringResource(R.string.recording_stop)) }
     }
 }
 
@@ -373,9 +418,15 @@ private fun KindBadge(t: SchoolTask, kindLabel: String) {
 fun ContextWidget(widget: ContextWidget) {
     val vm: ContextVM = viewModel(key = "school-context")
     val cards by vm.cards.collectAsState(emptyList())
+    val folders by vm.folders.collectAsState(emptyList())
     val locale: Locale = LocalConfiguration.current.locales[0]
     val items = cards.map { c -> contextItem(c, locale, vm) }
-    if (items.isNotEmpty()) ContextContent(items)
+    val openFolderState = androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    val folderItems = folders.map { tag ->
+        ContextItem("folder:$tag", tag, R.drawable.folder_24px, onClick = { openFolderState.value = tag })
+    }
+    if (items.isNotEmpty() || folderItems.isNotEmpty()) ContextContent(items.take(3) + folderItems)
+    openFolderState.value?.let { FolderSheet(it, vm) { openFolderState.value = null } }
 }
 
 @Composable
@@ -399,6 +450,16 @@ private fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM): ContextI
         is ContextCard.Instagram -> ContextItem(
             "instagram", stringResource(R.string.context_instagram_today, nf.format(c.minutes)), R.drawable.timer_24px,
         )
+        is ContextCard.Lunch -> ContextItem(
+            "lunch", stringResource(R.string.context_lunch, c.text), R.drawable.restaurant_24px, onClick = { vm.open(c) },
+        )
+        is ContextCard.NameDay -> ContextItem(
+            "nameday",
+            if (c.contactName != null) stringResource(R.string.context_nameday_contact, c.contactName)
+            else stringResource(R.string.context_nameday, c.names.joinToString(", ")),
+            R.drawable.celebration_24px,
+            onClick = if (c.contactId != null) ({ vm.open(c) }) else null,
+        )
     }
 }
 
@@ -411,7 +472,8 @@ internal fun ContextContent(items: List<ContextItem>) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for (item in items.take(3)) {
+        // Context cards (max 3, chosen by the caller) followed by folder chips.
+        for (item in items) {
             key(item.key) {
                 val inspection = LocalInspectionMode.current
                 val state = remember { MutableTransitionState(inspection).apply { targetState = true } }
@@ -573,3 +635,54 @@ private fun dueLabel(due: LocalDate, today: LocalDate, time: String?): String {
 private fun updatedTime(feed: Feed): String =
     runCatching { OffsetDateTime.parse(feed.updated).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }
         .getOrDefault("–")
+
+// ---------------------------------------------------------------- Folders
+
+/** A folder = a Kvaesitso tag: its apps in a sheet, tap to open. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun FolderSheet(tag: String, vm: ContextVM, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val items by remember(tag) { vm.folderItems(tag) }.collectAsState(emptyList())
+    val iconService: de.mm20.launcher2.icons.IconService = org.koin.compose.koinInject()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            tag, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        )
+        if (items.isEmpty()) {
+            Text(
+                stringResource(R.string.folder_empty), style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+            )
+        }
+        FlowRow(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            maxItemsInEachRow = 4,
+        ) {
+            for (item in items) {
+                val px = with(density) { 52.dp.roundToPx() }
+                val icon by remember(item.key) { iconService.getIcon(item, px) }.collectAsState(null)
+                Column(
+                    Modifier.weight(1f).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                        .clickable(role = Role.Button) { item.launch(context, null); onDismiss() }
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    de.mm20.launcher2.ui.component.ShapedLauncherIcon(size = 52.dp, icon = { icon })
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        item.labelOverride ?: item.label, style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            // Fill the last row so items keep their width.
+            repeat((4 - items.size % 4) % 4) { Spacer(Modifier.weight(1f)) }
+        }
+    }
+}

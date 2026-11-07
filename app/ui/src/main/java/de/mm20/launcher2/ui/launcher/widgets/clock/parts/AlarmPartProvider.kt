@@ -55,10 +55,10 @@ class AlarmPartProvider : PartProvider {
 
     private fun getNextAlarmTime(context: Context): Flow<Long?> = callbackFlow {
         val alarmManager: AlarmManager = context.getSystemService() ?: return@callbackFlow
-        trySendBlocking(alarmManager.nextAlarmClock?.triggerTime)
+        trySendBlocking(userAlarmTime(context, alarmManager))
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                trySendBlocking(alarmManager.nextAlarmClock?.triggerTime)
+                trySendBlocking(userAlarmTime(context ?: return, alarmManager))
             }
         }
         context.registerReceiver(receiver, IntentFilter().apply {
@@ -135,4 +135,18 @@ internal fun alarmLabel(context: Context, alarmMs: Long, nowMs: Long): String {
     val locale = context.resources.configuration.locales[0]
     val day = alarm.format(java.time.format.DateTimeFormatter.ofPattern("EEE", locale))
     return "$day $t"
+}
+
+/**
+ * Fork (device test: a phantom "20:00" showed): other apps (reminders, calendars) can schedule
+ * system alarm clocks too. Only alarms set in the phone's clock app are shown.
+ */
+internal fun userAlarmTime(context: Context, alarmManager: AlarmManager): Long? {
+    val info = alarmManager.nextAlarmClock ?: return null
+    val creator = info.showIntent?.creatorPackage ?: return null
+    val clockApps = context.packageManager
+        .queryIntentActivities(Intent(AlarmClock.ACTION_SHOW_ALARMS), 0)
+        .map { it.activityInfo.packageName }
+        .toSet()
+    return if (creator in clockApps) info.triggerTime else null
 }

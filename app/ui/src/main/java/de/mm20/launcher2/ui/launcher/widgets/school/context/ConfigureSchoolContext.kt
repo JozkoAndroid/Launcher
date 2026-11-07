@@ -2,6 +2,7 @@ package de.mm20.launcher2.ui.launcher.widgets.school.context
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -78,6 +79,39 @@ fun ColumnScope.ConfigureSchoolContext() {
         )
     }
 
+    // Lunch source: the EduPage food app (detected by name unless chosen).
+    Spacer(Modifier.height(24.dp))
+    Text(stringResource(R.string.context_lunch_app), style = MaterialTheme.typography.titleMedium)
+    val chosenLunch by vm.lunchPackage.collectAsState()
+    val candidates = remember(resumes) { vm.lunchCandidates() }
+    ChoiceRow(stringResource(R.string.context_lunch_auto), chosenLunch == null) { vm.setLunchPackage(null) }
+    for ((pkg, label) in candidates) ChoiceRow(label, chosenLunch == pkg) { vm.setLunchPackage(pkg) }
+    if (chosenLunch != null && candidates.none { it.first == chosenLunch }) {
+        ChoiceRow(vm.appLabel(chosenLunch!!), true) {}
+    }
+
+    // Folders: Kvaesitso tags shown as chips.
+    Spacer(Modifier.height(24.dp))
+    Text(stringResource(R.string.context_folders), style = MaterialTheme.typography.titleMedium)
+    Text(
+        stringResource(R.string.context_folders_hint),
+        style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    val tags by vm.allTags.collectAsState(emptyList())
+    val chosenFolders by vm.folderSelection.collectAsState()
+    for (tag in tags) {
+        val on = tag in chosenFolders
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .clickable { vm.setFolders(if (on) chosenFolders - tag else (chosenFolders + tag).take(4)) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            androidx.compose.material3.Checkbox(checked = on, onCheckedChange = null)
+            Spacer(Modifier.width(12.dp))
+            Text(tag, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+
     Spacer(Modifier.height(24.dp))
     val s by vm.settings.collectAsState()
     var plan by remember(s) { mutableStateOf(java.text.NumberFormat.getNumberInstance().format(s.planBytes / 1e9)) }
@@ -127,5 +161,17 @@ private fun PermissionRow(label: String, granted: Boolean, onGrant: () -> Unit) 
         } else {
             TextButton(onClick = onGrant) { Text(stringResource(R.string.context_perm_grant)) }
         }
+    }
+}
+
+@Composable
+private fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
