@@ -294,8 +294,9 @@ internal fun ContextContent(items: List<ContextItem>) {
     SchoolBlock {
         for (item in items.take(3)) {
             androidx.compose.runtime.key(item.key) {
-                // Starts hidden so the fade-in really plays when a card appears.
-                val state = remember { androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true } }
+                // Starts hidden so the fade-in really plays when a card appears (visible at once in previews and screenshots).
+                val inspection = androidx.compose.ui.platform.LocalInspectionMode.current
+                val state = remember { androidx.compose.animation.core.MutableTransitionState(inspection).apply { targetState = true } }
                 AnimatedVisibility(
                     visibleState = state,
                     enter = fadeIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing)) +

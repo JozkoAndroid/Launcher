@@ -123,11 +123,12 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
             var offset: Int? = 0
             var pages = 0
             while (offset != null && pages++ < 10) {
+                // No "limit": Schoolhelp rejects large values ("Capability number out of range").
+                // Its own page size is used; "offset" only from the second page on.
                 val page = mcp.appCall("list_events", buildJsonObject {
                     put("start", today.minusDays(30).toString())
                     put("end", today.plusDays(15).toString())
-                    put("offset", offset)
-                    put("limit", 100)
+                    if (offset != null && offset > 0) put("offset", offset)
                 })
                 page["items"]?.jsonArray?.forEach { items += it.jsonObject }
                 offset = page["next_offset"]?.jsonPrimitive?.intOrNull

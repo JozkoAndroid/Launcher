@@ -71,6 +71,8 @@ class SchoolScreenshotTest {
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
             CompositionLocalProvider(
                 LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                // Screenshots capture the first frame: show animated-in content at its end state.
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
             ) {
                 Box(Modifier.fillMaxSize().background(darkWallpaper)) {
                     Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
@@ -82,10 +84,36 @@ class SchoolScreenshotTest {
     }
 
     @Test
+    fun contextCards() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
+            CompositionLocalProvider(
+                LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                // Screenshots capture the first frame: show animated-in content at its end state.
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+            ) {
+                Box(Modifier.fillMaxSize().background(darkWallpaper)) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        ContextContent(
+                            listOf(
+                                ContextItem("music", "Bohemian Rhapsody · Queen", onClick = {}, playing = true, onTogglePlay = {}),
+                                ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", onClick = {}),
+                                ContextItem("birthday", "Dnes má narodeniny Jana", onClick = {}),
+                                ContextItem("instagram", "Instagram dnes: 47 min"),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun assistantButton() = paparazzi.snapshot {
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
             CompositionLocalProvider(
                 LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                // Screenshots capture the first frame: show animated-in content at its end state.
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
             ) {
                 Box(Modifier.fillMaxSize().background(darkWallpaper)) {
                     Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
@@ -109,6 +137,8 @@ class SchoolScreenshotTest {
             CompositionLocalProvider(
                 LocalPreferDarkContentOverWallpaper provides darkContent,
                 LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                // Screenshots capture the first frame: show animated-in content at its end state.
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
             ) {
                 Box(
                     Modifier
@@ -134,6 +164,8 @@ class SchoolScreenshotTest {
                         Box(Modifier.padding(top = 8.dp)) {
                             ContextContent(
                                 listOf(
+                                    ContextItem("music", "Bohemian Rhapsody · Queen", onClick = {}, playing = true, onTogglePlay = {}),
+                                    ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", onClick = {}),
                                     ContextItem("instagram", "Instagram dnes: 47 min"),
                                     ContextItem("steps", "Kroky: 3 120 z 8 000"),
                                 )
