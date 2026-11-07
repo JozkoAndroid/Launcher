@@ -27,4 +27,16 @@
     <string name="context_instagram_today">Instagram dnes: %1$s min</string>
     <string name="context_steps">Kroky: %1$s z %2$s</string>
     <string name="preference_transparencies_brief">Brief (bez rámčekov)</string>
+    <string name="gesture_action_app_page">Stránka aplikácií</string>
+    <string name="app_page_search_hint">Hľadať aplikácie</string>
+    <string name="app_page_no_results">Žiadna aplikácia pre „%1$s“.</string>
+    <string name="app_page_clear_search">Vymazať hľadanie</string>
+    <string name="app_page_pin">Pripnúť hore</string>
+    <string name="app_page_unpin">Odopnúť</string>
+    <string name="app_page_pin_full">Pripnúť hore (už je 8 pripnutých)</string>
+    <string name="app_page_hide">Skryť zo zoznamu</string>
+    <string name="app_page_unhide">Zobraziť v zozname</string>
+    <string name="app_page_info">Informácie o aplikácii</string>
+    <string name="app_page_hidden_hint">skrytá</string>
+    <string name="app_page_letter_index">Abecedný register: ťukni alebo potiahni</string>
 </resources>

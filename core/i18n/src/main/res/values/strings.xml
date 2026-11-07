@@ -1157,4 +1157,16 @@
     <string name="open_article">Open article</string>
     <string name="context_instagram_today">Instagram today: %1$s min</string>
     <string name="context_steps">Steps: %1$s of %2$s</string>
+    <string name="gesture_action_app_page">App page</string>
+    <string name="app_page_search_hint">Search apps</string>
+    <string name="app_page_no_results">No app matches “%1$s”.</string>
+    <string name="app_page_clear_search">Clear search</string>
+    <string name="app_page_pin">Pin to top</string>
+    <string name="app_page_unpin">Unpin</string>
+    <string name="app_page_pin_full">Pin to top (8 already pinned)</string>
+    <string name="app_page_hide">Hide from list</string>
+    <string name="app_page_unhide">Show in list</string>
+    <string name="app_page_info">App info</string>
+    <string name="app_page_hidden_hint">hidden</string>
+    <string name="app_page_letter_index">Letter index: tap or drag to jump</string>
 </resources>

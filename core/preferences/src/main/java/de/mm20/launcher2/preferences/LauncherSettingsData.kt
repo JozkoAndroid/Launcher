@@ -154,7 +154,8 @@ data class LauncherSettingsData internal constructor(
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
     val gesturesSwipeLeft: GestureAction = GestureAction.NoAction,
-    val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
+    // Fork default: swipe right opens the app page.
+    val gesturesSwipeRight: GestureAction = GestureAction.AppPage,
     val gesturesSwipeUp: GestureAction = GestureAction.Widgets(),
     val gesturesDoubleTap: GestureAction = GestureAction.ScreenLock,
     val gesturesLongPress: GestureAction = GestureAction.NoAction,
@@ -422,6 +423,11 @@ sealed interface GestureAction {
     @Serializable
     @SerialName("launcher_settings")
     data object LauncherSettings : GestureAction
+
+    /** Fork: Niagara-style app page. */
+    @Serializable
+    @SerialName("app_page")
+    data object AppPage : GestureAction
 }
 
 

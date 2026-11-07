@@ -157,6 +157,17 @@ internal fun GesturePreference(
                                     }
                                 )
                             }
+                            if (options.contains(GestureAction.AppPage::class)) {
+                                GestureItem(
+                                    title = stringResource(R.string.gesture_action_app_page),
+                                    icon = R.drawable.apps_24px,
+                                    selected = value is GestureAction.AppPage,
+                                    onClick = {
+                                        onValueChanged(GestureAction.AppPage, null)
+                                        showSheet = false
+                                    }
+                                )
+                            }
                             if (options.contains(GestureAction.Feed::class)) {
                                 GestureItem(
                                     title = stringResource(R.string.gesture_action_feed),

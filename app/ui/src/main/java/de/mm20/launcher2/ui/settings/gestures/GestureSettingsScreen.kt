@@ -62,6 +62,7 @@ fun GestureSettingsScreen() {
         add(GestureAction.Recents::class)
         add(GestureAction.PowerMenu::class)
         add(GestureAction.Search::class)
+        add(GestureAction.AppPage::class)
         add(GestureAction.Widgets::class)
         add(GestureAction.Launch::class)
     }
