@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 7
+    private const val Version = 8
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -80,17 +80,42 @@ object ForkSetup : KoinComponent {
             if (from < 7 && gestureSettings.swipeDown.first() is GestureAction.Search) {
                 gestureSettings.setSwipeDown(GestureAction.Notifications)
             }
-            // v4: folders block on the home screen, after the context chips.
-            if (from < 4) {
-                val parent = WidgetScreenTarget.Default.id
-                val current = widgets.get(parent).first()
-                if (current.none { it is de.mm20.launcher2.widgets.FoldersWidget }) {
-                    val at = current.indexOfFirst { it is ContextWidget }.let { if (it < 0) current.size else it + 1 }
-                    widgets.create(de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()), at, parent)
+            // v8 (round 7): the recommended layout, asked for by the user. Home: the lesson on the wallpaper,
+            // then one sheet (brief, tasks), then the context chips; the dock floats below. Side panel:
+            // weather forecast, test prep, week, folders. App widgets the user added stay where they are.
+            if (from < 8) {
+                applyRecommendedLayout()
+                if (gestureSettings.swipeRight.first().let { it is GestureAction.NoAction || it is GestureAction.SchoolWeek }) {
+                    gestureSettings.setSwipeRight(GestureAction.SchoolChat) // "Môj deň"
                 }
             }
+            // v4 (folders on home) is superseded by v8.
             prefs.edit().putInt("version", Version).apply()
         }
+    }
+
+    private suspend fun applyRecommendedLayout() {
+        suspend fun layout(parent: UUID, blocks: List<de.mm20.launcher2.widgets.Widget>) {
+            val current = widgets.get(parent).first()
+            current.filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
+            blocks.forEachIndexed { i, w -> widgets.create(w, i, parent) }
+        }
+        layout(
+            WidgetScreenTarget.Default.id, listOf(
+                LessonWidget(UUID.randomUUID()),
+                BriefWidget(UUID.randomUUID()),
+                TasksWidget(UUID.randomUUID()),
+                ContextWidget(UUID.randomUUID()),
+            )
+        )
+        layout(
+            WidgetScreenTarget.Widgets2.id, listOf(
+                WeatherWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.TestPrepWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()),
+            )
+        )
     }
 
     private suspend fun setupV1() {

@@ -33,7 +33,7 @@ import java.time.OffsetDateTime
 
 /**
  * Unfolded Galaxy Z Fold 5 (1812 x 2176 px, ~374 dpi). Mirrors WidgetColumn's wide arrangement:
- * Lesson, Tasks | Brief, Context, Gemini full width. (The real column needs the running app.)
+ * Lesson, Tasks | Brief, Context; the floating dock with 7 apps and the assistant. (The real column needs the running app.)
  */
 class DashboardScreenshotTest {
     @get:Rule
@@ -77,8 +77,14 @@ class DashboardScreenshotTest {
                                 }
                             }
                         }
-                        Box(Modifier.fillMaxWidth().padding(top = 8.dp)) { AssistantButton(onClick = {}) }
                     }
+                    // The floating dock: 7 apps on a wide screen, then the assistant.
+                    val colors = listOf(Color(0xFF3B7DDD), Color(0xFF34A853), Color(0xFFE8710A), Color(0xFF9334E6), Color(0xFFD93025), Color(0xFF12B5CB), Color(0xFFF9AB00))
+                    DockContent(
+                        count = 7, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
+                        icon = { i, _ -> Box(Modifier.padding(2.dp).fillMaxSize().background(colors[i], androidx.compose.foundation.shape.CircleShape)) },
+                        label = { "App $it" }, onApp = {}, onEdit = {}, onAssistant = {},
+                    )
                 }
             }
         }

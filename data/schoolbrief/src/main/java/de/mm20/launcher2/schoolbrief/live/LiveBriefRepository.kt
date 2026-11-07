@@ -120,6 +120,55 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         }
     }
 
+    // --- Schoolhelp Heute: plan steps and personal tasks ---
+
+    override val today = MutableStateFlow<de.mm20.launcher2.schoolbrief.TodayData?>(null)
+    private var todayJob: Job? = null
+    private var todayAt = 0L
+
+    /** Every 3 minutes at most while the Day page is visible, and right after a change. */
+    override fun refreshToday() {
+        if (!auth.isLoggedIn || todayJob?.isActive == true || System.currentTimeMillis() - todayAt < 3 * 60_000L) return
+        todayJob = scope.launch { loadToday() }
+    }
+
+    private suspend fun loadToday() {
+        runCatching { mcp.appCallAll("today.read") }
+            .onSuccess { today.value = TodayParser.parse(it, LocalDate.now()); todayAt = System.currentTimeMillis() }
+            .onFailure { Log.w(Tag, "today.read failed", it) }
+    }
+
+    private fun changeToday(action: String, args: JsonObject, local: (de.mm20.launcher2.schoolbrief.TodayData) -> de.mm20.launcher2.schoolbrief.TodayData) {
+        today.value?.let { today.value = local(it) }
+        scope.launch {
+            runCatching { mcp.appCall(action, args) }.onFailure { Log.w(Tag, "$action failed", it) }
+            todayJob?.join(); loadToday()
+        }
+    }
+
+    override fun addTodo(text: String) {
+        val t = text.trim().take(200)
+        if (t.isEmpty()) return
+        val day = LocalDate.now().toString()
+        if (today.value == null) today.value = de.mm20.launcher2.schoolbrief.TodayData(day, emptyList(), emptyList())
+        changeToday("today.add_todo", buildJsonObject { put("text", t) }) {
+            it.copy(todos = it.todos + de.mm20.launcher2.schoolbrief.Todo("local-${System.nanoTime()}", t, false))
+        }
+    }
+
+    override fun setTodoDone(id: String, done: Boolean) {
+        if (id.startsWith("local-")) return
+        changeToday("today.update_todo", buildJsonObject { put("todo_id", id); put("done", done) }) {
+            it.copy(todos = it.todos.map { t -> if (t.id == id) t.copy(done = done) else t })
+        }
+    }
+
+    override fun setStepDone(index: Int, done: Boolean) {
+        changeToday("today.set_step", buildJsonObject { put("i", index); put("done", done) }) {
+            it.copy(steps = it.steps.map { s -> if (s.index == index) s.copy(done = done) else s })
+        }
+    }
+
     override fun pauseRecording(pause: Boolean) {
         scope.launch {
             runCatching { mcp.appCall("lessons.pause", buildJsonObject { put("on", pause) }) }

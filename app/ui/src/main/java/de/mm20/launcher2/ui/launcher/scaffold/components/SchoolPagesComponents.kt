@@ -7,10 +7,9 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Modifier
 import de.mm20.launcher2.ui.launcher.scaffold.LauncherScaffoldState
-import de.mm20.launcher2.ui.launcher.widgets.school.SchoolChatPage
 import de.mm20.launcher2.ui.launcher.widgets.school.SchoolWeekPage
 
-/** Fork: swipe right from home. */
+/** Fork: swipe right from home: "Môj deň" (timeline, own tasks, assistant). Id kept for saved settings. */
 internal object SchoolChatComponent : ScaffoldComponent() {
     private val listState = LazyListState()
     override val isAtTop: State<Boolean?> = derivedStateOf { !listState.canScrollBackward }
@@ -21,7 +20,7 @@ internal object SchoolChatComponent : ScaffoldComponent() {
 
     @Composable
     override fun Component(modifier: Modifier, insets: PaddingValues, state: LauncherScaffoldState) {
-        SchoolChatPage(insets, listState)
+        de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState)
     }
 }
 

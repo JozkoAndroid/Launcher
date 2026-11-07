@@ -20,6 +20,15 @@ data class StudyContext(val folder: String, val lang: String?, val current: Stri
     }.trim()
 }
 
+/** A personal task ("eigene Aufgabe") in Schoolhelp's Heute page. */
+data class Todo(val id: String, val text: String, val done: Boolean)
+
+/** One step of Schoolhelp's AI day plan; [index] is what today.set_step expects. Text as Schoolhelp wrote it. */
+data class PlanStep(val index: Int, val text: String, val minutes: Int?, val subject: String, val done: Boolean)
+
+/** Schoolhelp's Heute: today's plan (empty on days without one) and the personal tasks. */
+data class TodayData(val day: String, val steps: List<PlanStep>, val todos: List<Todo>)
+
 sealed interface BriefStatus {
     data object NeedsLogin : BriefStatus
     data object Ok : BriefStatus
@@ -62,6 +71,14 @@ interface BriefRepository {
 
     /** Unread messages in Schoolhelp chats (not muted); checked with the recording. */
     val unreadChats: StateFlow<Int>
+
+    /** Schoolhelp's Heute (plan steps and personal tasks); refreshed by [refreshToday]. */
+    val today: StateFlow<TodayData?> get() = MutableStateFlow(null)
+    fun refreshToday() {}
+    /** Adds a personal task (today.add_todo); shows at once, the server id follows. */
+    fun addTodo(text: String) {}
+    fun setTodoDone(id: String, done: Boolean) {}
+    fun setStepDone(index: Int, done: Boolean) {}
 
     /** Pause/continue or stop: Schoolhelp asks for a tap to confirm, so the caller opens Schoolhelp. */
     fun pauseRecording(pause: Boolean)

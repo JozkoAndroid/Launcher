@@ -219,20 +219,68 @@ class SchoolScreenshotTest {
                             )
                         }
                         LessonContent(feed, this@SchoolScreenshotTest.now, de.mm20.launcher2.schoolbrief.Recording("Physik", false, 1834))
-                        Box(Modifier.padding(top = 8.dp)) { BriefContent(feed, now) }
-                        Box(Modifier.padding(top = 8.dp)) { TasksContent(feed, this@SchoolScreenshotTest.now.toLocalDate(), now) }
-                        Box(Modifier.padding(top = 8.dp)) {
+                        // One sheet: brief and tasks joined (as WidgetColumn does for neighbors).
+                        CompositionLocalProvider(LocalSegment provides Segment(joinedBottom = true)) {
+                            Box(Modifier.padding(top = 16.dp)) { BriefContent(feed, now) }
+                        }
+                        CompositionLocalProvider(LocalSegment provides Segment(joinedTop = true)) {
+                            Box(Modifier.padding(top = SchoolTokens.Seam)) { TasksContent(feed, this@SchoolScreenshotTest.now.toLocalDate(), now) }
+                        }
+                        Box(Modifier.padding(top = 16.dp)) {
                             ContextContent(
                                 listOf(
                                     ContextItem("music", "Bohemian Rhapsody · Queen", icon = de.mm20.launcher2.ui.R.drawable.music_note_24px, onClick = {}, playing = true, onTogglePlay = {}),
-                                    ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", icon = de.mm20.launcher2.ui.R.drawable.data_usage_24px, onClick = {}),
-                                    ContextItem("instagram", "Instagram dnes: 47 min"),
-                                    ContextItem("steps", "Kroky: 3 120 z 8 000"),
+                                    ContextItem("nameday", "Dnes má meniny René", icon = de.mm20.launcher2.ui.R.drawable.celebration_24px),
                                 )
                             )
                         }
-                        Box(Modifier.padding(top = 8.dp)) { AssistantButton(onClick = {}) }
                     }
+                    FakeDock(Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(bottom = 24.dp))
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun FakeDock(modifier: Modifier, count: Int = 4) {
+        val colors = listOf(Color(0xFF3B7DDD), Color(0xFF34A853), Color(0xFFE8710A), Color(0xFF9334E6), Color(0xFFD93025), Color(0xFF12B5CB), Color(0xFFF9AB00))
+        DockContent(
+            count = count, modifier = modifier,
+            icon = { i, size -> Box(Modifier.padding(2.dp).fillMaxSize().background(colors[i % colors.size], androidx.compose.foundation.shape.CircleShape)) },
+            label = { "App $it" }, onApp = {}, onEdit = {}, onAssistant = {},
+        )
+    }
+
+    @Test
+    fun dayPage() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90), surface = Color(0xFF15171B), surfaceContainerHigh = Color(0xFF262A31))) {
+            CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+                androidx.activity.compose.LocalActivityResultRegistryOwner provides object : androidx.activity.result.ActivityResultRegistryOwner {
+                    override val activityResultRegistry = object : androidx.activity.result.ActivityResultRegistry() {
+                        override fun <I, O> onLaunch(requestCode: Int, contract: androidx.activity.result.contract.ActivityResultContract<I, O>, input: I, options: androidx.core.app.ActivityOptionsCompat?) {}
+                    }
+                },
+            ) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF15171B))) {
+                    DayContent(
+                        feed = feed,
+                        today = de.mm20.launcher2.schoolbrief.TodayData(
+                            "2026-11-10",
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.PlanStep(0, "Nach Hause kommen und kurz entspannen", 15, "", true),
+                                de.mm20.launcher2.schoolbrief.PlanStep(1, "Für den Ethik-Leistungsnachweis lernen", 25, "Ethik", false),
+                                de.mm20.launcher2.schoolbrief.PlanStep(2, "Zwei Werbeplakate als Dummy entwerfen", 35, "Wirtschaft", false),
+                            ),
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.Todo("a", "Venček info", false),
+                                de.mm20.launcher2.schoolbrief.Todo("b", "Vrátiť knihu do knižnice", true),
+                            ),
+                        ),
+                        now = this@SchoolScreenshotTest.now,
+                        asking = false, onAsking = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
+                        chat = {},
+                    )
                 }
             }
         }

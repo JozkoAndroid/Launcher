@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,6 +61,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.schoolbrief.BriefLogic
@@ -103,7 +107,10 @@ fun LessonWidget(widget: LessonWidget) {
     )
 }
 
-/** "Teraz": the current or next lesson as one glanceable card. */
+/**
+ * "Teraz" (round 7): no card. The current or next lesson in large display type straight on the
+ * wallpaper, the glance you get before anything else. Tap opens Schoolhelp.
+ */
 @Composable
 internal fun LessonContent(
     f: Feed,
@@ -114,102 +121,120 @@ internal fun LessonContent(
 ) {
     val context = LocalContext.current
     RegisterSubjects(f)
-    SchoolCard(onClick = { Links.openSchoolhelp(context) }) {
-        val state = BriefLogic.lessonState(f, now)
-        when (val s = state) {
-            is LessonState.InLesson -> {
-                LessonHeadline(s.current, stringResource(R.string.lesson_time_range, s.current.start, s.current.end))
-                Spacer(Modifier.height(12.dp))
-                ProgressLine(s.progress)
-                s.next?.let {
+    val content = schoolContentColor()
+    val dim = content.copy(alpha = 0.78f)
+    val today = now.toLocalDate()
+    CompositionLocalProvider(LocalContentColor provides content) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                .clickable(role = Role.Button) { Links.openSchoolhelp(context) }
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
+            val state = BriefLogic.lessonState(f, now)
+            when (val s = state) {
+                is LessonState.InLesson -> {
+                    HeroTitle(s.current.subject)
+                    val left = runCatching { ChronoUnit.MINUTES.between(now.toLocalTime(), java.time.LocalTime.parse(s.current.end)).coerceAtLeast(0) }.getOrDefault(0L)
+                    HeroLine(stringResource(R.string.lesson_until_left, s.current.end, left.toInt()), content)
                     Spacer(Modifier.height(12.dp))
-                    NextLessonRow(stringResource(R.string.lesson_next_label), it)
+                    HeroProgress(s.progress, content)
+                    s.next?.let {
+                        Spacer(Modifier.height(10.dp))
+                        HeroLine(stringResource(R.string.lesson_next_at, it.subject, it.start), dim)
+                    }
                 }
+                is LessonState.Upcoming -> {
+                    HeroTitle(s.next.subject)
+                    HeroLine(stringResource(R.string.lesson_starts_at, s.next.start), content)
+                }
+                is LessonState.DayOver -> FreeHero(stringResource(R.string.lesson_day_over), s.next, today, dim)
+                is LessonState.DayOff -> FreeHero(s.title, s.next, today, dim)
+                is LessonState.Weekend -> FreeHero(stringResource(R.string.lesson_weekend), s.next, today, dim)
             }
-            is LessonState.Upcoming -> LessonHeadline(s.next, stringResource(R.string.lesson_starts_at, s.next.start))
-            is LessonState.DayOver -> FreeHeadline(R.drawable.school_24px, stringResource(R.string.lesson_day_over), s.next, now.toLocalDate())
-            is LessonState.DayOff -> FreeHeadline(R.drawable.event_24px, s.title, s.next, now.toLocalDate())
-            is LessonState.Weekend -> FreeHeadline(R.drawable.light_mode_24px, stringResource(R.string.lesson_weekend), s.next, now.toLocalDate())
-        }
-        if (recording != null) {
-            Spacer(Modifier.height(10.dp))
-            RecordingRow(recording, onPause, onStop)
-        } else if (state is LessonState.InLesson) {
-            TextButton(onClick = { Links.openSchoolhelp(context) }, modifier = Modifier.heightIn(min = SchoolTokens.RowMin)) {
-                Text(stringResource(R.string.recording_start))
+            if (recording != null) {
+                Spacer(Modifier.height(8.dp))
+                // The subject only when it is not already the big title.
+                val shown = (state as? LessonState.InLesson)?.current?.subject ?: (state as? LessonState.Upcoming)?.next?.subject
+                RecordingRow(recording.copy(subject = recording.subject.takeIf { it != shown }.orEmpty()), onPause, onStop, content)
             }
         }
     }
 }
 
-/** "● Nahráva sa · 2:34" with Pozastaviť/Pokračovať and Ukončiť (confirmed in Schoolhelp). */
 @Composable
-private fun RecordingRow(r: de.mm20.launcher2.schoolbrief.Recording, onPause: (Boolean) -> Unit, onStop: () -> Unit) {
+private fun wallpaperShadow(content: androidx.compose.ui.graphics.Color) =
+    androidx.compose.ui.graphics.Shadow(
+        androidx.compose.ui.graphics.Color.Black.copy(alpha = if (content.luminance() > 0.5f) 0.35f else 0f), blurRadius = 12f,
+    )
+
+@Composable
+private fun HeroTitle(text: String) {
+    val content = LocalContentColor.current
+    Text(
+        text,
+        style = SchoolFonts.display(40).copy(shadow = wallpaperShadow(content)),
+        maxLines = 1, overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun HeroLine(text: String, color: androidx.compose.ui.graphics.Color) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyLarge.merge(SchoolTokens.Tabular).copy(fontSize = 17.sp, shadow = wallpaperShadow(color)),
+        color = color, maxLines = 1, overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun FreeHero(title: String, next: NextSchoolDay?, today: LocalDate, dim: androidx.compose.ui.graphics.Color) {
+    HeroTitle(title)
+    next?.let {
+        HeroLine(
+            stringResource(R.string.lesson_next_day, dueLabel(it.date, today, null).replaceFirstChar { c -> c.titlecase() }, it.first.subject, it.first.start),
+            dim,
+        )
+    }
+}
+
+/** Progress through the lesson: the accent's one use on the home screen besides the dock button. */
+@Composable
+private fun HeroProgress(progress: Float, content: androidx.compose.ui.graphics.Color) {
+    val label = stringResource(R.string.lesson_progress, (progress * 100).toInt())
+    Box(
+        Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(content.copy(alpha = 0.22f))
+            .semantics { contentDescription = label }
+    ) {
+        Box(Modifier.fillMaxWidth(progress).height(3.dp).clip(CircleShape).background(schoolAccent(content)))
+    }
+}
+
+/** "● Nahráva sa · 30:34" with Pozastaviť/Pokračovať and Ukončiť (confirmed in Schoolhelp). */
+@Composable
+private fun RecordingRow(
+    r: de.mm20.launcher2.schoolbrief.Recording,
+    onPause: (Boolean) -> Unit,
+    onStop: () -> Unit,
+    content: androidx.compose.ui.graphics.Color,
+) {
+    val buttons = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = content)
     Row(verticalAlignment = Alignment.CenterVertically) {
         // A dot that marks a real state (recording), no glow, no pulse.
-        Box(
-            Modifier.size(8.dp).clip(CircleShape)
-                .background(if (r.paused) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
-        )
+        Box(Modifier.size(8.dp).clip(CircleShape).background(if (r.paused) content.copy(alpha = 0.6f) else MaterialTheme.colorScheme.error))
         Spacer(Modifier.width(8.dp))
         val time = "%d:%02d".format(r.seconds / 60, r.seconds % 60)
         Text(
-            // The subject is the card's title already; the line stays short enough for the time.
-            stringResource(if (r.paused) R.string.recording_paused else R.string.recording_on) + " · " + time,
-            style = MaterialTheme.typography.bodyMedium.merge(SchoolTokens.Tabular),
+            listOf(stringResource(if (r.paused) R.string.recording_paused else R.string.recording_on), r.subject.takeIf { it.isNotBlank() }, time)
+                .filterNotNull().joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium.merge(SchoolTokens.Tabular).copy(shadow = wallpaperShadow(content)),
             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = { onPause(!r.paused) }) {
+        TextButton(onClick = { onPause(!r.paused) }, colors = buttons) {
             Text(stringResource(if (r.paused) R.string.recording_resume else R.string.recording_pause))
         }
-        TextButton(onClick = onStop) { Text(stringResource(R.string.recording_stop)) }
-    }
-}
-
-@Composable
-private fun LessonHeadline(lesson: Lesson, detail: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        SubjectBadge(lesson.subject, SchoolTokens.BadgeLarge)
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                lesson.subject,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = SchoolTokens.TightTracking),
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            Secondary(detail)
-        }
-    }
-}
-
-@Composable
-private fun FreeHeadline(@DrawableRes icon: Int, title: String, next: NextSchoolDay?, today: LocalDate) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconBadge(icon, SchoolTokens.BadgeLarge)
-        Spacer(Modifier.width(14.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = SchoolTokens.TightTracking),
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
-        )
-    }
-    next?.let {
-        Spacer(Modifier.height(12.dp))
-        NextLessonRow(dueLabel(it.date, today, null).replaceFirstChar { c -> c.titlecase() }, it.first)
-    }
-}
-
-/** "Ďalej  [Wi] Wirtschaft · 09:55" */
-@Composable
-private fun NextLessonRow(label: String, lesson: Lesson) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Secondary(label)
-        Spacer(Modifier.width(10.dp))
-        SubjectBadge(lesson.subject, 28.dp, fontSize = 12)
-        Spacer(Modifier.width(8.dp))
-        Text(lesson.subject, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-        Spacer(Modifier.width(6.dp))
-        Secondary("· " + lesson.start)
+        TextButton(onClick = onStop, colors = buttons) { Text(stringResource(R.string.recording_stop)) }
     }
 }
 
@@ -238,9 +263,10 @@ internal fun BriefContent(f: Feed, now: OffsetDateTime) {
             stringResource(R.string.brief_title),
             if (stale) stringResource(R.string.school_stale) + " · " + updatedTime(f) else updatedTime(f),
         )
-        Spacer(Modifier.height(8.dp))
-        Text(f.brief, style = MaterialTheme.typography.bodyLarge)
-        if (f.news.isNotEmpty()) Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(10.dp))
+        // The brief reads like the first lines of a newspaper: serif, generous leading.
+        Text(f.brief, style = TextStyle(fontFamily = SchoolFonts.Serif, fontSize = 18.sp, lineHeight = 27.sp))
+        if (f.news.isNotEmpty()) Spacer(Modifier.height(10.dp))
         val openLabel = stringResource(R.string.open_article)
         for (item in f.news) {
             Row(
@@ -257,7 +283,7 @@ internal fun BriefContent(f: Feed, now: OffsetDateTime) {
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(12.dp))
-                Text(item.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -391,6 +417,8 @@ private fun TaskRowItem(row: TaskRow, onDone: () -> Unit = {}, onClick: () -> Un
         kind.takeIf { t.kind == SchoolTask.Test || t.kind == SchoolTask.Project },
         stringResource(R.string.task_estimated).takeIf { t.estimated && !row.overdue },
     ).joinToString(" · ")
+    val checkable = t.kind == SchoolTask.Homework || t.kind == SchoolTask.Project
+    val c = subjectColors(t.subject)
     Row(
         Modifier
             .fillMaxWidth()
@@ -400,21 +428,33 @@ private fun TaskRowItem(row: TaskRow, onDone: () -> Unit = {}, onClick: () -> Un
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        KindBadge(t, kind)
-        Spacer(Modifier.width(14.dp))
+        // Left slot: a check circle in the subject's color for homework and projects (tap = Hotovo in
+        // Schoolhelp), the kind icon for tests and appointments, which are not ticked.
+        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            if (checkable) {
+                val label = stringResource(R.string.task_done)
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Checkbox, onClick = onDone)
+                        .semantics { contentDescription = "$label: ${t.title}" },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(22.dp).clip(CircleShape).border(2.dp, androidx.compose.ui.graphics.lerp(c.container, c.onContainer, 0.45f), CircleShape))
+                }
+            } else {
+                Icon(
+                    painterResource(if (t.kind == SchoolTask.Test) R.drawable.quiz_24px else R.drawable.event_24px),
+                    contentDescription = kind, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
             // Titles exactly as in Schoolhelp, never translated or shortened.
             Text(t.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (meta.isNotEmpty()) Secondary(meta)
-        }
-        // One-tap "Hotovo" for homework and projects: ticks it in Schoolhelp (only the student's own tick).
-        if (t.kind == SchoolTask.Homework || t.kind == SchoolTask.Project) {
-            IconButton(onClick = onDone) {
-                Icon(
-                    painterResource(R.drawable.check_circle_24px), contentDescription = stringResource(R.string.task_done),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
@@ -592,7 +632,10 @@ internal fun RegisterSubjects(f: Feed) {
     remember(f) { SubjectPalette.register(f.timetable.values.flatten().map { it.subject } + f.tasks.map { it.subject }); 0 }
 }
 
-/** One block = one calm card: tinted surface, 24dp corners, no border, no shadow. */
+/**
+ * One block = one section of a calm sheet: tinted surface, no border, no shadow. Blocks that follow each
+ * other join (8dp inner corners, 3dp seam), so the home screen reads as one page, not a pile of cards.
+ */
 @Composable
 internal fun SchoolCard(
     modifier: Modifier = Modifier,
@@ -604,11 +647,10 @@ internal fun SchoolCard(
         Column(
             modifier
                 .fillMaxWidth()
-                .padding(vertical = SchoolTokens.BlockPad)
-                .clip(RoundedCornerShape(SchoolTokens.CardRadius))
+                .clip(segmentShape())
                 .background(surface)
                 .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-                .padding(SchoolTokens.Inset),
+                .padding(horizontal = 20.dp, vertical = 18.dp),
             content = content,
         )
     }
@@ -622,15 +664,19 @@ internal fun SchoolBlockFrame(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
+/** Section label: small, quiet, sentence case; the content below is what matters. */
 @Composable
 internal fun CardHeader(title: String, trailing: String?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             title,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp, letterSpacing = 0.01.em),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
-        trailing?.let { Secondary(it) }
+        trailing?.let {
+            Text(it, style = MaterialTheme.typography.labelMedium.merge(SchoolTokens.Tabular), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
+        }
     }
 }
 

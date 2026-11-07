@@ -1,5 +1,7 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.navigationBars
 import de.mm20.launcher2.ui.launcher.helper.detectLongPressPassive
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -150,11 +152,27 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                     },
                     parentId = WidgetScreenTarget.Default.id.toString(),
                 )
+                // Room for the floating dock, so the last block can scroll above it.
+                if (!editMode) androidx.compose.foundation.layout.Spacer(Modifier.height(de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.DockHeight + 40.dp))
             }
         }
 
         // Fork: one home screen on every size; wide screens get a two-column dashboard (see WidgetColumn).
-        homeColumn(modifier.fillMaxSize())
+        // Round 7: a dock of 4 apps (7 on wide screens) and the assistant floats at the bottom.
+        androidx.compose.foundation.layout.Box(modifier.fillMaxSize()) {
+            homeColumn(Modifier.fillMaxSize())
+            AnimatedVisibility(
+                !editMode,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = fadeIn(), exit = fadeOut(),
+            ) {
+                de.mm20.launcher2.ui.launcher.widgets.school.FloatingDock(
+                    Modifier
+                        .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
+                        .padding(bottom = 12.dp)
+                )
+            }
+        }
         if (editMode) {
             BackHandler {
                 editMode = false

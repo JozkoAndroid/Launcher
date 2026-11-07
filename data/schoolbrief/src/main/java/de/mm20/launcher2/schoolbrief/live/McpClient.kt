@@ -32,6 +32,32 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
         return toolJson(result)
     }
 
+    /**
+     * For large results Schoolhelp returns {"paged_json": "<part>", "next_offset": n, "total": t}: read all
+     * parts (result_offset) and parse the joined JSON. Small results come back as they are.
+     */
+    suspend fun appCallAll(action: String, arguments: JsonObject = JsonObject(emptyMap())): JsonObject {
+        if (sessionId == null) initialize()
+        val sb = StringBuilder()
+        var offset = 0
+        repeat(20) {
+            val r = toolJson(rpc("tools/call", buildJsonObject {
+                put("name", "app_call")
+                put("arguments", buildJsonObject {
+                    put("name", action)
+                    put("arguments", arguments)
+                    if (offset > 0) put("result_offset", offset)
+                })
+            }))
+            val part = (r["paged_json"] as? JsonPrimitive)?.contentOrNull ?: return if (sb.isEmpty()) r else Json.parseToJsonElement(sb.toString()).jsonObject
+            sb.append(part)
+            val next = (r["next_offset"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull()
+            if (next == null || next <= offset) return Json.parseToJsonElement(sb.toString()).jsonObject
+            offset = next
+        }
+        return Json.parseToJsonElement(sb.toString()).jsonObject
+    }
+
     private suspend fun initialize() {
         rpc("initialize", buildJsonObject {
             put("protocolVersion", "2025-06-18")

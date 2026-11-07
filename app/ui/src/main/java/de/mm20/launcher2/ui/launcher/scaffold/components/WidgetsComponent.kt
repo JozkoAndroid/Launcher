@@ -118,8 +118,7 @@ internal class WidgetsComponent(
             }
         }
 
-        // Fork: the second widget screen is the side panel (swipe left) with the chat docked at the bottom.
-        val sidePanel = target == WidgetScreenTarget.Widgets2
+        // Fork: the second widget screen is the side panel (swipe left): widgets only; the chat lives on "Môj deň".
         androidx.compose.foundation.layout.Box(modifier) {
             Column(
                 modifier = Modifier
@@ -136,7 +135,7 @@ internal class WidgetsComponent(
                     .padding(horizontal = 8.dp)
                     .padding(top = topPadding)
                     .padding(insets)
-                    .padding(bottom = if (sidePanel && !editMode) 96.dp else 0.dp),
+                    .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 WidgetColumn(
@@ -147,16 +146,6 @@ internal class WidgetsComponent(
                         editMode = it
                     },
                     parentId = target.id.toString(),
-                )
-            }
-            if (sidePanel && !editMode) {
-                de.mm20.launcher2.ui.launcher.widgets.school.ChatDock(
-                    Modifier.align(Alignment.BottomCenter),
-                    // Keyboard or nav bar only: the scaffold insets also add the search filter bar,
-                    // which pushed the field far above the keyboard (device test).
-                    bottomInset = androidx.compose.foundation.layout.WindowInsets.ime
-                        .union(androidx.compose.foundation.layout.WindowInsets.navigationBars)
-                        .asPaddingValues().calculateBottomPadding(),
                 )
             }
         }

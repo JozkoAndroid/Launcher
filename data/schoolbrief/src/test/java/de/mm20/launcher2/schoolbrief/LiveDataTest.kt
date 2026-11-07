@@ -166,4 +166,19 @@ class LiveDataTest {
         val s = Json.parseToJsonElement("""{$subjects}""").jsonObject
         assertEquals(mapOf("Physik" to "de", "English" to "en"), de.mm20.launcher2.schoolbrief.live.RecordingParser.subjectLangs(s))
     }
+
+    /** today.read: today's plan from "plans" when "plan" is null, steps keep their index for today.set_step. */
+    @Test
+    fun todayPlanAndTodos() {
+        val r = Json.parseToJsonElement("""{"day":"2026-11-10","plan":null,
+            "plans":[{"day":"2026-11-09","steps":[{"step":"Alt","minutes":5,"done":true}]},
+                     {"day":"2026-11-10","steps":[{"step":"Ankommen","minutes":15,"subject":"","done":true},
+                                                  {"step":"Für Bio lernen","minutes":25,"subject":"Bio","done":false}]}],
+            "todos":[{"id":"a1","text":"Venček info","done":false},{"id":"a2","text":"Kniha","done":true}]}""").jsonObject
+        val t = de.mm20.launcher2.schoolbrief.live.TodayParser.parse(r, LocalDate.parse("2026-11-10"))
+        assertEquals(listOf("Ankommen", "Für Bio lernen"), t.steps.map { it.text })
+        assertEquals(1, t.steps[1].index)
+        assertEquals(25, t.steps[1].minutes)
+        assertEquals(listOf(Todo("a1", "Venček info", false), Todo("a2", "Kniha", true)), t.todos)
+    }
 }

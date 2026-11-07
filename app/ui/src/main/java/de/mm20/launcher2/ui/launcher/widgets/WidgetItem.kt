@@ -95,7 +95,7 @@ fun WidgetItem(
         modifier = modifier.zIndex(if (isDragged) 1f else 0f),
         elevation = if (forkCard) 0.dp else elevation,
         backgroundOpacity = if (forkCard && !editMode) 0.86f else backgroundOpacity,
-        shape = if (forkCard) androidx.compose.foundation.shape.RoundedCornerShape(24.dp) else MaterialTheme.shapes.medium,
+        shape = if (forkCard && !editMode) de.mm20.launcher2.ui.launcher.widgets.school.segmentShape() else MaterialTheme.shapes.medium,
         color = if (forkCard && !editMode) MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.86f)
         else MaterialTheme.colorScheme.surface.copy(alpha = backgroundOpacity.coerceIn(0f, 1f)),
     ) {

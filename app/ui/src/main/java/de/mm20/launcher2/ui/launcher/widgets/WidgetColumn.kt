@@ -80,7 +80,12 @@ fun WidgetColumn(
             }
             val widgetsWithIndex = remember(widgets) { widgets.withIndex() }
             for ((i, widget) in widgetsWithIndex) {
-                key(widget.id) {
+                // Fork (round 7): sheet blocks that follow each other join into one sheet.
+                val seg = de.mm20.launcher2.ui.launcher.widgets.school.Segment(
+                    joinedTop = !editMode && i > 0 && isSheet(widgets[i - 1]) && isSheet(widget),
+                    joinedBottom = !editMode && i < widgets.lastIndex && isSheet(widgets[i + 1]) && isSheet(widget),
+                )
+                key(widget.id) { androidx.compose.runtime.CompositionLocalProvider(de.mm20.launcher2.ui.launcher.widgets.school.LocalSegment provides seg) {
                     var dragOffsetAfterSwap = remember<Float?> { null }
                     val offsetY =
                         remember(widgets) { mutableFloatStateOf(dragOffsetAfterSwap ?: 0f) }
@@ -123,7 +128,7 @@ fun WidgetColumn(
                                 swapThresholds[i][0] = it.positionInParent().y
                                 swapThresholds[i][1] = it.positionInParent().y + it.size.height
                             }
-                            .padding(top = if (i > 0) 8.dp else 0.dp)
+                            .padding(top = if (i == 0) 0.dp else if (seg.joinedTop) de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.Seam else de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.GroupGap)
                             .offset {
                                 IntOffset(0, offsetY.value.toInt())
                             },
@@ -153,7 +158,7 @@ fun WidgetColumn(
                             }
                         },
                     )
-                }
+                } }
             }
         }
 
@@ -200,6 +205,16 @@ fun WidgetColumn(
             addNewWidget = false
         },
     )
+}
+
+/** Fork: blocks drawn as a section of the sheet (joined with their neighbors); others float on the wallpaper. */
+internal fun isSheet(w: de.mm20.launcher2.widgets.Widget): Boolean = when (w) {
+    is de.mm20.launcher2.widgets.BriefWidget, is de.mm20.launcher2.widgets.TasksWidget, is de.mm20.launcher2.widgets.WeekWidget,
+    is de.mm20.launcher2.widgets.TestPrepWidget, is de.mm20.launcher2.widgets.FoldersWidget -> true
+    is de.mm20.launcher2.widgets.LessonWidget, is de.mm20.launcher2.widgets.ContextWidget, is de.mm20.launcher2.widgets.ChipWidget,
+    is de.mm20.launcher2.widgets.AssistantWidget, is de.mm20.launcher2.widgets.MyDayWidget -> false
+    is AppWidget -> w.config.background
+    else -> true // Kvaesitso's own widgets (weather, calendar, notes, ...) share the sheet look
 }
 
 /** Fork: width from which the home blocks sit in two columns (Fold 5 inner screen ~ 775dp, tablets). */

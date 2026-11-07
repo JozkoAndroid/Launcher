@@ -27,8 +27,15 @@ internal object SchoolTokens {
     val BlockPad = 2.dp
     val RowMin = 48.dp
 
-    /** Radius scale: cards 24, inner items 14, badges 12. Pill only for the Gemini button. */
-    val CardRadius = 24.dp
+    /**
+     * Radius scale (round 7 redesign): sheet ends 28, joined edges 8, inner items 14, badges 12.
+     * Blocks that follow each other join into one sheet with a 3dp seam; other blocks sit 16dp apart.
+     */
+    val CardRadius = 28.dp
+    val JoinRadius = 8.dp
+    val Seam = 3.dp
+    val GroupGap = 16.dp
+    val DockHeight = 64.dp
     val ItemRadius = 14.dp
     val BadgeRadius = 12.dp
     val PressRadius = 14.dp
@@ -48,6 +55,36 @@ internal object SchoolTokens {
 
     val Tabular = TextStyle(fontFeatureSettings = "tnum")
     val TightTracking = (-0.01).em
+}
+
+/** Where a block sits in a joined sheet: [joinedTop] / [joinedBottom] = a sheet block directly above / below. */
+data class Segment(val joinedTop: Boolean = false, val joinedBottom: Boolean = false)
+
+val LocalSegment = androidx.compose.runtime.staticCompositionLocalOf { Segment() }
+
+@Composable
+internal fun segmentShape(): androidx.compose.foundation.shape.RoundedCornerShape {
+    val s = LocalSegment.current
+    val top = if (s.joinedTop) SchoolTokens.JoinRadius else SchoolTokens.CardRadius
+    val bottom = if (s.joinedBottom) SchoolTokens.JoinRadius else SchoolTokens.CardRadius
+    return androidx.compose.foundation.shape.RoundedCornerShape(top, top, bottom, bottom)
+}
+
+/**
+ * Type pairing (round 7): a wide cut of the bundled Google Sans Flex for the big moments (current
+ * lesson, page titles), a serif for the daily brief (reads like a newspaper), the theme sans for the rest.
+ */
+internal object SchoolFonts {
+    val Display: androidx.compose.ui.text.font.FontFamily by lazy {
+        de.mm20.launcher2.ui.theme.typography.fontfamily.GoogleSansFlex(mapOf("wdth" to 112f, "opsz" to 48f))
+    }
+    val Serif: androidx.compose.ui.text.font.FontFamily = androidx.compose.ui.text.font.FontFamily.Serif
+
+    fun display(size: Int, weight: Int = 500) = TextStyle(
+        fontFamily = Display, fontSize = androidx.compose.ui.unit.TextUnit(size.toFloat(), androidx.compose.ui.unit.TextUnitType.Sp),
+        lineHeight = androidx.compose.ui.unit.TextUnit(size * 1.12f, androidx.compose.ui.unit.TextUnitType.Sp),
+        fontWeight = androidx.compose.ui.text.font.FontWeight(weight), letterSpacing = (-0.02).em,
+    )
 }
 
 /** Text color for things drawn straight on the wallpaper (only the Gemini pill now). */

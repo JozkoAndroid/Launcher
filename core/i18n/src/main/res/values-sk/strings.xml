@@ -11,8 +11,8 @@
     <string name="lesson_next">Ďalej: %1$s o %2$s</string>
     <string name="lesson_upcoming_at">o %1$s</string>
     <string name="lesson_tomorrow">Zajtra %1$s o %2$s</string>
-    <string name="lesson_day_over">Dnes už žiadne hodiny</string>
-    <string name="lesson_weekend">Víkend, bez školy</string>
+    <string name="lesson_day_over">Po škole</string>
+    <string name="lesson_weekend">Víkend</string>
     <string name="lesson_progress">Hodina z %1$d %% za tebou</string>
     <string name="task_overdue">po termíne</string>
     <string name="task_estimated">odhad</string>
@@ -1164,4 +1164,23 @@
     <string name="chip_icon_circle">V kruhu</string>
     <string name="chip_icon_none">Bez ikony</string>
     <string name="chip_accent">Farba tapety</string>
+    <string name="lesson_until_left">do %1$s · ešte %2$d min</string>
+    <string name="lesson_next_at">Ďalej %1$s o %2$s</string>
+    <plurals name="day_open">
+        <item quantity="one">%d otvorená</item>
+        <item quantity="few">%d otvorené</item>
+        <item quantity="many">%d otvorených</item>
+        <item quantity="other">%d otvorených</item>
+    </plurals>
+    <string name="day_section_lessons">Rozvrh</string>
+    <string name="day_section_plan">Po škole</string>
+    <string name="day_section_todos">Moje úlohy</string>
+    <string name="day_minutes_total">ešte %1$d min</string>
+    <string name="day_minutes">%1$d min</string>
+    <string name="day_todos_empty">Zatiaľ nič. Napíš alebo povedz, čo nechceš zabudnúť.</string>
+    <string name="day_mark_open">Označiť ako nehotové</string>
+    <string name="day_mode_task">Úloha</string>
+    <string name="day_mode_ask">Opýtaj sa</string>
+    <string name="day_capture_hint">Čo nechceš zabudnúť?</string>
+    <string name="day_add">Pridať úlohu</string>
 </resources>
