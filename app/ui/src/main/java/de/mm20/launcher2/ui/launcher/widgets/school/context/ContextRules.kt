@@ -49,6 +49,19 @@ sealed interface ContextCard {
     }
 }
 
+/** The chip block kind a card belongs to (see ChipWidget.Kinds). */
+fun ContextCard.kind(): String = when (this) {
+    is ContextCard.TestSoon -> "test"
+    is ContextCard.Chats -> "chats"
+    is ContextCard.Lunch -> "lunch"
+    is ContextCard.NameDay -> "nameday"
+    is ContextCard.Birthday -> "birthday"
+    is ContextCard.Music -> "music"
+    is ContextCard.Steps -> "steps"
+    is ContextCard.MobileData -> "data"
+    is ContextCard.Instagram -> "instagram"
+}
+
 /** User settings for the cards; defaults are the spec's values. */
 data class ContextSettings(
     val planBytes: Long = 3_500_000_000L,
@@ -69,6 +82,14 @@ object ContextRules {
     fun cycleStart(today: LocalDate, s: ContextSettings): LocalDate {
         val days = ChronoUnit.DAYS.between(s.cycleAnchor, today)
         return s.cycleAnchor.plusDays(Math.floorDiv(days, s.cycleDays) * s.cycleDays)
+    }
+
+    /** Whether a card is urgent enough for "Práve teraz" (dedicated blocks show their card always). */
+    fun urgent(c: ContextCard, now: LocalTime, s: ContextSettings): Boolean = when (c) {
+        is ContextCard.MobileData -> showData(c.usedBytes, s)
+        is ContextCard.Steps -> showSteps(now, c.steps, s)
+        is ContextCard.Instagram -> showInstagram(c.minutes)
+        else -> true
     }
 
     fun showData(usedBytes: Long, s: ContextSettings): Boolean = s.planBytes > 0 && usedBytes >= s.planBytes * DataThreshold

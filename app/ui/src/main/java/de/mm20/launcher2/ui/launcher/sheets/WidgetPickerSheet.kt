@@ -248,8 +248,9 @@ private class BindAndConfigureAppWidgetContract(
                 return AppWidget(
                     id = UUID.randomUUID(),
                     config = AppWidgetConfig(
-                        height = with(density) { widgetProviderInfo.minHeight.toDp() }.value.toInt(),
-                        width = with(density) { widgetProviderInfo.minWidth.toDp() }.value.toInt(),
+                        // Fork: full card width and a real default height (minWidth/minHeight is only the resize minimum).
+                        height = de.mm20.launcher2.ui.launcher.widgets.external.defaultAppWidgetHeightDp(widgetProviderInfo, density),
+                        width = null,
                         widgetId = widgetId,
                     ),
                 )

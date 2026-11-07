@@ -123,6 +123,34 @@ class SchoolScreenshotTest {
     }
 
     @Test
+    fun chipStyles() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90), primaryContainer = Color(0xFF284777), onPrimaryContainer = Color(0xFFD6E3FF))) {
+            CompositionLocalProvider(
+                LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+            ) {
+                val data = ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", de.mm20.launcher2.ui.R.drawable.data_usage_24px, value = "2,9 GB", label = "z 3,5 GB", progress = 0.83f)
+                val steps = ContextItem("steps", "Kroky: 3 120 z 8 000", de.mm20.launcher2.ui.R.drawable.directions_walk_24px, value = "3 120", label = "Kroky · cieľ 8 000", progress = 0.39f)
+                val name = ContextItem("nameday", "Dnes má meniny René", de.mm20.launcher2.ui.R.drawable.celebration_24px, value = "René", label = "Meniny")
+                val insta = ContextItem("instagram", "Instagram dnes: 47 min", de.mm20.launcher2.ui.R.drawable.timer_24px, value = "47 min", label = "Instagram dnes")
+                val lunch = ContextItem("lunch", "Obed: menu 2", de.mm20.launcher2.ui.R.drawable.restaurant_24px, value = "Menu 2", label = "Obed")
+                Box(Modifier.fillMaxSize().background(darkWallpaper)) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        val cfg = de.mm20.launcher2.widgets.ChipWidgetConfig()
+                        ChipBlock(listOf(name), cfg.copy(style = "glance", font = "serif", icon = "none"))
+                        ChipBlock(listOf(insta), cfg.copy(style = "glance", font = "condensed", accent = true))
+                        ChipBlock(listOf(data), cfg.copy(style = "tile", font = "rounded", icon = "circle"))
+                        ChipBlock(listOf(lunch), cfg.copy(style = "tile", icon = "circle", accent = true))
+                        ChipBlock(listOf(steps), cfg.copy(style = "ring", font = "wide"))
+                        ChipBlock(listOf(data), cfg.copy(style = "ring", accent = true, font = "mono"))
+                        ChipBlock(listOf(name), cfg.copy(style = "pill"))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun myDay() = paparazzi.snapshot {
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
             CompositionLocalProvider(

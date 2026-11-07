@@ -43,7 +43,7 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     fun setGeminiKey(key: String?) = repository.setGeminiKey(key)
     fun retry() = repository.refreshIfDue()
 
-    fun markDone(taskId: String) = repository.markDone(taskId)
+    fun markDone(taskId: String, done: Boolean = true) = repository.markDone(taskId, done)
 
     val recording: StateFlow<de.mm20.launcher2.schoolbrief.Recording?> = repository.recording
 
@@ -65,4 +65,8 @@ data class ContextItem(
     val onClick: (() -> Unit)? = null,
     val playing: Boolean? = null,
     val onTogglePlay: (() -> Unit)? = null,
+    /** For the tile, glance and ring styles: big [value], small [label], optional 0..1 [progress]. */
+    val value: String = text,
+    val label: String? = null,
+    val progress: Float? = null,
 )

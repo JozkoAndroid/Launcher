@@ -69,14 +69,35 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     private suspend fun readRecording() {
         runCatching { mcp.appCall("lessons.status") }.onSuccess { s ->
-            recording.value = (s["lesson"] as? JsonObject)?.let { l ->
-                de.mm20.launcher2.schoolbrief.Recording(
-                    subject = l["folder"]?.jsonPrimitive?.contentOrNull ?: l["subject"]?.jsonPrimitive?.contentOrNull ?: "",
-                    paused = l["paused"]?.jsonPrimitive?.booleanOrNull == true,
-                    seconds = l["audio_seconds"]?.jsonPrimitive?.doubleOrNull?.toLong() ?: 0,
-                )
-            }
+            recording.value = RecordingParser.parse(s, java.time.LocalDateTime.now())
+            RecordingParser.subjectLangs(s).takeIf { it.isNotEmpty() }?.let { langs = it }
         }
+    }
+
+    /** Fach folder -> teaching language (de, en, sk), from lessons.status. */
+    @Volatile private var langs: Map<String, String> = emptyMap()
+
+    override suspend fun studyContext(folder: String): de.mm20.launcher2.schoolbrief.StudyContext? = runCatching {
+        if (langs.isEmpty()) runCatching { RecordingParser.subjectLangs(mcp.appCall("lessons.status")) }.getOrNull()?.let { langs = it }
+        val r = mcp.appCall("stoff.read", buildJsonObject { put("folder", folder); put("limit", 8) })
+        val root = (r["result"] as? JsonObject) ?: r
+        val jetzt = root["jetzt"] as? JsonObject
+        de.mm20.launcher2.schoolbrief.StudyContext(
+            folder = folder,
+            lang = langs[folder],
+            current = jetzt?.get("title")?.jsonPrimitive?.contentOrNull,
+            points = (jetzt?.get("points") as? kotlinx.serialization.json.JsonArray)?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty(),
+            recent = (root["lessons"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { (it as? JsonObject)?.get("title")?.jsonPrimitive?.contentOrNull }
+                ?.filterNot { it.contains("Kein Unterrichtsinhalt", true) }?.take(8).orEmpty(),
+        )
+    }.onFailure { Log.w(Tag, "stoff.read failed", it) }.getOrNull()
+
+    override suspend fun answerNow(): Result<String> = runCatching {
+        val r = mcp.appCall("lessons.answer_now")
+        val root = (r["result"] as? JsonObject) ?: r
+        listOf("answer", "text", "reply", "result").firstNotNullOfOrNull { root[it]?.let { e -> (e as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull } }
+            ?: root["error"]?.jsonPrimitive?.contentOrNull?.let { error(it) }
+            ?: error("Schoolhelp nevrátil odpoveď.")
     }
 
     private suspend fun readUnreadChats() {
@@ -89,11 +110,11 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         }
     }
 
-    override fun markDone(taskId: String) {
-        // Hide at once; Schoolhelp's mark_done changes only the student's own tick.
-        feed.value?.let { f -> feed.value = f.copy(tasks = f.tasks.map { if (it.id == taskId) it.copy(done = true) else it }) }
+    override fun markDone(taskId: String, done: Boolean) {
+        // Change the list at once (undo shows the task again); Schoolhelp's mark_done changes only the student's own tick.
+        feed.value?.let { f -> feed.value = f.copy(tasks = f.tasks.map { if (it.id == taskId) it.copy(done = done) else it }) }
         scope.launch {
-            runCatching { mcp.appCall("mark_done", buildJsonObject { put("event_id", taskId); put("done", true) }) }
+            runCatching { mcp.appCall("mark_done", buildJsonObject { put("event_id", taskId); put("done", done) }) }
                 .onSuccess { feed.value?.let { writeCache(it) } }
                 .onFailure { Log.w(Tag, "mark_done failed", it); lastAttempt = 0; prefs.edit().putLong(KeyDataAt, 0).apply() }
         }
@@ -257,7 +278,7 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         private const val KeyDataAt = "data_at"
         private const val KeyBriefAt = "brief_at"
         private const val KeyBriefIsTemplate = "brief_is_template"
-        private const val DataMaxAgeMs = 30 * 60_000L
+        private const val DataMaxAgeMs = 15 * 60_000L
         private const val RetryMs = 5 * 60_000L
 
         /** The most recent slot at or before [now] (yesterday's evening slot before 06:30). */

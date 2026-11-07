@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 6
+    private const val Version = 7
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -75,6 +75,10 @@ object ForkSetup : KoinComponent {
                 if (widgets.get(panel).first().isEmpty()) {
                     widgets.create(de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()), 0, panel)
                 }
+            }
+            // v7 (device test): swipe down = notifications as usual; the app list stays on swipe up.
+            if (from < 7 && gestureSettings.swipeDown.first() is GestureAction.Search) {
+                gestureSettings.setSwipeDown(GestureAction.Notifications)
             }
             // v4: folders block on the home screen, after the context chips.
             if (from < 4) {

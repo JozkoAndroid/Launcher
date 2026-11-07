@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import de.mm20.launcher2.ui.launcher.helper.detectLongPressPassive
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.fillMaxSize
@@ -126,10 +127,10 @@ internal class WidgetsComponent(
                     .nestedScroll(scrollConnection)
                     // Fork: long press edits the panel, like the home screen.
                     .pointerInput(editMode) {
-                        if (!editMode) detectTapGestures(onLongPress = {
+                        if (!editMode) detectLongPressPassive {
                             scope.launch { state.lock(hideSearchBar = true) }
                             editMode = true
-                        })
+                        }
                     }
                     .verticalScroll(scrollState)
                     .padding(horizontal = 8.dp)

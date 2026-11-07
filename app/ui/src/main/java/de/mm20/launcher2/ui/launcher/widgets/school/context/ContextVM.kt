@@ -15,8 +15,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.LocalDate
@@ -28,11 +30,18 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     private val permissions: PermissionsManager by inject()
     private val notificationRepository: de.mm20.launcher2.notifications.NotificationRepository by inject()
     private val brief: de.mm20.launcher2.schoolbrief.BriefRepository by inject()
+    private val widgets: de.mm20.launcher2.widgets.WidgetRepository by inject()
     private val store = ContextSettingsStore(app)
 
     val lunchPackage = MutableStateFlow(store.lunchPackage)
 
+    /** App labels by package: looked up once, not on every notification. */
+    private val labels = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     val settings = MutableStateFlow(store.load())
+
+    /** Usage access (mobile data, Instagram): a dedicated block without it shows a setup chip. */
+    val usageAccess = MutableStateFlow(true)
 
     private val musicCard: Flow<ContextCard.Music?> =
         combine(music.playbackState, music.title, music.artist) { state, title, artist ->
@@ -47,7 +56,10 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
             emit(readPolled())
             delay(5 * 60_000L)
         }
-    }.shareIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), replay = 1)
+    }
+        // Contacts, name-day JSON, data and app usage queries: never on the main thread (jank on swipe).
+        .flowOn(kotlinx.coroutines.Dispatchers.IO)
+        .shareIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     /**
      * Today's lunch from the EduPage food app's notification (chosen in settings, or detected by name).
@@ -58,7 +70,7 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         val zone = ZoneId.systemDefault()
         val now = java.time.LocalDateTime.now(zone)
         // Chosen app, else any app whose name looks like a lunch app (e.g. "Lunch Bell").
-        val isLunchApp = { pkg: String -> if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(ContextSources.appLabel(ctx, pkg)) }
+        val isLunchApp = { pkg: String -> if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(labels.getOrPut(pkg) { ContextSources.appLabel(ctx, pkg) }) }
         list.filter { isLunchApp(it.packageName) }.maxByOrNull { it.postTime }?.let { n ->
             val day = ContextRules.lunchDay(java.time.Instant.ofEpochMilli(n.postTime).atZone(zone).toLocalDateTime())
             ContextRules.lunchText(
@@ -70,7 +82,7 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         store.storedLunch()?.takeIf { (day, _, _) -> ContextRules.lunchVisible(day, now) }?.let { (day, pkg, text) ->
             ContextCard.Lunch(text, pkg, tomorrow = day.isAfter(now.toLocalDate()))
         }
-    }
+    }.flowOn(kotlinx.coroutines.Dispatchers.Default)
 
     /** School chips from the brief: nearest test within 3 days, unread Schoolhelp messages. */
     private val schoolCards: Flow<List<ContextCard>> = combine(brief.feed, brief.unreadChats, polled) { f, unread, _ ->
@@ -80,13 +92,24 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         )
     }
 
-    /** Every card that applies right now, most urgent first (single chip blocks pick theirs from here). */
+    /** Every card with a value right now, most urgent first (single chip blocks pick theirs from here). */
     val allCards: Flow<List<ContextCard>> = combine(musicCard, lunchCard, schoolCards, polled) { m, l, s, p ->
         (listOfNotNull(m, l) + s + p).sortedBy { it.rank }
     }
+        // One shared computation for "Práve teraz" and every chip block, off the main thread.
+        .flowOn(kotlinx.coroutines.Dispatchers.Default)
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** "Práve teraz": the most urgent four. */
-    val cards: Flow<List<ContextCard>> = allCards.map { it.take(ContextRules.MaxCards) }
+    /** Chip kinds that have their own block somewhere: "Práve teraz" leaves them out (device test: duplicates). */
+    private val ownBlocks: Flow<Set<String>> = combine(
+        de.mm20.launcher2.widgets.ChipWidget.Kinds.map { k -> widgets.exists(de.mm20.launcher2.widgets.ChipWidget.TypePrefix + k).map { if (it) k else null } }
+    ) { it.filterNotNull().toSet() }
+
+    /** "Práve teraz": the most urgent four, without kinds that have their own block. */
+    val cards: Flow<List<ContextCard>> = combine(allCards, ownBlocks, settings) { all, own, s ->
+        val now = LocalTime.now()
+        all.filter { it.kind() !in own && ContextRules.urgent(it, now, s) }.take(ContextRules.MaxCards)
+    }
 
     fun setLunchPackage(pkg: String?) {
         store.lunchPackage = pkg; lunchPackage.value = pkg
@@ -104,23 +127,17 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         val out = mutableListOf<ContextCard>()
 
         val cycleFrom = ContextRules.cycleStart(today, s).atStartOfDay(zone).toInstant().toEpochMilli()
-        ContextSources.mobileBytes(ctx, cycleFrom, now)?.let { used ->
-            if (ContextRules.showData(used, s)) out += ContextCard.MobileData(used, s.planBytes)
-        }
+        usageAccess.value = ContextSources.hasUsageAccess(ctx)
+        // Every value is read; "Práve teraz" shows only the urgent ones (ContextRules.urgent), a dedicated block shows its value always.
+        ContextSources.mobileBytes(ctx, cycleFrom, now)?.let { used -> out += ContextCard.MobileData(used, s.planBytes) }
         out += ContextSources.birthdays(ctx, today)
         val names = ContextRules.nameDay(ContextSources.nameDays(ctx), today)
         if (names.isNotEmpty()) {
             val contact = ContextSources.nameDayContact(ctx, names)
             out += ContextCard.NameDay(names, contact?.first, contact?.second)
         }
-        if (!LocalTime.now(zone).isBefore(s.stepsAfter)) {
-            ContextSources.stepsToday(ctx, zone)?.let { steps ->
-                if (ContextRules.showSteps(LocalTime.now(zone), steps, s)) out += ContextCard.Steps(steps, s.stepsGoal)
-            }
-        }
-        ContextSources.instagramMinutes(ctx, now, zone)?.let { min ->
-            if (ContextRules.showInstagram(min)) out += ContextCard.Instagram(min)
-        }
+        ContextSources.stepsToday(ctx, zone)?.let { steps -> out += ContextCard.Steps(steps, s.stepsGoal) }
+        ContextSources.instagramMinutes(ctx, now, zone)?.let { min -> out += ContextCard.Instagram(min) }
         return out
     }
 

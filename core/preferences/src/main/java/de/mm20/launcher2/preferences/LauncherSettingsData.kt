@@ -156,11 +156,12 @@ data class LauncherSettingsData internal constructor(
     val widgetsEditButton: Boolean = true,
     val widgetScreenCount: Int = 1,
 
-    val gesturesSwipeDown: GestureAction = GestureAction.Search,
+    // Fork default: swipe down opens notifications, like the phone's own home screen.
+    val gesturesSwipeDown: GestureAction = GestureAction.Notifications,
     // Fork default: swipe left = side panel (widget screen 2: real app widgets, chat docked at the bottom).
     val gesturesSwipeLeft: GestureAction = GestureAction.Widgets(WidgetScreenTarget.Widgets2),
     val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
-    // Fork default: one app list (Kvaesitso's, with favorites) on swipe up and swipe down.
+    // Fork default: the app list (Kvaesitso's, with favorites) on swipe up.
     val gesturesSwipeUp: GestureAction = GestureAction.Search,
     val gesturesDoubleTap: GestureAction = GestureAction.ScreenLock,
     val gesturesLongPress: GestureAction = GestureAction.NoAction,

@@ -124,5 +124,5 @@ internal class PushScaffoldAnimationController(
         }
     }
 
-    override fun calculatePredictiveBackProgress(progress: Float): Float = 1f - progress * 0.1f
+    override fun calculatePredictiveBackProgress(progress: Float): Float = 1f - progress * 0.3f
 }

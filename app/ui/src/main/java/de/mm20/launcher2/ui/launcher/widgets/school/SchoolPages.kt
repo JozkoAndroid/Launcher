@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -82,15 +83,71 @@ class SchoolChatVM : ViewModel(), KoinComponent {
     val keyState = brief.hasGeminiKey
     fun saveKey(key: String) = brief.setGeminiKey(key)
 
-    fun send(text: String) {
+    fun send(text: String, modelText: String? = null) {
         val q = text.trim()
         if (q.isEmpty() || thinking) return
-        messages += ChatMessage(true, q)
+        messages += ChatMessage(true, q, modelText)
         thinking = true
         viewModelScope.launch {
             val feed = brief.feed.first()
             val answer = chat.reply(messages.toList(), feed)
             messages += ChatMessage(false, answer.getOrElse { "Odpoveď sa nepodarilo načítať (${it.message}). Skús to znova." })
+            thinking = false
+        }
+    }
+
+    /** A quick action whose prompt needs Schoolhelp's lesson topics first (stoff.read). */
+    private fun sendWithTopics(label: String, folder: String, prompt: (de.mm20.launcher2.schoolbrief.StudyContext?) -> String) {
+        if (thinking) return
+        // The short label shows at once; the full prompt is filled in once the topics are loaded.
+        messages += ChatMessage(true, label)
+        val at = messages.lastIndex
+        thinking = true
+        viewModelScope.launch {
+            val ctx = folder.takeIf { it.isNotBlank() }?.let { brief.studyContext(it) }
+            if (at in messages.indices) messages[at] = ChatMessage(true, label, prompt(ctx))
+            val answer = chat.reply(messages.toList(), brief.feed.first())
+            messages += ChatMessage(false, answer.getOrElse { "Odpoveď sa nepodarilo načítať (${it.message}). Skús to znova." })
+            thinking = false
+        }
+    }
+
+    /** Test prep (device test: Gemini did not know what a "Leistungsnachweis" covers and kept asking back). */
+    fun practiseTest(t: de.mm20.launcher2.schoolbrief.SchoolTask, due: String, label: String) {
+        clear()
+        sendWithTopics(label, t.subject) { c ->
+            buildString {
+                append("Priprav ma na test „${t.title}“ z predmetu ${t.subject.ifBlank { "?" }} ($due). ")
+                append("Je to písomná skúška na známku. ")
+                if (c != null && c.describe().isNotBlank()) append("Učivo podľa záznamov hodín v Schoolhelp: ${c.describe()}. ")
+                t.note?.takeIf { it.isNotBlank() }?.let { append("Poznámka k testu: $it. ") }
+                c?.lang?.let { append("Jazyk predmetu: $it. ") }
+                if (c == null || c.describe().isBlank()) append("Záznamy hodín nemám; spýtaj sa ma jednou vetou, ktoré témy test pokrýva. ")
+                else append("Začni hneď prvou otázkou z tohto učiva, od ľahšej k ťažšej.")
+            }
+        }
+    }
+
+    fun explainTopic(folder: String, label: String) = sendWithTopics(label, folder) { c ->
+        if (c?.current != null) "Vysvetli mi stručne a jednoducho po slovensky aktuálnu tému z predmetu $folder: ${c.describe()}. " +
+            "Pridaj 2 kľúčové pojmy v jazyku predmetu (${c.lang ?: "de"}) a jednu kontrolnú otázku."
+        else "Z predmetu $folder nemám záznamy hodín. Povedz mi to otvorene a spýtaj sa, akú tému mám vysvetliť."
+    }
+
+    fun helpWithTask(t: de.mm20.launcher2.schoolbrief.SchoolTask, label: String) = sendWithTopics(label, t.subject) { c ->
+        "Pomôž mi začať s úlohou „${t.title}“ (${t.subject}). " +
+            (c?.describe()?.takeIf { it.isNotBlank() }?.let { "Súvisiace učivo: $it. " } ?: "") +
+            "Rozdeľ ju na 3 až 4 malé kroky a povedz, čím začať. Úlohu za mňa neriešiť celú."
+    }
+
+    /** Schoolhelp's own fast answer to the teacher's last question in the running recording. */
+    fun answerTeacher(label: String) {
+        if (thinking) return
+        messages += ChatMessage(true, label)
+        thinking = true
+        viewModelScope.launch {
+            val r = brief.answerNow()
+            messages += ChatMessage(false, r.getOrElse { "Nepodarilo sa (${it.message})." })
             thinking = false
         }
     }
@@ -324,6 +381,12 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
             if (!hasKey) {
                 KeyRow(onSave = { vm.saveKey(it) })
             } else {
+                if (vm.messages.isEmpty()) QuickActions(vm)
+                val voice = androidx.activity.compose.rememberLauncherForActivityResult(
+                    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                ) { r ->
+                    r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { input = it }
+                }
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(surface)
                         .padding(start = 18.dp, end = 4.dp).heightIn(min = 52.dp),
@@ -340,11 +403,87 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    IconButton(onClick = { vm.send(input); input = "" }, enabled = input.isNotBlank()) {
-                        Icon(painterResource(R.drawable.arrow_forward_20px), contentDescription = stringResource(R.string.chat_send))
+                    if (input.isBlank()) {
+                        // Dictation: Android's speech input, then edit or send.
+                        IconButton(onClick = {
+                            runCatching {
+                                voice.launch(
+                                    android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                        .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                        .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
+                                )
+                            }
+                        }) {
+                            Icon(painterResource(R.drawable.mic_24px), contentDescription = stringResource(R.string.chat_voice))
+                        }
+                    } else {
+                        IconButton(onClick = { vm.send(input); input = "" }) {
+                            Icon(painterResource(R.drawable.arrow_forward_20px), contentDescription = stringResource(R.string.chat_send))
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * One-tap questions above the chat field (device test: "more buttons"). Each sends a full prompt with the
+ * Fach's lesson topics from Schoolhelp, so Gemini knows what is meant; the bubble shows only the label.
+ */
+@Composable
+private fun QuickActions(vm: SchoolChatVM) {
+    val brief: SchoolBriefVM = viewModel(key = "school-brief")
+    val feed by brief.feed.collectAsState(null)
+    val rec by brief.recording.collectAsState()
+    val f = feed
+    val now = LocalDateTime.now()
+    val today = now.toLocalDate()
+    val actions = mutableListOf<Pair<String, () -> Unit>>()
+
+    if (rec != null) {
+        val l = stringResource(R.string.quick_answer_teacher)
+        actions += l to { vm.answerTeacher(l) }
+    }
+    val tomorrow = stringResource(R.string.quick_tomorrow)
+    actions += tomorrow to { vm.send(tomorrow, "Čo mám zajtra? Prvá hodina, testy, čo odovzdať a čo si pribaliť. Stručne.") }
+    if (f != null) {
+        val rows = BriefLogic.visibleTasks(f.tasks, today)
+        rows.filter { it.task.kind == de.mm20.launcher2.schoolbrief.SchoolTask.Test && !it.due.isBefore(today) }.minByOrNull { it.due }?.let { r ->
+            val l = stringResource(R.string.quick_practise, r.task.subject.ifBlank { r.task.title })
+            val due = dueLabel(r.due, today, null)
+            actions += l to { vm.practiseTest(r.task, due, l) }
+        }
+        // Current or next lesson today, else tomorrow's first: "explain the topic".
+        val lesson = lessonsOn(f, today).firstOrNull { it.end > now.toLocalTime().toString().take(5) } ?: lessonsOn(f, today.plusDays(1)).firstOrNull()
+        lesson?.let { le ->
+            val l = stringResource(R.string.quick_explain, le.subject)
+            actions += l to { vm.explainTopic(le.subject, l) }
+        }
+        rows.firstOrNull { it.task.kind == de.mm20.launcher2.schoolbrief.SchoolTask.Homework || it.task.kind == de.mm20.launcher2.schoolbrief.SchoolTask.Project }?.let { r ->
+            val l = stringResource(R.string.quick_help_task, r.task.subject.ifBlank { r.task.title.take(24) })
+            actions += l to { vm.helpWithTask(r.task, l) }
+        }
+    }
+    val week = stringResource(R.string.quick_week)
+    actions += week to { vm.send(week, "Čo ma čaká tento týždeň? Testy, odovzdania a termíny podľa dní, stručne.") }
+
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for ((label, action) in actions) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable(role = Role.Button, onClick = action)
+                    .heightIn(min = 44.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            )
         }
     }
 }

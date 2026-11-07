@@ -40,6 +40,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -69,6 +72,7 @@ import de.mm20.launcher2.schoolbrief.SchoolTask
 import de.mm20.launcher2.schoolbrief.TaskRow
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard
+import de.mm20.launcher2.ui.launcher.widgets.school.context.kind
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextRules
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextVM
 import de.mm20.launcher2.widgets.BriefWidget
@@ -310,13 +314,26 @@ fun TasksWidget(widget: TasksWidget) {
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
     val f = feed ?: return
-    TasksContent(f, now.toLocalDate(), OffsetDateTime.now(), onDone = { vm.markDone(it) })
+    TasksContent(f, now.toLocalDate(), OffsetDateTime.now(), onDone = { vm.markDone(it) }, onUndo = { vm.markDone(it, false) })
 }
 
 /** Up to 5 tasks grouped by day ("Po termíne", "Dnes", "Zajtra", …); the rest one tap away in Schoolhelp. */
 @Composable
-internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime, onDone: (String) -> Unit = {}) {
+internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime, onDone: (String) -> Unit = {}, onUndo: (String) -> Unit = {}) {
     val context = LocalContext.current
+    // Undo for a few seconds after "Hotovo" (device test: an unticked task never came back).
+    var lastDone by remember { mutableStateOf<SchoolTask?>(null) }
+    LaunchedEffect(lastDone) { if (lastDone != null) { kotlinx.coroutines.delay(6_000); lastDone = null } }
+    val undoRow: @Composable () -> Unit = {
+        lastDone?.let { t ->
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Secondary(stringResource(R.string.task_done_label) + ": „${t.title}“", modifier = Modifier.weight(1f))
+                TextButton(onClick = { onUndo(t.id); lastDone = null }, modifier = Modifier.heightIn(min = SchoolTokens.RowMin)) {
+                    Text(stringResource(R.string.task_undo))
+                }
+            }
+        }
+    }
     RegisterSubjects(f)
     val all = remember(f, today) { BriefLogic.visibleTasks(f.tasks, today) }
     val shown = all.take(BriefLogic.MaxRows)
@@ -330,6 +347,7 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime, onDone
                 Spacer(Modifier.width(12.dp))
                 Secondary(stringResource(R.string.tasks_empty))
             }
+            undoRow()
             return@SchoolCard
         }
         val accent = MaterialTheme.colorScheme.primary
@@ -346,8 +364,9 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime, onDone
                 )
                 lastGroup = group
             }
-            TaskRowItem(row, onDone = { onDone(row.task.id) }) { Links.openSchoolhelp(context) }
+            TaskRowItem(row, onDone = { lastDone = row.task; onDone(row.task.id) }) { Links.openSchoolhelp(context) }
         }
+        undoRow()
         val more = all.size - shown.size
         if (more > 0) {
             TextButton(onClick = { Links.openSchoolhelp(context) }, modifier = Modifier.heightIn(min = SchoolTokens.RowMin)) {
@@ -435,25 +454,33 @@ fun ContextWidget(widget: ContextWidget) {
 }
 
 @Composable
-private fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM): ContextItem {
+internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): ContextItem {
     val nf = java.text.NumberFormat.getIntegerInstance(locale)
     val gb = { b: Long -> java.text.NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1; minimumFractionDigits = 1 }.format(b / 1e9) }
+    val open: (() -> Unit)? = vm?.let { v -> { v.open(c) } }
     return when (c) {
         is ContextCard.Music -> ContextItem(
             key = "music", text = listOfNotNull(c.title, c.artist?.takeIf { it.isNotBlank() }).joinToString(" · "),
-            icon = R.drawable.music_note_24px, onClick = { vm.open(c) }, playing = c.playing, onTogglePlay = { vm.togglePause() },
+            icon = R.drawable.music_note_24px, onClick = open, playing = c.playing, onTogglePlay = vm?.let { v -> { v.togglePause() } },
+            value = c.title, label = c.artist?.takeIf { it.isNotBlank() } ?: stringResource(R.string.chip_name_music),
         )
         is ContextCard.MobileData -> ContextItem(
-            "data", stringResource(R.string.context_mobile_data, gb(c.usedBytes), gb(c.planBytes)), R.drawable.data_usage_24px, onClick = { vm.open(c) },
+            "data", stringResource(R.string.context_mobile_data, gb(c.usedBytes), gb(c.planBytes)), R.drawable.data_usage_24px, onClick = open,
+            value = "${gb(c.usedBytes)} GB", label = stringResource(R.string.glance_data_of, gb(c.planBytes)),
+            progress = if (c.planBytes > 0) (c.usedBytes.toFloat() / c.planBytes).coerceIn(0f, 1f) else null,
         )
         is ContextCard.Birthday -> ContextItem(
-            "birthday:${c.contactId}", stringResource(R.string.context_birthday, c.name), R.drawable.cake_24px, onClick = { vm.open(c) },
+            "birthday:${c.contactId}", stringResource(R.string.context_birthday, c.name), R.drawable.cake_24px, onClick = open,
+            value = c.name, label = stringResource(R.string.chip_name_birthday),
         )
         is ContextCard.Steps -> ContextItem(
-            "steps", stringResource(R.string.context_steps, nf.format(c.steps), nf.format(c.goal)), R.drawable.directions_walk_24px, onClick = { vm.open(c) },
+            "steps", stringResource(R.string.context_steps, nf.format(c.steps), nf.format(c.goal)), R.drawable.directions_walk_24px, onClick = open,
+            value = nf.format(c.steps), label = stringResource(R.string.glance_steps_goal, nf.format(c.goal)),
+            progress = if (c.goal > 0) (c.steps.toFloat() / c.goal).coerceIn(0f, 1f) else null,
         )
         is ContextCard.Instagram -> ContextItem(
             "instagram", stringResource(R.string.context_instagram_today, nf.format(c.minutes)), R.drawable.timer_24px,
+            value = "${nf.format(c.minutes)} min", label = stringResource(R.string.glance_instagram),
         )
         is ContextCard.TestSoon -> ContextItem(
             "test:${c.title}",
@@ -462,24 +489,38 @@ private fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM): ContextI
                 1L -> stringResource(R.string.context_test_tomorrow, c.subject.ifBlank { c.title })
                 else -> stringResource(R.string.context_test_in, c.subject.ifBlank { c.title }, c.days.toInt())
             },
-            R.drawable.quiz_24px, onClick = { vm.open(c) },
+            R.drawable.quiz_24px, onClick = open,
+            value = c.subject.ifBlank { c.title },
+            label = when (c.days) {
+                0L -> stringResource(R.string.glance_test_today)
+                1L -> stringResource(R.string.glance_test_tomorrow)
+                else -> pluralStringResource(R.plurals.glance_test_in, c.days.toInt(), c.days.toInt())
+            },
         )
         is ContextCard.Chats -> ContextItem(
-            "chats", pluralStringResource(R.plurals.context_chats, c.unread, c.unread), R.drawable.chat_24px, onClick = { vm.open(c) },
+            "chats", pluralStringResource(R.plurals.context_chats, c.unread, c.unread), R.drawable.chat_24px, onClick = open,
+            value = c.unread.toString(), label = stringResource(R.string.glance_chats),
         )
-        is ContextCard.Lunch -> ContextItem(
-            "lunch",
-            ContextRules.menuNumber(c.text)?.let {
-                stringResource(if (c.tomorrow) R.string.context_lunch_menu_tomorrow else R.string.context_lunch_menu, it)
-            } ?: stringResource(if (c.tomorrow) R.string.context_lunch_tomorrow else R.string.context_lunch, c.text),
-            R.drawable.restaurant_24px, onClick = { vm.open(c) },
-        )
+        is ContextCard.Lunch -> {
+            val menu = ContextRules.menuNumber(c.text)
+            ContextItem(
+                "lunch",
+                menu?.let {
+                    stringResource(if (c.tomorrow) R.string.context_lunch_menu_tomorrow else R.string.context_lunch_menu, it)
+                } ?: stringResource(if (c.tomorrow) R.string.context_lunch_tomorrow else R.string.context_lunch, c.text),
+                R.drawable.restaurant_24px, onClick = open,
+                value = menu?.let { stringResource(R.string.glance_menu, it) } ?: c.text,
+                label = stringResource(if (c.tomorrow) R.string.glance_lunch_tomorrow else R.string.chip_name_lunch),
+            )
+        }
         is ContextCard.NameDay -> ContextItem(
             "nameday",
             if (c.contactName != null) stringResource(R.string.context_nameday_contact, c.contactName)
             else stringResource(R.string.context_nameday, c.names.joinToString(", ")),
             R.drawable.celebration_24px,
-            onClick = if (c.contactId != null) ({ vm.open(c) }) else null,
+            onClick = if (c.contactId != null) open else null,
+            value = c.contactName ?: c.names.joinToString(", "),
+            label = stringResource(R.string.chip_name_nameday),
         )
     }
 }
@@ -659,45 +700,21 @@ private fun updatedTime(feed: Feed): String =
 
 // ---------------------------------------------------------------- Single chip blocks
 
-private fun ContextCard.kind(): String = when (this) {
-    is ContextCard.TestSoon -> "test"
-    is ContextCard.Chats -> "chats"
-    is ContextCard.Lunch -> "lunch"
-    is ContextCard.NameDay -> "nameday"
-    is ContextCard.Birthday -> "birthday"
-    is ContextCard.Music -> "music"
-    is ContextCard.Steps -> "steps"
-    is ContextCard.MobileData -> "data"
-    is ContextCard.Instagram -> "instagram"
-}
 
-/** One chip as its own block: shown only when its card applies (birthdays: one chip per person). */
+/** One chip as its own block: its card's value in the block's style (birthdays: one per person). */
 @Composable
 fun ChipWidget(widget: de.mm20.launcher2.widgets.ChipWidget) {
     val vm: ContextVM = viewModel(key = "school-context")
     val all by vm.allCards.collectAsState(emptyList())
+    val usage by vm.usageAccess.collectAsState()
     val locale: Locale = LocalConfiguration.current.locales[0]
     val mine = all.filter { it.kind() == widget.kind }
         .filter { widget.kind != "nameday" || !widget.config.onlyContacts || (it as ContextCard.NameDay).contactName != null }
-    if (mine.isNotEmpty()) ContextContent(mine.map { contextItem(it, locale, vm) })
-}
-
-@Composable
-fun ColumnScope.ConfigureChipWidget(
-    widget: de.mm20.launcher2.widgets.ChipWidget,
-    onWidgetUpdated: (de.mm20.launcher2.widgets.ChipWidget) -> Unit,
-) {
-    if (widget.kind == "nameday") {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
-                onWidgetUpdated(widget.copy(config = widget.config.copy(onlyContacts = !widget.config.onlyContacts)))
-            },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(stringResource(R.string.chip_only_contacts), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            androidx.compose.material3.Switch(checked = widget.config.onlyContacts, onCheckedChange = null)
-        }
-        Spacer(Modifier.height(8.dp))
+    when {
+        mine.isNotEmpty() -> ChipBlock(mine.map { contextItem(it, locale, vm) }, widget.config)
+        // Without usage access these blocks would stay empty (device test: "mobile data doesn't work").
+        !usage && (widget.kind == "data" || widget.kind == "instagram") -> ContextContent(
+            listOf(ContextItem("setup", stringResource(R.string.chip_needs_usage), R.drawable.data_usage_24px, onClick = { vm.openUsageAccess() }))
+        )
     }
-    Text(stringResource(R.string.chip_hidden_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

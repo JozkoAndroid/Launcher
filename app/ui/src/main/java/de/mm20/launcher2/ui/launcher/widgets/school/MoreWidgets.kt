@@ -183,11 +183,9 @@ fun TestPrepWidget(widget: TestPrepWidget) {
             }
         }
         Spacer(Modifier.height(10.dp))
-        val prompt = stringResource(
-            R.string.testprep_prompt, t.title, t.subject, dueLabel(d, today, null),
-            t.note?.takeIf { it.isNotBlank() } ?: stringResource(R.string.testprep_no_topics),
-        )
-        Button(onClick = { chat.clear(); chat.send(prompt); practising = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+        val due = dueLabel(d, today, null)
+        val label = stringResource(R.string.quick_practise, t.subject.ifBlank { t.title })
+        Button(onClick = { chat.practiseTest(t, due, label); practising = true }, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.testprep_practice))
         }
     }

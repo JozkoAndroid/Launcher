@@ -70,6 +70,14 @@ data class FoldersWidget(override val id: UUID) : Widget() {
 data class ChipWidgetConfig(
     /** Name day: show only when a contact celebrates. */
     val onlyContacts: Boolean = false,
+    /** pill, tile, glance (no background, large), ring (progress ring for data and steps). */
+    val style: String = "pill",
+    /** theme, rounded, condensed, wide, serif, mono. */
+    val font: String = "theme",
+    /** circle, plain, none. */
+    val icon: String = "plain",
+    /** Tinted with the wallpaper accent instead of neutral. */
+    val accent: Boolean = false,
 )
 
 /**

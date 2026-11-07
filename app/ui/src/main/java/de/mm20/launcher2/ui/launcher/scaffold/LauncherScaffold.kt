@@ -763,7 +763,8 @@ internal class LauncherScaffoldState(
      * End the predictive back gesture and return to the home page.
      */
     suspend fun onPredictiveBackEnd() {
-        navigateBack()
+        // Fork (device test: going back "takes a second"): short tween instead of a slow-settling spring.
+        navigateBack(fast = true)
     }
 
     suspend fun navigateBack(fast: Boolean = false) {
@@ -845,7 +846,14 @@ internal class LauncherScaffoldState(
     }
 
     private suspend fun openSearch() {
-        if (currentComponent != null && currentComponent !is SearchComponent) {
+        val from = currentComponent
+        if (from != null && from !is SearchComponent) {
+            // Fork (device test: from the side panel, tapping the search bar first slid home, then opened search):
+            // switch straight from the settled side page to search.
+            if (config.homeComponent !is SearchComponent && isSettledOnSecondaryPage) {
+                switchToSearch(from)
+                return
+            }
             navigateBack(fast = true)
         }
 
@@ -866,6 +874,21 @@ internal class LauncherScaffoldState(
         isOpeningSearch = true
         navigateToPage(gesture)
         isOpeningSearch = false
+    }
+
+    private suspend fun switchToSearch(from: ScaffoldComponent) = withContext(NonCancellable) {
+        val g = listOf(Gesture.SwipeDown, Gesture.SwipeUp, Gesture.SwipeLeft, Gesture.SwipeRight)
+            .find { config[it]?.component is SearchComponent } ?: Gesture.TapSearchBar
+        val search = config[g]?.component ?: return@withContext
+        val target = getAnimationController(g)?.calculateTargetOffset(g, ScaffoldPage.Secondary, size) ?: Offset3D(z = 1f)
+        from.onPreDismiss(this@LauncherScaffoldState)
+        search.onPreActivate(this@LauncherScaffoldState)
+        offsetAnimatable.stop()
+        currentGesture = g
+        currentOffset3D = target
+        secondaryPageSearchBarOffset = 0f
+        from.onDismiss(this@LauncherScaffoldState)
+        search.onActivate(this@LauncherScaffoldState)
     }
 
     suspend fun navigateToPage(gesture: Gesture) {
@@ -1218,7 +1241,7 @@ internal fun LauncherScaffold(
             mutableStateOf(state.currentGesture?.orientation)
         }
 
-        LaunchedEffect(state.isSettledOnSecondaryPage) {
+        LaunchedEffect(state.isSettledOnSecondaryPage, state.currentGesture) {
             if (!state.isSettledOnSecondaryPage) {
                 draggableOrientation = null
             } else {

@@ -137,4 +137,33 @@ class LiveDataTest {
         assertEquals(LocalDateTime.parse("2026-11-06T19:30"), LiveBriefRepository.latestSlot(LocalDateTime.parse("2026-11-07T06:00")))
         assertEquals(LocalDateTime.parse("2026-11-07T13:30"), LiveBriefRepository.latestSlot(LocalDateTime.parse("2026-11-07T13:30")))
     }
+
+    private val subjects = """"subjects":{"Ph":{"folder":"Physik","lang":"de"},"ANJ":{"folder":"English","lang":"en"}}"""
+
+    @Test
+    fun recordingNoneWhenIdle() {
+        val s = Json.parseToJsonElement("""{"lesson":null,"alive":[],$subjects}""").jsonObject
+        assertNull(de.mm20.launcher2.schoolbrief.live.RecordingParser.parse(s, LocalDateTime.parse("2026-11-10T09:10")))
+    }
+
+    @Test
+    fun recordingFromLessonObject() {
+        val s = Json.parseToJsonElement("""{"lesson":{"folder":"Physik","paused":true,"audio_seconds":1834.5},"alive":[],$subjects}""").jsonObject
+        assertEquals(Recording("Physik", true, 1834), de.mm20.launcher2.schoolbrief.live.RecordingParser.parse(s, LocalDateTime.parse("2026-11-10T09:10")))
+    }
+
+    /** Recording on another device: only "alive" is filled; subject code mapped, time from "started". */
+    @Test
+    fun recordingFromAliveOnOtherDevice() {
+        val s = Json.parseToJsonElement("""{"lesson":null,"alive":[{"subject":"Ph","started":"2026-11-10T08:40:00"}],$subjects}""").jsonObject
+        assertEquals(Recording("Physik", false, 1800), de.mm20.launcher2.schoolbrief.live.RecordingParser.parse(s, LocalDateTime.parse("2026-11-10T09:10")))
+        val s2 = Json.parseToJsonElement("""{"lesson":null,"alive":["Physik/2026-11-10-0800"],$subjects}""").jsonObject
+        assertEquals("Physik", de.mm20.launcher2.schoolbrief.live.RecordingParser.parse(s2, LocalDateTime.parse("2026-11-10T09:10"))?.subject)
+    }
+
+    @Test
+    fun subjectLanguages() {
+        val s = Json.parseToJsonElement("""{$subjects}""").jsonObject
+        assertEquals(mapOf("Physik" to "de", "English" to "en"), de.mm20.launcher2.schoolbrief.live.RecordingParser.subjectLangs(s))
+    }
 }

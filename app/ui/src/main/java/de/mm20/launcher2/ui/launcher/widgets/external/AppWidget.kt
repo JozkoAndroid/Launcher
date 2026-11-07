@@ -109,7 +109,13 @@ fun AppWidget(
             }
         )
     } else {
-        val width = widget.config.width
+        // Fork (device test: third-party widgets showed only the app icon or nothing): widgets added at the
+        // provider's minimum size (often one cell on Android 12+) get the full card width and a real default height.
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val oldDefaultW = with(density) { widgetInfo.minWidth.toDp() }.value.toInt()
+        val oldDefaultH = with(density) { widgetInfo.minHeight.toDp() }.value.toInt()
+        val width = widget.config.width?.takeIf { it != oldDefaultW }
+        val height = if (widget.config.height <= oldDefaultH) defaultAppWidgetHeightDp(widgetInfo, density) else widget.config.height
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             AppWidgetHost(
                 widgetId = widget.config.widgetId,
@@ -118,11 +124,22 @@ fun AppWidget(
                     .then(
                         if (width == null) Modifier.fillMaxWidth() else Modifier.width(width.dp)
                     )
-                    .height(widget.config.height.dp),
+                    .height(height.dp),
                 borderless = widget.config.borderless,
                 useThemeColors = widget.config.themeColors,
                 onLightBackground = lightBackground,
             )
         }
     }
+}
+
+/** Default height for a new app widget: its target rows on Android 12+ (about 96dp each), never below its minimum. */
+internal fun defaultAppWidgetHeightDp(info: android.appwidget.AppWidgetProviderInfo, density: androidx.compose.ui.unit.Density): Int {
+    val minDp = with(density) { info.minHeight.toDp() }.value
+    val cells = if (android.os.Build.VERSION.SDK_INT >= 31) info.targetCellHeight else 0
+    var h = maxOf(minDp, cells * 96f, 96f)
+    if (android.os.Build.VERSION.SDK_INT >= 31 && info.maxResizeHeight > 0) {
+        h = minOf(h, with(density) { info.maxResizeHeight.toDp() }.value).coerceAtLeast(minDp)
+    }
+    return kotlin.math.round(h).toInt()
 }

@@ -18,7 +18,8 @@ import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
-data class ChatMessage(val fromUser: Boolean, val text: String)
+/** [modelText]: what the model gets instead of [text] (quick buttons show a short label, send a full prompt). */
+data class ChatMessage(val fromUser: Boolean, val text: String, val modelText: String? = null)
 
 /** "Spýtaj sa": a small Gemini chat that knows today's school data (tasks, timetable, brief). */
 interface SchoolChat {
@@ -51,6 +52,10 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
                 "Na otázky o škole používaj iba priložené údaje (school_data): rozvrh, úlohy, testy, termíny a prehľad. " +
                 "Názvy úloh uvádzaj presne tak, ako sú, v „…“, nikdy ich neprekladaj. Ak niečo v údajoch nie je, povedz to otvorene a nevymýšľaj. " +
                 "Dátumy a dni v týždni preberaj presne z údajov, nikdy ich neprepočítavaj. " +
+                "Študent chodí na nemeckú školu: Leistungsnachweis = písomná skúška na známku (test), Klassenarbeit/Klausur = veľká písomka, " +
+                "Hausaufgabe = domáca úloha, Referat = prezentácia, Abgabe = odovzdanie, Termin = udalosť. " +
+                "Pri precvičovaní: jedna otázka naraz, v jazyku, v ktorom sa predmet učí (lang v údajoch: de = nemecky, en = anglicky, sk = slovensky); " +
+                "spätnú väzbu daj krátko po slovensky a potom polož ďalšiu otázku. Nikdy sa nepýtaj, čo test obsahuje, ak máš témy v údajoch. " +
                 "Na iné otázky odpovedz bežne a stručne."
 
         /** "dnes, utorok 10. 11.", "zajtra, streda 11. 11.", "piatok 13. 11." — ready-made, so the model never computes weekdays. */
@@ -98,7 +103,7 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
                     history.takeLast(16).forEach { m ->
                         add(buildJsonObject {
                             put("role", if (m.fromUser) "user" else "model")
-                            putJsonArray("parts") { add(buildJsonObject { put("text", m.text) }) }
+                            putJsonArray("parts") { add(buildJsonObject { put("text", m.modelText ?: m.text) }) }
                         })
                     }
                 }

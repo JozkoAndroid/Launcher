@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import de.mm20.launcher2.ui.launcher.helper.detectLongPressPassive
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -95,28 +96,28 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
         val topPadding by animateDpAsState(if (editMode) 80.dp else 0.dp)
         val previousScroll = remember { mutableIntStateOf(scrollState.value) }
 
-        LaunchedEffect(
-            scrollState.value,
-            scrollState.canScrollForward,
-            scrollState.canScrollBackward
-        ) {
-            val delta = scrollState.value - previousScroll.intValue
-            previousScroll.intValue = scrollState.value
-            if (!editMode) {
-                state.onComponentScroll(delta.toFloat())
+        // Fork: read the scroll position in a snapshotFlow, not in composition, so the heavy home column
+        // does not recompose on every scrolled pixel.
+        val editModeNow by androidx.compose.runtime.rememberUpdatedState(editMode)
+        LaunchedEffect(state) {
+            androidx.compose.runtime.snapshotFlow { scrollState.value }.collect { v ->
+                val delta = v - previousScroll.intValue
+                previousScroll.intValue = v
+                if (!editModeNow) state.onComponentScroll(delta.toFloat())
             }
         }
+        val atTop by remember { androidx.compose.runtime.derivedStateOf { scrollState.value == 0 } }
 
         val homeColumn: @Composable (Modifier) -> Unit = { columnModifier ->
             Column(
                 modifier = columnModifier
                     // Fork: long press on the home screen edits the blocks, as in most launchers.
                     .pointerInput(editMode) {
-                        if (!editMode) detectTapGestures(onLongPress = {
+                        if (!editMode) detectLongPressPassive {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             scope.launch { state.lock(hideSearchBar = true) }
                             editMode = true
-                        })
+                        }
                     }
                     .verticalScroll(scrollState, enabled = !state.isDragged)
                     .padding(horizontal = 8.dp)
@@ -124,7 +125,7 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                     .padding(insets),
             ) {
                 val bottomPadding by animateDpAsState(
-                    if (fillHeight == true && scrollState.value == 0) insets.calculateBottomPadding()
+                    if (fillHeight == true && atTop) insets.calculateBottomPadding()
                     else 0.dp
                 )
 
