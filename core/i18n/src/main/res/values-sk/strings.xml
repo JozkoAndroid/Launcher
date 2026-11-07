@@ -16,7 +16,7 @@
     <string name="lesson_progress">Hodina z %1$d %% za tebou</string>
     <string name="task_overdue">po termíne</string>
     <string name="task_estimated">odhad</string>
-    <string name="tasks_empty">Na najbližších 14 dní nič.</string>
+    <string name="tasks_empty">Na najbližších 7 dní nič.</string>
     <string name="task_kind_hausaufgabe">úloha</string>
     <string name="task_kind_test">test</string>
     <string name="task_kind_projekt">projekt</string>
@@ -1043,4 +1043,9 @@
         <item quantity="many">o %1$d minút</item>
         <item quantity="other">o %1$d minút</item>
     </plurals>
+    <string name="lesson_time_range">%1$s – %2$s</string>
+    <string name="lesson_next_label">Ďalej</string>
+    <string name="lesson_starts_at">začína o %1$s</string>
+    <string name="brief_title">Prehľad dňa</string>
+    <string name="tasks_more">Ďalšie v Schoolhelp: %1$d</string>
 </resources>

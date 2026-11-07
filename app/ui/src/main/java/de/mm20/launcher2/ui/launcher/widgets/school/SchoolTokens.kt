@@ -14,42 +14,43 @@ import de.mm20.launcher2.ui.locals.LocalPreferDarkContentOverWallpaper
 import de.mm20.launcher2.ui.theme.transparency.transparency
 
 /**
- * Design tokens for the school blocks (approved plan, see SPEC).
- * Values come from the active Kvaesitso theme; nothing here is a second color system.
+ * Design tokens for the school blocks. Redesign after the device test ("text after text"):
+ * each block is one calm card (tinted surface, no border, no shadow), with subject badges and
+ * meaningful icons. Colors come from the active Kvaesitso theme; subject hues carry information.
  */
 internal object SchoolTokens {
-    /** Inside a block between related lines. */
     val Tight = 4.dp
     val Gap = 8.dp
-    /** Block content inset; with the widget column's 8dp this gives the 24dp side gutter. */
+    /** Inside a card; with the widget column's 8dp the text sits 24dp from the screen edge. */
     val Inset = 16.dp
-    /** Top and bottom of each block; with the column's 8dp gap, blocks sit 32dp apart. */
-    val BlockPad = 12.dp
-    /** Touch target for every tappable row. */
+    /** Space above/below each card; with the column's 8dp gap, cards sit 12dp apart. */
+    val BlockPad = 2.dp
     val RowMin = 48.dp
-    /** Corner of the press highlight; there are no visible surfaces. */
-    val PressRadius = 12.dp
-    val ProgressHeight = 2.dp
 
-    /** Secondary text is the same color at reduced opacity, never a different hue. */
-    const val SecondaryAlpha = 0.8f
-    /** Whole block when the feed is older than 12 hours. */
+    /** Radius scale: cards 24, inner items 14, badges 12. Pill only for the Gemini button. */
+    val CardRadius = 24.dp
+    val ItemRadius = 14.dp
+    val BadgeRadius = 12.dp
+    val PressRadius = 14.dp
+
+    val BadgeLarge = 44.dp
+    val BadgeSmall = 36.dp
+    val ProgressHeight = 4.dp
+
+    /** Card fill over the wallpaper: opaque enough for body text contrast on any wallpaper. */
+    const val CardAlpha = 0.86f
+    const val SecondaryAlpha = 0.72f
     const val StaleAlpha = 0.6f
 
     val EnterEasing = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
     const val EnterMs = 200
     const val ExitMs = 160
 
-    /** Fixed-width digits so times and counts don't jitter. */
     val Tabular = TextStyle(fontFeatureSettings = "tnum")
     val TightTracking = (-0.01).em
 }
 
-/**
- * Text color for blocks drawn straight on the wallpaper.
- * Near-white (or near-black on light wallpapers), tinted 4% toward the wallpaper hue.
- * With an opaque theme surface, the theme's own onSurface is used instead.
- */
+/** Text color for things drawn straight on the wallpaper (only the Gemini pill now). */
 @Composable
 internal fun schoolContentColor(): Color {
     if (MaterialTheme.transparency.surface >= 0.5f) return LocalContentColor.current
@@ -61,14 +62,55 @@ internal fun schoolContentColor(): Color {
     }
 }
 
-/**
- * The single accent: the wallpaper's primary hue at the tone that reads on the current content.
- * Light content (dark wallpaper) gets the light tone, dark content the dark tone.
- */
+/** The single accent: the wallpaper's primary hue at the tone that reads on the current content. */
 @Composable
 internal fun schoolAccent(content: Color): Color {
     val a = MaterialTheme.colorScheme.primary
     val b = MaterialTheme.colorScheme.inversePrimary
     val wantLight = content.luminance() > 0.5f
     return if ((a.luminance() > b.luminance()) == wantLight) a else b
+}
+
+/** Background and text color of a subject badge. */
+internal data class SubjectColors(val container: Color, val onContainer: Color)
+
+/**
+ * Each subject gets one muted hue so it is recognisable at a glance (information, not decoration).
+ * Stable per subject name; tuned to the card's light or dark surface.
+ */
+@Composable
+internal fun subjectColors(subject: String): SubjectColors {
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    if (subject.isBlank()) {
+        return SubjectColors(
+            MaterialTheme.colorScheme.surfaceContainerHighest,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    // 10 hues spaced around the wheel, chosen to stay calm next to each other.
+    val hues = floatArrayOf(205f, 145f, 25f, 280f, 50f, 175f, 330f, 100f, 235f, 0f)
+    // Device-test fix: a hash let two subjects share a color; subjects of the timetable get distinct slots.
+    val slot = SubjectPalette.index(subject) ?: subject.lowercase().hashCode()
+    val h = hues[Math.floorMod(slot, hues.size)]
+    return if (dark) {
+        SubjectColors(Color.hsl(h, 0.32f, 0.27f), Color.hsl(h, 0.55f, 0.84f))
+    } else {
+        SubjectColors(Color.hsl(h, 0.45f, 0.88f), Color.hsl(h, 0.5f, 0.28f))
+    }
+}
+
+/** "Mathe" → "Ma", "Slovakisch" → "Sl"; empty for no subject. */
+internal fun subjectTag(subject: String): String =
+    subject.trim().take(2).replaceFirstChar { it.titlecase() }
+
+/** Gives every subject in the current feed its own color slot (alphabetical, stable while the timetable is). */
+internal object SubjectPalette {
+    @Volatile private var slots: Map<String, Int> = emptyMap()
+
+    fun register(subjects: Collection<String>) {
+        val sorted = subjects.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct().sorted()
+        if (sorted != slots.keys.sortedBy { slots[it] }) slots = sorted.withIndex().associate { (i, s) -> s to i }
+    }
+
+    fun index(subject: String): Int? = slots[subject.trim().lowercase()]
 }

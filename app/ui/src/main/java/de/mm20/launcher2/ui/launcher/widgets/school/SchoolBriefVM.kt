@@ -48,6 +48,7 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
 data class ContextItem(
     val key: String,
     val text: String,
+    @androidx.annotation.DrawableRes val icon: Int? = null,
     val onClick: (() -> Unit)? = null,
     val playing: Boolean? = null,
     val onTogglePlay: (() -> Unit)? = null,

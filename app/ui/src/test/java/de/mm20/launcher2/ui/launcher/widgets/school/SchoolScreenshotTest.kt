@@ -95,9 +95,9 @@ class SchoolScreenshotTest {
                     Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
                         ContextContent(
                             listOf(
-                                ContextItem("music", "Bohemian Rhapsody · Queen", onClick = {}, playing = true, onTogglePlay = {}),
-                                ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", onClick = {}),
-                                ContextItem("birthday", "Dnes má narodeniny Jana", onClick = {}),
+                                ContextItem("music", "Bohemian Rhapsody · Queen", icon = de.mm20.launcher2.ui.R.drawable.music_note_24px, onClick = {}, playing = true, onTogglePlay = {}),
+                                ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", icon = de.mm20.launcher2.ui.R.drawable.data_usage_24px, onClick = {}),
+                                ContextItem("birthday", "Dnes má narodeniny Jana", icon = de.mm20.launcher2.ui.R.drawable.cake_24px, onClick = {}),
                                 ContextItem("instagram", "Instagram dnes: 47 min"),
                             )
                         )
@@ -164,8 +164,8 @@ class SchoolScreenshotTest {
                         Box(Modifier.padding(top = 8.dp)) {
                             ContextContent(
                                 listOf(
-                                    ContextItem("music", "Bohemian Rhapsody · Queen", onClick = {}, playing = true, onTogglePlay = {}),
-                                    ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", onClick = {}),
+                                    ContextItem("music", "Bohemian Rhapsody · Queen", icon = de.mm20.launcher2.ui.R.drawable.music_note_24px, onClick = {}, playing = true, onTogglePlay = {}),
+                                    ContextItem("data", "Mobilné dáta: 2,9 z 3,5 GB", icon = de.mm20.launcher2.ui.R.drawable.data_usage_24px, onClick = {}),
                                     ContextItem("instagram", "Instagram dnes: 47 min"),
                                     ContextItem("steps", "Kroky: 3 120 z 8 000"),
                                 )

@@ -46,7 +46,7 @@ internal fun AssistantButton(onClick: () -> Unit) {
         val on = if (content.luminance() > 0.5f) Color(0xFF15171A) else Color(0xFFF7F7F8)
         Button(
             onClick = onClick,
-            shape = RoundedCornerShape(SchoolTokens.PressRadius),
+            shape = RoundedCornerShape(percent = 50),
             colors = ButtonDefaults.buttonColors(containerColor = content, contentColor = on),
             modifier = Modifier
                 .fillMaxWidth()

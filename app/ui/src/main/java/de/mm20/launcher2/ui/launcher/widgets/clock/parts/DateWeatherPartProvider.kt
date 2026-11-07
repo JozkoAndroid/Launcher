@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +45,7 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /** What the line under the clock shows for weather. Temperatures in kelvin, as Kvaesitso stores them. */
-data class WeatherLine(val nowK: Float, val highK: Float?, val lowK: Float?, val providerUrl: String)
+data class WeatherLine(val nowK: Float, val highK: Float?, val lowK: Float?, val providerUrl: String, val icon: Int = Forecast.UNKNOWN)
 
 object WeatherLineLogic {
     /** The forecast covering [nowMs] (latest one not in the future), plus today's high and low. */
@@ -54,7 +55,7 @@ object WeatherLineLogic {
             ?: return null
         val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
         val day = dailies.firstOrNull { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() == today }
-        return WeatherLine(current.temperature.toFloat(), day?.maxTemp?.toFloat(), day?.minTemp?.toFloat(), current.providerUrl)
+        return WeatherLine(current.temperature.toFloat(), day?.maxTemp?.toFloat(), day?.minTemp?.toFloat(), current.providerUrl, current.icon)
     }
 }
 
@@ -124,16 +125,28 @@ fun DateWeatherLine(
             val range = if (weather.highK != null && weather.lowK != null) {
                 " · " + formatTemperature(context, weather.highK, measurementSystem) + "/" + formatTemperature(context, weather.lowK, measurementSystem)
             } else ""
-            Text(
-                text = "$now$range",
-                style = style,
-                color = content.copy(alpha = 0.8f),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { onWeather(weather.providerUrl) }
                     .padding(horizontal = 8.dp, vertical = 12.dp),
-            )
+            ) {
+                androidx.compose.material3.Icon(
+                    androidx.compose.ui.res.painterResource(weatherGlyph(weather.icon)), contentDescription = null,
+                    tint = content.copy(alpha = 0.8f), modifier = Modifier.padding(end = 6.dp).size(20.dp),
+                )
+                Text(text = "$now$range", style = style, color = content.copy(alpha = 0.8f))
+            }
         }
     }
+}
+
+/** Three calm glyphs are enough for a one-line forecast: sun, cloud, rain/snow. */
+private fun weatherGlyph(icon: Int): Int = when (icon) {
+    Forecast.CLEAR, Forecast.EXTREME_HEAT -> de.mm20.launcher2.ui.R.drawable.light_mode_24px
+    Forecast.RAIN, Forecast.LIGHT_RAIN, Forecast.HEAVY_RAIN, Forecast.THUNDERSTORM, Forecast.SNOW, Forecast.SLEET, Forecast.HAIL ->
+        de.mm20.launcher2.ui.R.drawable.rainy_20px
+    else -> de.mm20.launcher2.ui.R.drawable.cloud_20px
 }

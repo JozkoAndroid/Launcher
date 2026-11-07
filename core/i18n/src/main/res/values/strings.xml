@@ -1147,7 +1147,7 @@
     <string name="lesson_progress">%1$d%% of the lesson done</string>
     <string name="task_overdue">overdue</string>
     <string name="task_estimated">estimated</string>
-    <string name="tasks_empty">Nothing due in the next 14 days.</string>
+    <string name="tasks_empty">Nothing due in the next 7 days.</string>
     <string name="task_kind_hausaufgabe">homework</string>
     <string name="task_kind_test">test</string>
     <string name="task_kind_projekt">project</string>
@@ -1209,4 +1209,9 @@
     <string name="context_steps_goal">Daily steps goal</string>
     <string name="context_save">Save</string>
     <string name="context_health_rationale">The launcher reads only today\'s step count from Health Connect, to show a quiet reminder after 15:00 when you are below your goal. It never writes health data and never sends it anywhere.</string>
+    <string name="lesson_time_range">%1$s – %2$s</string>
+    <string name="lesson_next_label">Next</string>
+    <string name="lesson_starts_at">starts at %1$s</string>
+    <string name="brief_title">Today</string>
+    <string name="tasks_more">%1$d more in Schoolhelp</string>
 </resources>
