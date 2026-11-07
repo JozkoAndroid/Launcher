@@ -81,6 +81,22 @@ class SchoolScreenshotTest {
         }
     }
 
+    @Test
+    fun assistantButton() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
+            CompositionLocalProvider(
+                LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+            ) {
+                Box(Modifier.fillMaxSize().background(darkWallpaper)) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        TasksContent(feed, this@SchoolScreenshotTest.now.toLocalDate(), nowOffset)
+                        Box(Modifier.padding(top = 8.dp)) { AssistantButton(onClick = {}) }
+                    }
+                }
+            }
+        }
+    }
+
     @Composable
     private fun Home(wallpaper: Brush, dim: Boolean, darkContent: Boolean, now: OffsetDateTime = nowOffset) {
         // Wallpaper-derived scheme stand-in: a muted blue hue at the tones Kvaesitso's palette produces.
@@ -103,6 +119,15 @@ class SchoolScreenshotTest {
                 ) {
                     // Same insets as the real widget column: 8dp sides, 8dp between widgets.
                     Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        // Clock line as Kvaesitso draws it (the clock itself is upstream code, not part of this test).
+                        CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides schoolContentColor()) {
+                            de.mm20.launcher2.ui.launcher.widgets.clock.parts.DateWeatherLine(
+                                dateMillis = java.time.LocalDate.parse("2026-11-10").atTime(9, 10).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                                weather = de.mm20.launcher2.ui.launcher.widgets.clock.parts.WeatherLine(281.15f, 285.15f, 277.15f, ""),
+                                measurementSystem = de.mm20.launcher2.preferences.MeasurementSystem.Metric,
+                                onDate = {}, onWeather = {},
+                            )
+                        }
                         LessonContent(feed, this@SchoolScreenshotTest.now)
                         Box(Modifier.padding(top = 8.dp)) { BriefContent(feed, now) }
                         Box(Modifier.padding(top = 8.dp)) { TasksContent(feed, this@SchoolScreenshotTest.now.toLocalDate(), now) }
@@ -114,6 +139,7 @@ class SchoolScreenshotTest {
                                 )
                             )
                         }
+                        Box(Modifier.padding(top = 8.dp)) { AssistantButton(onClick = {}) }
                     }
                 }
             }

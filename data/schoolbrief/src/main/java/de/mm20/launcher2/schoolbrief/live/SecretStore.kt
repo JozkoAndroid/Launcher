@@ -57,5 +57,7 @@ internal class SecretStore(context: Context) {
         const val ClientSecret = "sh_client_secret"
         const val RefreshToken = "sh_refresh_token"
         const val RedirectUri = "sh_redirect_uri"
+        const val PendingVerifier = "sh_pending_verifier"
+        const val PendingState = "sh_pending_state"
     }
 }

@@ -93,19 +93,22 @@ class BriefLogicTest {
     @Test
     fun afterSchoolShowsTomorrowsFirstLesson() {
         val s = BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-11T12:00"))
-        assertEquals(LessonState.DayOver(Lesson("08:00", "09:35", "Sport")), s)
+        assertEquals(LessonState.DayOver(NextSchoolDay(LocalDate.parse("2026-11-12"), Lesson("08:00", "09:35", "Sport"))), s)
     }
 
     @Test
-    fun dayBeforeHolidayHasNoTomorrowLesson() {
+    fun beforeHolidayAndWeekendTheNextSchoolDaySkipsBoth() {
+        // Thu after school; Fri 13 is Ferien; Sat/Sun weekend; Mon has no lessons in this feed; Wed 18 does.
         val s = BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-12T12:00"))
-        assertEquals(LessonState.DayOver(null), s)
+        assertEquals(LessonState.DayOver(NextSchoolDay(LocalDate.parse("2026-11-18"), Lesson("08:00", "09:35", "Slovakisch"))), s)
     }
 
     @Test
-    fun holidayAndWeekend() {
-        assertEquals(LessonState.DayOff("Ferien"), BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-13T09:00")))
-        assertEquals(LessonState.Weekend, BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-14T09:00")))
+    fun holidayAndWeekendShowTheNextSchoolDay() {
+        val next = NextSchoolDay(LocalDate.parse("2026-11-18"), Lesson("08:00", "09:35", "Slovakisch"))
+        assertEquals(LessonState.DayOff("Ferien", next), BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-13T09:00")))
+        assertEquals(LessonState.Weekend(next), BriefLogic.lessonState(feed, LocalDateTime.parse("2026-11-14T09:00")))
+        assertEquals(null, BriefLogic.nextSchoolDay(feed.copy(timetable = emptyMap()), LocalDate.parse("2026-11-14")))
     }
 
     @Test

@@ -32,6 +32,7 @@ import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
@@ -91,6 +92,7 @@ fun AppWidget(
                     is BriefWidget -> it.copy(id = widget.id)
                     is TasksWidget -> it.copy(id = widget.id)
                     is ContextWidget -> it.copy(id = widget.id)
+                    is AssistantWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdate(updatedWidget)
                 replaceWidget = false

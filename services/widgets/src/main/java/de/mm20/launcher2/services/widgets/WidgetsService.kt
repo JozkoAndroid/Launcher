@@ -14,6 +14,7 @@ import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 import de.mm20.launcher2.widgets.WidgetRepository
@@ -89,6 +90,10 @@ class WidgetsService(
             BuiltInWidgetInfo(
                 type = ContextWidget.Type,
                 label = context.getString(R.string.widget_name_context),
+            ),
+            BuiltInWidgetInfo(
+                type = AssistantWidget.Type,
+                label = context.getString(R.string.widget_name_assistant),
             ),
         )
     }

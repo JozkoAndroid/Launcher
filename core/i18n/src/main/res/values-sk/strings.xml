@@ -56,4 +56,8 @@
     <string name="brief_settings_gemini_save">Uložiť kľúč</string>
     <string name="brief_settings_gemini_remove">Odstrániť kľúč</string>
     <string name="brief_settings_gemini_get">Získať bezplatný kľúč v Google AI Studio</string>
+    <string name="widget_name_assistant">Gemini</string>
+    <string name="assistant_button">Opýtaj sa Gemini</string>
+    <string name="assistant_missing">Asistent sa nenašiel. Nastav Gemini ako predvoleného digitálneho asistenta v nastaveniach Androidu.</string>
+    <string name="lesson_next_day">%1$s: %2$s o %3$s</string>
 </resources>

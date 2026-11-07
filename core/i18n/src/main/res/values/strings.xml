@@ -1186,4 +1186,8 @@
     <string name="brief_settings_gemini_save">Save key</string>
     <string name="brief_settings_gemini_remove">Remove key</string>
     <string name="brief_settings_gemini_get">Get a free key in Google AI Studio</string>
+    <string name="widget_name_assistant">Gemini</string>
+    <string name="assistant_button">Ask Gemini</string>
+    <string name="assistant_missing">No assistant app found. Set Gemini as the default digital assistant in Android settings.</string>
+    <string name="lesson_next_day">%1$s: %2$s at %3$s</string>
 </resources>

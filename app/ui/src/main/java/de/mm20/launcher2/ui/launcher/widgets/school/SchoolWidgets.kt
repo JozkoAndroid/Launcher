@@ -53,6 +53,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.mm20.launcher2.schoolbrief.BriefLogic
 import de.mm20.launcher2.schoolbrief.Feed
 import de.mm20.launcher2.schoolbrief.LessonState
+import de.mm20.launcher2.schoolbrief.NextSchoolDay
 import de.mm20.launcher2.schoolbrief.TaskRow
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.widgets.BriefWidget
@@ -103,13 +104,16 @@ internal fun LessonContent(f: Feed, now: LocalDateTime) {
                 is LessonState.Upcoming -> PrimaryLine(s.next.subject, trailing = stringResource(R.string.lesson_upcoming_at, s.next.start))
                 is LessonState.DayOver -> {
                     PrimaryLine(stringResource(R.string.lesson_day_over))
-                    s.tomorrowFirst?.let {
-                        Spacer(Modifier.height(SchoolTokens.Tight))
-                        SecondaryLine(stringResource(R.string.lesson_tomorrow, it.subject, it.start))
-                    }
+                    NextDayLine(s.next, now.toLocalDate())
                 }
-                is LessonState.DayOff -> PrimaryLine(s.title)
-                LessonState.Weekend -> PrimaryLine(stringResource(R.string.lesson_weekend))
+                is LessonState.DayOff -> {
+                    PrimaryLine(s.title)
+                    NextDayLine(s.next, now.toLocalDate())
+                }
+                is LessonState.Weekend -> {
+                    PrimaryLine(stringResource(R.string.lesson_weekend))
+                    NextDayLine(s.next, now.toLocalDate())
+                }
             }
         }
     }
@@ -322,12 +326,25 @@ private fun TaskRowItem(row: TaskRow, today: LocalDate, onClick: () -> Unit) {
     }
 }
 
+/** Same frame as a school block, for blocks in other files. */
+@Composable
+internal fun SchoolBlockFrame(content: @Composable ColumnScope.() -> Unit) = SchoolBlock(content = content)
+
 /** A block drawn straight on the wallpaper: no box, only content color and spacing. */
 @Composable
 private fun SchoolBlock(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     CompositionLocalProvider(LocalContentColor provides schoolContentColor()) {
         Column(modifier.fillMaxWidth().padding(vertical = SchoolTokens.BlockPad), content = content)
     }
+}
+
+/** "Zajtra: Physik o 08:00" or "pondelok: Physik o 08:00". */
+@Composable
+private fun NextDayLine(next: NextSchoolDay?, today: LocalDate) {
+    next ?: return
+    val day = dueLabel(next.date, today, null).replaceFirstChar { it.titlecase() }
+    Spacer(Modifier.height(SchoolTokens.Tight))
+    SecondaryLine(stringResource(R.string.lesson_next_day, day, next.first.subject, next.first.start))
 }
 
 @Composable

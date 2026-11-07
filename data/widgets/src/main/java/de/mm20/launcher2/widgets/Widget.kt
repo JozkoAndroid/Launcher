@@ -72,6 +72,7 @@ sealed class Widget {
                 BriefWidget.Type -> BriefWidget(entity.id)
                 TasksWidget.Type -> TasksWidget(entity.id)
                 ContextWidget.Type -> ContextWidget(entity.id)
+                AssistantWidget.Type -> AssistantWidget(entity.id)
 
                 else -> null
             }

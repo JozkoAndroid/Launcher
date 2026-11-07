@@ -22,19 +22,23 @@ sealed interface LessonState {
     /** Before the first lesson or in a break. */
     data class Upcoming(val next: Lesson) : LessonState
 
-    /** Lessons are over for today. [tomorrowFirst] is null when tomorrow has no school. */
-    data class DayOver(val tomorrowFirst: Lesson?) : LessonState
+    /** Lessons are over for today. */
+    data class DayOver(val next: NextSchoolDay?) : LessonState
 
     /** Holiday from Schoolhelp, e.g. "Ferien". */
-    data class DayOff(val title: String) : LessonState
+    data class DayOff(val title: String, val next: NextSchoolDay?) : LessonState
 
     /** Saturday or Sunday. */
-    data object Weekend : LessonState
+    data class Weekend(val next: NextSchoolDay?) : LessonState
 }
+
+/** First lesson of the next day with school (skips weekends and days off, up to [BriefLogic.LookAheadDays]). */
+data class NextSchoolDay(val date: LocalDate, val first: Lesson)
 
 object BriefLogic {
 
     const val AheadDays = 14L
+    const val LookAheadDays = 21L
     val StaleAfter: Duration = Duration.ofHours(12)
 
     /**
@@ -62,9 +66,9 @@ object BriefLogic {
 
     fun lessonState(feed: Feed, now: LocalDateTime): LessonState {
         val today = now.toLocalDate()
-        dayOff(feed, today)?.let { return LessonState.DayOff(it.title) }
+        dayOff(feed, today)?.let { return LessonState.DayOff(it.title, nextSchoolDay(feed, today)) }
         if (today.dayOfWeek == DayOfWeek.SATURDAY || today.dayOfWeek == DayOfWeek.SUNDAY) {
-            return LessonState.Weekend
+            return LessonState.Weekend(nextSchoolDay(feed, today))
         }
         val lessons = lessonsOn(feed, today)
         val t = now.toLocalTime()
@@ -75,9 +79,16 @@ object BriefLogic {
             return LessonState.InLesson(current, next, (done / total).coerceIn(0f, 1f))
         }
         lessons.firstOrNull { time(it.start) > t }?.let { return LessonState.Upcoming(it) }
-        val tomorrow = today.plusDays(1)
-        val tomorrowFirst = if (dayOff(feed, tomorrow) == null) lessonsOn(feed, tomorrow).firstOrNull() else null
-        return LessonState.DayOver(tomorrowFirst)
+        return LessonState.DayOver(nextSchoolDay(feed, today))
+    }
+
+    fun nextSchoolDay(feed: Feed, after: LocalDate): NextSchoolDay? {
+        for (i in 1..LookAheadDays) {
+            val d = after.plusDays(i)
+            if (dayOff(feed, d) != null) continue
+            lessonsOn(feed, d).firstOrNull()?.let { return NextSchoolDay(d, it) }
+        }
+        return null
     }
 
     fun isStale(feed: Feed, now: OffsetDateTime): Boolean {

@@ -57,7 +57,8 @@ data class LauncherSettingsData internal constructor(
     val _clockWidgetBatteryPart: Boolean = true,
     @SerialName("clockWidgetBatteryPart2")
     val clockWidgetBatteryPart: BatteryStatusVisibility = BatteryStatusVisibility.Show,
-    val clockWidgetMusicPart: Boolean = true,
+    // Fork default: music is a context card on the home screen instead.
+    val clockWidgetMusicPart: Boolean = false,
     val clockWidgetDatePart: Boolean = true,
     val clockWidgetFillHeight: Boolean = false,
     val clockWidgetAlignment: ClockWidgetAlignment = ClockWidgetAlignment.Bottom,
@@ -113,7 +114,8 @@ data class LauncherSettingsData internal constructor(
     val gridList: Boolean = false,
     val gridListIcons: Boolean = true,
 
-    val searchBarStyle: SearchBarStyle = SearchBarStyle.Transparent,
+    // Fork default: the home screen has one main action (Gemini); search lives on the app page and swipe down.
+    val searchBarStyle: SearchBarStyle = SearchBarStyle.Hidden,
     val searchBarColors: SearchBarColors = SearchBarColors.Auto,
     val searchBarKeyboard: Boolean = true,
     val searchLaunchOnEnter: Boolean = true,

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            Receives the Schoolhelp login code. Schoolhelp only accepts https return addresses, so it
+            returns to a static page (docs/oauth on GitHub Pages) that hands the code to this
+            app via launcherbrief://oauth. The code is useless without the PKCE secret on the phone.
+        -->
+        <activity
+            android:name=".live.OAuthCallbackActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="launcherbrief" android:host="oauth" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

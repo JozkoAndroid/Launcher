@@ -73,13 +73,26 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         job = scope.launch {
             try {
                 status.value = BriefStatus.LoggingIn("register")
-                val req = auth.begin()
+                val url = auth.begin()
                 status.value = BriefStatus.LoggingIn("browser")
-                launch(Dispatchers.Main) { openUrl(req.authorizeUrl) }
-                auth.complete(req)
-                refresh(forceBrief = true)
+                launch(Dispatchers.Main) { openUrl(url) }
             } catch (e: Exception) {
                 Log.w(Tag, "login failed", e)
+                status.value = BriefStatus.Error(e.message ?: "Prihlásenie zlyhalo.")
+            }
+        }
+    }
+
+    override fun handleLoginCallback(uri: String) {
+        if (job?.isActive == true) job?.cancel()
+        job = scope.launch {
+            try {
+                status.value = BriefStatus.LoggingIn("token")
+                auth.complete(uri)
+                lastAttempt = 0
+                refresh(forceBrief = true)
+            } catch (e: Exception) {
+                Log.w(Tag, "login callback failed", e)
                 status.value = if (auth.isLoggedIn) BriefStatus.Error(e.message ?: "Chyba") else BriefStatus.Error(e.message ?: "Prihlásenie zlyhalo.")
             }
         }

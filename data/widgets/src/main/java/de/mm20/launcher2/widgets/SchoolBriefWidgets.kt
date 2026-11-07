@@ -43,3 +43,13 @@ data class ContextWidget(override val id: UUID) : Widget() {
         const val Type = "school_context"
     }
 }
+
+/** The home screen's one main action: opens the default assistant (Gemini). */
+data class AssistantWidget(override val id: UUID) : Widget() {
+    override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = null)
+    override fun getLabel(context: Context): String = context.getString(R.string.widget_name_assistant)
+
+    companion object {
+        const val Type = "school_assistant"
+    }
+}

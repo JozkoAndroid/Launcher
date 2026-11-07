@@ -23,8 +23,11 @@ interface BriefRepository {
     /** Cheap to call often (every minute while the home screen is visible); does work only when due. */
     fun refreshIfDue()
 
-    /** Opens Schoolhelp's login page via [openUrl] and waits for the browser to come back. */
+    /** Opens Schoolhelp's login page via [openUrl]; the browser returns through [handleLoginCallback]. */
     fun login(openUrl: (String) -> Unit)
+
+    /** launcherbrief://oauth?code=…&state=… from the bounce page. */
+    fun handleLoginCallback(uri: String)
     fun logout()
 
     /** Stored encrypted on the device; null removes it (the brief then uses the template). */
@@ -38,6 +41,7 @@ class SampleBriefRepository : BriefRepository {
     override val hasGeminiKey = MutableStateFlow(false)
     override fun refreshIfDue() {}
     override fun login(openUrl: (String) -> Unit) {}
+    override fun handleLoginCallback(uri: String) {}
     override fun logout() {}
     override fun setGeminiKey(key: String?) {}
 }

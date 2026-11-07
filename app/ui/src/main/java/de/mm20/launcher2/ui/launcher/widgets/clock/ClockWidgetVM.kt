@@ -10,7 +10,7 @@ import de.mm20.launcher2.ktx.tryStartActivity
 import de.mm20.launcher2.preferences.ui.ClockWidgetSettings
 import de.mm20.launcher2.ui.launcher.widgets.clock.parts.AlarmPartProvider
 import de.mm20.launcher2.ui.launcher.widgets.clock.parts.BatteryPartProvider
-import de.mm20.launcher2.ui.launcher.widgets.clock.parts.DatePartProvider
+import de.mm20.launcher2.ui.launcher.widgets.clock.parts.DateWeatherPartProvider
 import de.mm20.launcher2.ui.launcher.widgets.clock.parts.FavoritesPartProvider
 import de.mm20.launcher2.ui.launcher.widgets.clock.parts.MusicPartProvider
 import de.mm20.launcher2.ui.launcher.widgets.clock.parts.PartProvider
@@ -36,7 +36,8 @@ class ClockWidgetVM : ViewModel(), KoinComponent {
         }
 
         val providers = mutableListOf<PartProvider>()
-        if (parts.date) providers += DatePartProvider()
+        // Fork: date and weather on one line.
+        if (parts.date) providers += DateWeatherPartProvider()
         if (parts.music) providers += MusicPartProvider()
         providers += BatteryPartProvider(parts.battery)
         if (parts.alarm) providers += AlarmPartProvider()

@@ -120,6 +120,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureSchoolBrief
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
@@ -159,7 +160,7 @@ fun ConfigureWidgetSheet(
                 is NotesWidget -> ConfigureNotesWidget(widget, onWidgetUpdated)
                 is BriefWidget -> ConfigureSchoolBrief()
                 // The other school widgets have no options in version 1.
-                is LessonWidget, is TasksWidget, is ContextWidget -> {}
+                is LessonWidget, is TasksWidget, is ContextWidget, is AssistantWidget -> {}
             }
         }
 
@@ -700,6 +701,7 @@ fun ColumnScope.ConfigureAppWidget(
                     is BriefWidget -> it.copy(id = widget.id)
                     is TasksWidget -> it.copy(id = widget.id)
                     is ContextWidget -> it.copy(id = widget.id)
+                    is AssistantWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdated(updatedWidget)
                 replaceWidget = false
