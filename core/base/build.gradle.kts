@@ -1,0 +1,71 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.plugin.serialization)
+}
+
+android {
+    compileSdk {
+        version = release(libs.versions.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.compileSdkMinor.get().toInt()
+        }
+    }
+
+    defaultConfig {
+        minSdk = libs.versions.minSdk.get().toInt()
+        
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
+    }
+
+    buildTypes {
+        release {
+            proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+            )
+        }
+        create("nightly") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
+    namespace = "de.mm20.launcher2.base"
+    buildFeatures {
+        buildConfig = true
+    }
+}
+
+dependencies {
+    implementation(libs.bundles.kotlin)
+
+    implementation(libs.androidx.core)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.datastore)
+
+    implementation(libs.koin.android)
+    implementation(libs.androidx.palette)
+    runtimeOnly(libs.androidx.compose.ui)
+    runtimeOnly(libs.androidx.compose.runtime)
+
+    implementation(libs.stringsimilarity)
+
+    implementation(project(":core:ktx"))
+    implementation(project(":core:i18n"))
+    implementation(project(":libs:material-color-utilities"))
+    api(project(":core:shared"))
+
+    testImplementation(libs.bundles.tests)
+}
