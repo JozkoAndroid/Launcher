@@ -83,7 +83,7 @@ class DashboardScreenshotTest {
                     DockContent(
                         count = 7, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
                         icon = { i, _ -> Box(Modifier.padding(2.dp).fillMaxSize().background(colors[i], androidx.compose.foundation.shape.CircleShape)) },
-                        label = { "App $it" }, onApp = {}, onEdit = {}, onAssistant = {},
+                        label = { "App $it" }, onApp = { _, _ -> }, onEdit = {}, onAssistant = {},
                     )
                 }
             }

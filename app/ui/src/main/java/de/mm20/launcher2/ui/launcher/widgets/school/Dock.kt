@@ -24,6 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalConfiguration
@@ -52,8 +55,17 @@ class DockVM : ViewModel(), KoinComponent {
     private val favorites: FavoritesService by inject()
     val icons: IconService by inject()
 
-    /** The first [count] favorite apps: pinned ones in their order, then the most used. */
-    fun apps(count: Int): Flow<List<SavableSearchable>> = favorites.getFavorites(includeTypes = listOf("app"), limit = count)
+    /**
+     * The first [count] apps: pinned favorites in their order, then every app opened through the launcher
+     * by use (device test: with few favorites the unfolded dock showed fewer than 7).
+     */
+    fun apps(count: Int): Flow<List<SavableSearchable>> = favorites.getFavorites(
+        includeTypes = listOf("app"),
+        minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned,
+        limit = count,
+    )
+
+    fun launched(item: SavableSearchable) = favorites.reportLaunch(item)
 }
 
 /** 4 apps on the cover screen, 7 when the screen is wide (unfolded Fold, tablet). */
@@ -76,7 +88,15 @@ fun FloatingDock(modifier: Modifier = Modifier) {
         modifier = modifier,
         icon = { i, size -> DockAppIcon(apps[i], vm.icons, size) },
         label = { i -> apps[i].labelOverride ?: apps[i].label },
-        onApp = { i -> apps[i].launch(context, null) },
+        onApp = { i, bounds ->
+            val item = apps[i]
+            // Zoom out of the icon, as Kvaesitso's app list does; counted like any launch.
+            val view = (context as? android.app.Activity)?.window?.decorView
+            val options = if (bounds != null && view != null) {
+                androidx.core.app.ActivityOptionsCompat.makeScaleUpAnimation(view, bounds.left, bounds.top, bounds.width(), bounds.height())
+            } else androidx.core.app.ActivityOptionsCompat.makeBasic()
+            if (item.launch(context, options.toBundle())) vm.launched(item)
+        },
         onEdit = { sheets.showEditFavoritesSheet() },
         onAssistant = { AssistantLauncher.open(context) },
     )
@@ -96,7 +116,7 @@ internal fun DockContent(
     modifier: Modifier = Modifier,
     icon: @Composable (Int, Dp) -> Unit,
     label: (Int) -> String,
-    onApp: (Int) -> Unit,
+    onApp: (Int, android.graphics.Rect?) -> Unit,
     onEdit: () -> Unit,
     onAssistant: () -> Unit,
 ) {
@@ -105,11 +125,16 @@ internal fun DockContent(
     val ink = if (content.luminance() > 0.5f) Color(0xFFF4F4F6) else Color(0xFF16181C)
     val onInk = if (content.luminance() > 0.5f) Color(0xFF16181C) else Color(0xFFF4F4F6)
     val shadowTint = Color(0xFF0A0C10)
+    // Unfolded / tablet: a bigger dock (round 9).
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    val height = if (wide) 76.dp else SchoolTokens.DockHeight
+    val slot = if (wide) 62.dp else 52.dp
+    val iconSize = if (wide) 52.dp else 44.dp
     Row(modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         if (count > 0) {
             Row(
                 Modifier
-                    .height(SchoolTokens.DockHeight)
+                    .height(height)
                     .shadow(16.dp, RoundedCornerShape(32.dp), ambientColor = shadowTint, spotColor = shadowTint)
                     .clip(RoundedCornerShape(32.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f))
@@ -119,14 +144,20 @@ internal fun DockContent(
             ) {
                 for (i in 0 until count) {
                     val name = label(i)
+                    // Plain holder, not state: positions change during animations and must not recompose the dock.
+                    val bounds = androidx.compose.runtime.remember { android.graphics.Rect() }
                     Box(
                         Modifier
-                            .size(52.dp)
+                            .size(slot)
+                            .onGloballyPositioned { c ->
+                                val r = c.boundsInWindow()
+                                bounds.set(r.left.toInt(), r.top.toInt(), r.right.toInt(), r.bottom.toInt())
+                            }
                             .clip(CircleShape)
-                            .combinedClickable(role = Role.Button, onClick = { onApp(i) }, onLongClick = onEdit)
+                            .combinedClickable(role = Role.Button, onClick = { onApp(i, bounds.takeUnless { it.isEmpty }) }, onLongClick = onEdit)
                             .semantics { contentDescription = name },
                         contentAlignment = Alignment.Center,
-                    ) { icon(i, 44.dp) }
+                    ) { icon(i, iconSize) }
                 }
             }
             Spacer(Modifier.width(10.dp))
@@ -134,7 +165,7 @@ internal fun DockContent(
         val askLabel = stringResource(R.string.assistant_button)
         Box(
             Modifier
-                .size(SchoolTokens.DockHeight)
+                .size(height)
                 .shadow(16.dp, CircleShape, ambientColor = shadowTint, spotColor = shadowTint)
                 .clip(CircleShape)
                 .background(ink)

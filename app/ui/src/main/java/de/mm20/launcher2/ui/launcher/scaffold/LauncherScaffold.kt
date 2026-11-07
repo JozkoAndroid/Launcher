@@ -888,9 +888,11 @@ internal class LauncherScaffoldState(
         search.onPreActivate(this@LauncherScaffoldState)
         offsetAnimatable.stop()
         currentGesture = g
-        currentOffset3D = target
+        // Settle the last 15% with a short ease-out instead of a hard cut (round 9).
+        currentOffset3D = Offset3D(target.x * 0.85f, target.y * 0.85f, target.z)
         secondaryPageSearchBarOffset = 0f
         from.onDismiss(this@LauncherScaffoldState)
+        animateOffset3DTo(target, animationSpec = tween(220, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)))
         search.onActivate(this@LauncherScaffoldState)
     }
 
@@ -1152,6 +1154,24 @@ internal fun LauncherScaffold(
             }
         }
 
+
+        // Fork (device test: returning from an app was not smooth): when the launcher goes to the background
+        // from the app list, go home right then, while nothing is visible, instead of jumping from the list to
+        // home after the user is back.
+        LaunchedEffect(state) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    if (!state.isLocked && state.currentComponent is SearchComponent && config.homeComponent !is SearchComponent) {
+                        withContext(NonCancellable) {
+                            state.reset()
+                            searchVM.reset()
+                        }
+                    }
+                }
+            }
+        }
 
         LaunchedEffect(
             config, activity, view,

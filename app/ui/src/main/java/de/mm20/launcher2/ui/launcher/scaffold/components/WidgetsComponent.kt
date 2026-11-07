@@ -118,11 +118,42 @@ internal class WidgetsComponent(
             }
         }
 
+        // Round 9 (device test): on the widget panel, swiping up past the end opens the app search, like
+        // swiping up on home. A pull of 72dp beyond the end, or a fast upward fling there.
+        val editNow by androidx.compose.runtime.rememberUpdatedState(editMode)
+        val pullPx = with(androidx.compose.ui.platform.LocalDensity.current) { 72.dp.toPx() }
+        val toSearch = remember(state) {
+            object : NestedScrollConnection {
+                var pulled = 0f
+                fun open() {
+                    pulled = Float.NEGATIVE_INFINITY
+                    scope.launch { state.onSearchBarTap() }
+                }
+                override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                    if (editNow || source != NestedScrollSource.UserInput) return Offset.Zero
+                    if (available.y < 0f) {
+                        pulled -= available.y
+                        if (pulled > pullPx) open()
+                    } else if (consumed.y != 0f || available.y > 0f) {
+                        pulled = 0f
+                    }
+                    return Offset.Zero
+                }
+                override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                    val wasPulled = pulled
+                    pulled = 0f
+                    if (!editNow && wasPulled >= 0f && available.y < -2500f && !scrollState.canScrollForward) open()
+                    return androidx.compose.ui.unit.Velocity.Zero
+                }
+            }
+        }
+
         // Fork: the second widget screen is the side panel (swipe left): widgets only; the chat lives on "Môj deň".
         androidx.compose.foundation.layout.Box(modifier) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .nestedScroll(toSearch)
                     .nestedScroll(scrollConnection)
                     // Fork: long press edits the panel, like the home screen.
                     .pointerInput(editMode) {

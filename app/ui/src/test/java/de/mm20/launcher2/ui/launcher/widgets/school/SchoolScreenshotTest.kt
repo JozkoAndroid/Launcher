@@ -272,7 +272,7 @@ class SchoolScreenshotTest {
         DockContent(
             count = count, modifier = modifier,
             icon = { i, size -> Box(Modifier.padding(2.dp).fillMaxSize().background(colors[i % colors.size], androidx.compose.foundation.shape.CircleShape)) },
-            label = { "App $it" }, onApp = {}, onEdit = {}, onAssistant = {},
+            label = { "App $it" }, onApp = { _, _ -> }, onEdit = {}, onAssistant = {},
         )
     }
 

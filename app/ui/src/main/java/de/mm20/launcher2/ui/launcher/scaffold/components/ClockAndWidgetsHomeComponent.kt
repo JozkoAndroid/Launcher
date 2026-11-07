@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBars
 import de.mm20.launcher2.ui.launcher.helper.detectLongPressPassive
@@ -153,14 +154,36 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                     parentId = WidgetScreenTarget.Default.id.toString(),
                 )
                 // Room for the floating dock, so the last block can scroll above it.
-                if (!editMode) androidx.compose.foundation.layout.Spacer(Modifier.height(de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.DockHeight + 40.dp))
+                if (!editMode) androidx.compose.foundation.layout.Spacer(Modifier.height(if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600) 120.dp else de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.DockHeight + 40.dp))
             }
         }
 
         // Fork: one home screen on every size; wide screens get a two-column dashboard (see WidgetColumn).
         // Round 7: a dock of 4 apps (7 on wide screens) and the assistant floats at the bottom.
+        // Round 9: coming back from an app, the home rises in (scale 0.94 -> 1, fade), 260ms ease-out.
+        val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        val enter = remember { androidx.compose.animation.core.Animatable(1f) }
+        LaunchedEffect(lifecycle) {
+            lifecycle.currentStateFlow.collect { st ->
+                when (st) {
+                    androidx.lifecycle.Lifecycle.State.CREATED -> enter.snapTo(0f)
+                    androidx.lifecycle.Lifecycle.State.STARTED, androidx.lifecycle.Lifecycle.State.RESUMED ->
+                        if (enter.value < 1f) enter.animateTo(1f, androidx.compose.animation.core.tween(260, easing = de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.EnterEasing))
+                    else -> {}
+                }
+            }
+        }
         androidx.compose.foundation.layout.Box(modifier.fillMaxSize()) {
-            homeColumn(Modifier.fillMaxSize())
+            homeColumn(
+                Modifier.fillMaxSize().graphicsLayer {
+                    val v = enter.value
+                    if (v < 1f) {
+                        scaleX = 0.94f + 0.06f * v
+                        scaleY = 0.94f + 0.06f * v
+                        alpha = 0.3f + 0.7f * v
+                    }
+                }
+            )
             AnimatedVisibility(
                 !editMode,
                 modifier = Modifier.align(Alignment.BottomCenter),
