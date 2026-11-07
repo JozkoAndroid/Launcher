@@ -67,8 +67,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-/** Schoolhelp's web app. Deep links to single tasks are unverified (spec risk), so taps open the start page. */
-private const val SchoolhelpUrl = "https://lessons.labeltranslator.com/"
 
 @Composable
 fun LessonWidget(widget: LessonWidget) {
@@ -88,7 +86,7 @@ internal fun LessonContent(f: Feed, now: LocalDateTime) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .pressable(role = Role.Button) { open(context, SchoolhelpUrl) }
+                .pressable(role = Role.Button) { Links.openSchoolhelp(context) }
                 .padding(horizontal = SchoolTokens.Inset, vertical = SchoolTokens.Gap)
         ) {
             when (val s = BriefLogic.lessonState(f, now)) {
@@ -208,7 +206,7 @@ internal fun BriefContent(f: Feed, now: OffsetDateTime) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = SchoolTokens.RowMin)
-                    .pressable(role = Role.Button) { open(context, item.url) }
+                    .pressable(role = Role.Button) { Links.openArticle(context, item.url) }
                     .semantics { contentDescription = "$openLabel: ${item.title}" }
                     .padding(horizontal = SchoolTokens.Inset, vertical = SchoolTokens.Gap),
             )
@@ -243,7 +241,7 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
             )
         }
         for (row in rows) {
-            TaskRowItem(row, today) { open(context, SchoolhelpUrl) }
+            TaskRowItem(row, today) { Links.openSchoolhelp(context) }
         }
     }
 }

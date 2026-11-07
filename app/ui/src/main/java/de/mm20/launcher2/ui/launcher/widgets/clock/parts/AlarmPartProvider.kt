@@ -94,12 +94,9 @@ class AlarmPartProvider : PartProvider {
                     )
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
-                        text = DateUtils.getRelativeTimeSpanString(
-                            it,
-                            time,
-                            DateUtils.MINUTE_IN_MILLIS
-                        )
-                            .toString(),
+                        // Fork: the alarm's actual time ("6:45", or "pi 6:45" when not today);
+                        // the relative "in 1 hour" did not refresh correctly on the device.
+                        text = alarmLabel(context, it, time),
                     )
                 }
             } else {
@@ -118,16 +115,24 @@ class AlarmPartProvider : PartProvider {
                     )
                     Text(
                         modifier = Modifier.padding(start = 12.dp),
-                        text = DateUtils.getRelativeTimeSpanString(
-                            it,
-                            time,
-                            DateUtils.MINUTE_IN_MILLIS
-                        )
-                            .toString(),
+                        // Fork: the alarm's actual time ("6:45", or "pi 6:45" when not today);
+                        // the relative "in 1 hour" did not refresh correctly on the device.
+                        text = alarmLabel(context, it, time),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
             }
         }
     }
+}
+/** Fork: absolute alarm time in the app's locale, with the weekday when the alarm is not today. */
+internal fun alarmLabel(context: Context, alarmMs: Long, nowMs: Long): String {
+    val zone = java.time.ZoneId.systemDefault()
+    val alarm = java.time.Instant.ofEpochMilli(alarmMs).atZone(zone)
+    val today = java.time.Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+    val t = android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date(alarmMs))
+    if (alarm.toLocalDate() == today) return t
+    val locale = context.resources.configuration.locales[0]
+    val day = alarm.format(java.time.format.DateTimeFormatter.ofPattern("EEE", locale))
+    return "$day $t"
 }

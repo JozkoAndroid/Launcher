@@ -93,6 +93,8 @@ abstract class SharedLauncherActivity(
     internal val enterHomeTransitionManager = EnterHomeTransitionManager()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Fork: one-time home screen setup (blocks on home, Slovak, swipe up = apps).
+        ForkSetup.run(this)
         enableEdgeToEdge()
         if (isAtLeastApiLevel(29)) {
             window.isNavigationBarContrastEnforced = false

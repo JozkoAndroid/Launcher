@@ -17,15 +17,16 @@ class BriefLogicTest {
         SchoolTask(id = id, kind = kind, title = "T $id", due = due, done = done, time = time)
 
     @Test
-    fun doneHomeworkIsHiddenButTickedTestStaysUntilItsDate() {
+    fun everythingTickedDoneIsHidden() {
         val rows = BriefLogic.visibleTasks(
             listOf(
                 task("hw", SchoolTask.Homework, "2026-11-12", done = true),
-                task("test", SchoolTask.Test, "2026-11-20", done = true),
+                task("test", SchoolTask.Test, "2026-11-13", done = true),
+                task("open", SchoolTask.Test, "2026-11-13"),
             ),
             today,
         )
-        assertEquals(listOf("test"), rows.map { it.task.id })
+        assertEquals(listOf("open"), rows.map { it.task.id })
     }
 
     @Test
@@ -43,11 +44,11 @@ class BriefLogicTest {
     }
 
     @Test
-    fun overdueFirstThenDateThenTimeAndNothingBeyond14Days() {
+    fun overdueFirstThenDateThenTimeAndNothingBeyond7Days() {
         val rows = BriefLogic.visibleTasks(
             listOf(
-                task("far", SchoolTask.Test, "2026-11-26"),
-                task("edge", SchoolTask.Test, "2026-11-25"),
+                task("far", SchoolTask.Test, "2026-11-19"),
+                task("edge", SchoolTask.Test, "2026-11-18"),
                 task("late", SchoolTask.Appointment, "2026-11-12", time = "17:00"),
                 task("early", SchoolTask.Appointment, "2026-11-12", time = "09:00"),
                 task("overdue", SchoolTask.Project, "2026-11-01"),

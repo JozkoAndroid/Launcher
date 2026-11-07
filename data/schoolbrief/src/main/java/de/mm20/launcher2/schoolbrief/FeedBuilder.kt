@@ -45,7 +45,7 @@ object FeedBuilder {
             val done = e["done"]?.jsonPrimitive?.booleanOrNull == true
             val dated = kind == SchoolTask.Test || kind == SchoolTask.Appointment
             if (dated && due.isBefore(today)) continue
-            if (!dated && done) continue
+            if (done) continue
             val folder = e.str("folder").orEmpty()
             tasks += SchoolTask(
                 id = e.str("id") ?: continue,

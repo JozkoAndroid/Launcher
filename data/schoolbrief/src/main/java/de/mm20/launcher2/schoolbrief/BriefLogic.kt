@@ -37,13 +37,16 @@ data class NextSchoolDay(val date: LocalDate, val first: Lesson)
 
 object BriefLogic {
 
-    const val AheadDays = 14L
+    /** Device test: 14 days showed things "very far in the future". */
+    const val AheadDays = 7L
+    /** At most this many rows in the Tasks block. */
+    const val MaxRows = 5
     const val LookAheadDays = 21L
     val StaleAfter: Duration = Duration.ofHours(12)
 
     /**
-     * Homework and projects: hidden once done, kept while overdue.
-     * Tests and Termine: shown until their date passes, even if ticked.
+     * Anything ticked done is hidden (device test: ticked tests still showing was wrong).
+     * Homework and projects: kept while overdue. Tests and Termine: gone once their date passes.
      * Overdue first, then by date and time. Nothing beyond [AheadDays].
      */
     fun visibleTasks(tasks: List<SchoolTask>, today: LocalDate): List<TaskRow> {
@@ -53,8 +56,8 @@ object BriefLogic {
             if (due.isAfter(horizon)) return@mapNotNull null
             val datedKind = t.kind == SchoolTask.Test || t.kind == SchoolTask.Appointment
             when {
+                t.done -> null
                 datedKind && due.isBefore(today) -> null
-                !datedKind && t.done -> null
                 else -> TaskRow(t, due, overdue = !datedKind && due.isBefore(today))
             }
         }.sortedWith(

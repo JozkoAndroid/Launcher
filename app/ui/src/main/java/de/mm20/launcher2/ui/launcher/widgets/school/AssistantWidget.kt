@@ -54,44 +54,28 @@ internal fun AssistantButton(onClick: () -> Unit) {
                 .heightIn(min = 52.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                Icon(painterResource(R.drawable.auto_awesome_24dp), contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(SchoolTokens.Gap))
-                Text(stringResource(R.string.assistant_button), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                                Text(stringResource(R.string.assistant_button), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
             }
         }
     }
 }
 
 /**
- * Opens Gemini without ever showing an app chooser (the generic assist request made Android ask
- * "open with…" on Samsung). Every intent here names one exact app:
- * 1. the assist request sent only to the system's default assistant (overlay, if that app supports it),
- * 2. the Gemini app itself,
- * 3. the Google app's assistant.
+ * Opens Gemini. Device test (Fold 5): the assist request went to the Google app and opened
+ * Google search, so it is not used. Every intent names one exact target, so no chooser appears:
+ * 1. the Gemini app, 2. gemini.google.com in the Gemini app, 3. gemini.google.com in the browser.
  */
 object AssistantLauncher {
     const val GeminiPackage = "com.google.android.apps.bard"
-    const val GooglePackage = "com.google.android.googlequicksearchbox"
-
-    /** Package of the default digital assistant, from the system setting (null if unreadable or none). */
-    fun defaultAssistantPackage(context: Context): String? = runCatching {
-        android.provider.Settings.Secure.getString(context.contentResolver, "assistant")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { android.content.ComponentName.unflattenFromString(it)?.packageName }
-    }.getOrNull()
+    const val GeminiUrl = "https://gemini.google.com/app"
 
     fun candidates(context: Context): List<Intent> {
         val pm = context.packageManager
         val out = mutableListOf<Intent>()
-        defaultAssistantPackage(context)?.let { pkg ->
-            out += Intent(Intent.ACTION_ASSIST).setPackage(pkg)
-        }
         pm.getLaunchIntentForPackage(GeminiPackage)?.let { out += it }
-        out += Intent(Intent.ACTION_ASSIST).setPackage(GooglePackage)
-        // Explicit package only: never a chooser.
-        return out.filter { it.`package` != null || it.component != null }
-            .filter { it.resolveActivity(pm) != null }
-            .map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+        out += Intent(Intent.ACTION_VIEW, android.net.Uri.parse(GeminiUrl)).setPackage(GeminiPackage)
+        out += Intent(Intent.ACTION_VIEW, android.net.Uri.parse(GeminiUrl)).addCategory(Intent.CATEGORY_BROWSABLE)
+        return out.filter { it.resolveActivity(pm) != null }.map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
     }
 
     fun open(context: Context) {

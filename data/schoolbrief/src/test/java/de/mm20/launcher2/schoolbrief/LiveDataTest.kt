@@ -37,7 +37,8 @@ class LiveDataTest {
     @Test
     fun eventsBecomeTasksAndHolidays() {
         val p = FeedBuilder.tasks(events, today)
-        assertEquals(listOf("h1", "h3", "t1", "a1"), p.tasks.map { it.id })
+        // h2 and t1 are ticked done: hidden.
+        assertEquals(listOf("h1", "h3", "a1"), p.tasks.map { it.id })
         assertTrue(p.tasks.first { it.id == "h1" }.estimated)
         assertEquals("16:30", p.tasks.first { it.id == "a1" }.time)
         assertEquals("", p.tasks.first { it.id == "a1" }.subject) // "Unsorted" is not a subject
