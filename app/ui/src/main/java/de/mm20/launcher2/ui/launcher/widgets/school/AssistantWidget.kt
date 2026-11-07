@@ -63,18 +63,36 @@ internal fun AssistantButton(onClick: () -> Unit) {
 }
 
 /**
- * Opens the default assistant. Android has no public "show the assistant overlay" call for apps,
- * so this tries, in order: the standard assist request, the voice command request, the Gemini app.
- * Whether the result is the overlay or the full app depends on the assistant (spec risk; check on device).
+ * Opens Gemini without ever showing an app chooser (the generic assist request made Android ask
+ * "open with…" on Samsung). Every intent here names one exact app:
+ * 1. the assist request sent only to the system's default assistant (overlay, if that app supports it),
+ * 2. the Gemini app itself,
+ * 3. the Google app's assistant.
  */
 object AssistantLauncher {
     const val GeminiPackage = "com.google.android.apps.bard"
+    const val GooglePackage = "com.google.android.googlequicksearchbox"
 
-    fun candidates(context: Context): List<Intent> = listOfNotNull(
-        Intent(Intent.ACTION_ASSIST),
-        Intent(Intent.ACTION_VOICE_COMMAND),
-        context.packageManager.getLaunchIntentForPackage(GeminiPackage),
-    ).map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    /** Package of the default digital assistant, from the system setting (null if unreadable or none). */
+    fun defaultAssistantPackage(context: Context): String? = runCatching {
+        android.provider.Settings.Secure.getString(context.contentResolver, "assistant")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { android.content.ComponentName.unflattenFromString(it)?.packageName }
+    }.getOrNull()
+
+    fun candidates(context: Context): List<Intent> {
+        val pm = context.packageManager
+        val out = mutableListOf<Intent>()
+        defaultAssistantPackage(context)?.let { pkg ->
+            out += Intent(Intent.ACTION_ASSIST).setPackage(pkg)
+        }
+        pm.getLaunchIntentForPackage(GeminiPackage)?.let { out += it }
+        out += Intent(Intent.ACTION_ASSIST).setPackage(GooglePackage)
+        // Explicit package only: never a chooser.
+        return out.filter { it.`package` != null || it.component != null }
+            .filter { it.resolveActivity(pm) != null }
+            .map { it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    }
 
     fun open(context: Context) {
         for (intent in candidates(context)) {

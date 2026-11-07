@@ -1,5 +1,9 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -82,6 +86,7 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
         state: LauncherScaffoldState
     ) {
         val scope = rememberCoroutineScope()
+        val haptic = LocalHapticFeedback.current
 
         val clockWidgetSettings: ClockWidgetSettings = koinInject()
         val fillHeight by clockWidgetSettings.fillHeight.collectAsState(null)
@@ -106,6 +111,14 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
         val homeColumn: @Composable (Modifier) -> Unit = { columnModifier ->
             Column(
                 modifier = columnModifier
+                    // Fork: long press on the home screen edits the blocks, as in most launchers.
+                    .pointerInput(editMode) {
+                        if (!editMode) detectTapGestures(onLongPress = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            scope.launch { state.lock(hideSearchBar = true) }
+                            editMode = true
+                        })
+                    }
                     .verticalScroll(scrollState, enabled = !state.isDragged)
                     .padding(horizontal = 8.dp)
                     .padding(top = topPadding)
