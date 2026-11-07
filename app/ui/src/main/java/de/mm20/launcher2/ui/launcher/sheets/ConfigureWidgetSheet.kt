@@ -117,6 +117,10 @@ import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.widgets.BriefWidget
+import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.LessonWidget
+import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 import kotlinx.collections.immutable.toImmutableList
@@ -152,6 +156,8 @@ fun ConfigureWidgetSheet(
                 is AppsWidget -> ConfigureFavoritesWidget(widget, onWidgetUpdated)
                 is MusicWidget -> ConfigureMusicWidget(widget, onWidgetUpdated)
                 is NotesWidget -> ConfigureNotesWidget(widget, onWidgetUpdated)
+                // School widgets have no options in version 1.
+                is LessonWidget, is BriefWidget, is TasksWidget, is ContextWidget -> {}
             }
         }
 
@@ -688,6 +694,10 @@ fun ColumnScope.ConfigureAppWidget(
                     is CalendarWidget -> it.copy(id = widget.id)
                     is AppsWidget -> it.copy(id = widget.id)
                     is NotesWidget -> it.copy(id = widget.id)
+                    is LessonWidget -> it.copy(id = widget.id)
+                    is BriefWidget -> it.copy(id = widget.id)
+                    is TasksWidget -> it.copy(id = widget.id)
+                    is ContextWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdated(updatedWidget)
                 replaceWidget = false

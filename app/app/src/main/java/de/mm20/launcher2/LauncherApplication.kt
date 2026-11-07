@@ -27,6 +27,7 @@ import de.mm20.launcher2.database.databaseModule
 import de.mm20.launcher2.debug.initDebugMode
 import de.mm20.launcher2.globalactions.globalActionsModule
 import de.mm20.launcher2.notifications.notificationsModule
+import de.mm20.launcher2.schoolbrief.schoolBriefModule
 import de.mm20.launcher2.locations.locationsModule
 import de.mm20.launcher2.permissions.permissionsModule
 import de.mm20.launcher2.data.plugins.dataPluginsModule
@@ -80,6 +81,7 @@ class LauncherApplication : Application(), CoroutineScope, ImageLoaderFactory {
                     iconsModule,
                     musicModule,
                     notificationsModule,
+                    schoolBriefModule,
                     permissionsModule,
                     preferencesModule,
                     searchModule,

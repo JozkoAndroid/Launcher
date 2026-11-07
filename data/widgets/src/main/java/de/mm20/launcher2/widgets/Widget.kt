@@ -68,6 +68,11 @@ sealed class Widget {
                     NotesWidget(entity.id, config)
                 }
 
+                LessonWidget.Type -> LessonWidget(entity.id)
+                BriefWidget.Type -> BriefWidget(entity.id)
+                TasksWidget.Type -> TasksWidget(entity.id)
+                ContextWidget.Type -> ContextWidget(entity.id)
+
                 else -> null
             }
         }

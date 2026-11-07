@@ -132,6 +132,7 @@ dependencies {
     implementation(project(":data:calculator"))
     implementation(project(":data:files"))
     implementation(project(":data:widgets"))
+    implementation(project(":data:schoolbrief"))
     implementation(project(":data:searchable"))
     implementation(project(":data:themes"))
     implementation(project(":data:wikipedia"))

@@ -5,6 +5,7 @@ import de.mm20.launcher2.database.AppDatabase
 import de.mm20.launcher2.themes.DefaultThemeId
 import de.mm20.launcher2.themes.R
 import de.mm20.launcher2.themes.SemiTransparentId
+import de.mm20.launcher2.themes.BriefTransparenciesId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -29,6 +30,7 @@ class TransparenciesRepository(
     fun get(id: UUID): Flow<Transparencies?> {
         if (id == DefaultThemeId) return flowOf(default)
         if (id == SemiTransparentId) return flowOf(semiTransparent)
+        if (id == BriefTransparenciesId) return flowOf(brief)
         return database.themeDao().getTransparencies(id).map { it?.let { Transparencies(it) } }
     }
 
@@ -60,6 +62,7 @@ class TransparenciesRepository(
         return listOf(
             default,
             semiTransparent,
+            brief,
         )
     }
 
@@ -82,6 +85,17 @@ class TransparenciesRepository(
             background = 0.40f,
             surface = 0.65f,
             elevatedSurface = 0.85f,
+        )
+
+    /** Fork: widgets have no box; menus and sheets stay opaque so they read over anything. */
+    private val brief: Transparencies
+        get() = Transparencies(
+            id = BriefTransparenciesId,
+            builtIn = true,
+            name = context.getString(R.string.preference_transparencies_brief),
+            background = 0.85f,
+            surface = 0f,
+            elevatedSurface = 1f,
         )
 
 }

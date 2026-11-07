@@ -450,6 +450,7 @@
     <string name="preference_create_transparency">New transparency scheme</string>
     <string name="preference_transparencies_default">Default</string>
     <string name="preference_transparencies_semi_transparent">Semi-transparent</string>
+    <string name="preference_transparencies_brief">Brief (no boxes)</string>
     <string name="preference_font">Font</string>
     <string name="preference_screen_about">About</string>
     <string name="preference_version">Version</string>
@@ -1129,4 +1130,31 @@
     <string name="typo_preview_medium2">Preview</string>
     <string name="typo_preview_long">The quick brown fox\njumps over 1234790</string>
     <string name="preference_category_donate">Support the development</string>
+
+    <!-- School brief (launcher fork) -->
+    <string name="widget_name_lesson">Lesson</string>
+    <string name="widget_name_brief">Brief</string>
+    <string name="widget_name_school_tasks">School tasks</string>
+    <string name="widget_name_context">Right now</string>
+    <string name="school_updated_at">updated %1$s</string>
+    <string name="school_stale">old data</string>
+    <string name="lesson_until">until %1$s</string>
+    <string name="lesson_next">Next: %1$s at %2$s</string>
+    <string name="lesson_upcoming_at">at %1$s</string>
+    <string name="lesson_tomorrow">Tomorrow %1$s at %2$s</string>
+    <string name="lesson_day_over">No more lessons today</string>
+    <string name="lesson_weekend">Weekend, no school</string>
+    <string name="lesson_progress">%1$d%% of the lesson done</string>
+    <string name="task_overdue">overdue</string>
+    <string name="task_estimated">date estimated</string>
+    <string name="tasks_empty">Nothing due in the next 14 days.</string>
+    <string name="task_kind_hausaufgabe">homework</string>
+    <string name="task_kind_test">test</string>
+    <string name="task_kind_projekt">project</string>
+    <string name="task_kind_termin">appointment</string>
+    <string name="due_today">today</string>
+    <string name="due_tomorrow">tomorrow</string>
+    <string name="open_article">Open article</string>
+    <string name="context_instagram_today">Instagram today: %1$s min</string>
+    <string name="context_steps">Steps: %1$s of %2$s</string>
 </resources>

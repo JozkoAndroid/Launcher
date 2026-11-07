@@ -44,6 +44,14 @@ import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.widgets.BriefWidget
+import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.LessonWidget
+import de.mm20.launcher2.widgets.TasksWidget
+import de.mm20.launcher2.ui.launcher.widgets.school.BriefWidget
+import de.mm20.launcher2.ui.launcher.widgets.school.ContextWidget
+import de.mm20.launcher2.ui.launcher.widgets.school.LessonWidget
+import de.mm20.launcher2.ui.launcher.widgets.school.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 
@@ -146,6 +154,11 @@ fun WidgetItem(
                             onWidgetAdd = onWidgetAdd,
                         )
                     }
+
+                    is LessonWidget -> LessonWidget(widget)
+                    is BriefWidget -> BriefWidget(widget)
+                    is TasksWidget -> TasksWidget(widget)
+                    is ContextWidget -> ContextWidget(widget)
 
                     is AppWidget -> {
                         AppWidget(

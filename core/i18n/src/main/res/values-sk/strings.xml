@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Slovak: only the fork's strings so far; the rest falls back to English. -->
+    <string name="widget_name_lesson">Hodina</string>
+    <string name="widget_name_brief">Prehľad</string>
+    <string name="widget_name_school_tasks">Školské úlohy</string>
+    <string name="widget_name_context">Práve teraz</string>
+    <string name="school_updated_at">aktualizované %1$s</string>
+    <string name="school_stale">staré údaje</string>
+    <string name="lesson_until">do %1$s</string>
+    <string name="lesson_next">Ďalej: %1$s o %2$s</string>
+    <string name="lesson_upcoming_at">o %1$s</string>
+    <string name="lesson_tomorrow">Zajtra %1$s o %2$s</string>
+    <string name="lesson_day_over">Dnes už žiadne hodiny</string>
+    <string name="lesson_weekend">Víkend, bez školy</string>
+    <string name="lesson_progress">Hodina z %1$d %% za tebou</string>
+    <string name="task_overdue">po termíne</string>
+    <string name="task_estimated">odhadnutý dátum</string>
+    <string name="tasks_empty">Na najbližších 14 dní nič.</string>
+    <string name="task_kind_hausaufgabe">úloha</string>
+    <string name="task_kind_test">test</string>
+    <string name="task_kind_projekt">projekt</string>
+    <string name="task_kind_termin">termín</string>
+    <string name="due_today">dnes</string>
+    <string name="due_tomorrow">zajtra</string>
+    <string name="open_article">Otvoriť článok</string>
+    <string name="context_instagram_today">Instagram dnes: %1$s min</string>
+    <string name="context_steps">Kroky: %1$s z %2$s</string>
+    <string name="preference_transparencies_brief">Brief (bez rámčekov)</string>
+</resources>

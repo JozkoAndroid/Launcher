@@ -1,0 +1,1 @@
+-keep class de.mm20.launcher2.schoolbrief.** { *; }

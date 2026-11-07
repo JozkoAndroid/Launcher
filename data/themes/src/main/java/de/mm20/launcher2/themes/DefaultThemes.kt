@@ -14,6 +14,9 @@ val RectShapesId = UUID(0L, 3L)
 
 val SemiTransparentId = UUID(0L, 1L)
 
+/** Fork: school blocks drawn straight on the wallpaper. High id so upstream presets never collide. */
+val BriefTransparenciesId = UUID(0L, 1001L)
+
 val SystemFontId = UUID(0L, 1L)
 val MonospaceId = UUID(0L, 2L)
 val SerifId = UUID(0L, 3L)

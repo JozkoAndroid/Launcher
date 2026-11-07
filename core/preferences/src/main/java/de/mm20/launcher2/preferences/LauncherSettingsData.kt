@@ -19,7 +19,8 @@ data class LauncherSettingsData internal constructor(
     @Serializable(with = UUIDSerializer::class)
     val uiShapesId: UUID = UUID(0L, 0L),
     @Serializable(with = UUIDSerializer::class)
-    val uiTransparenciesId: UUID = UUID(0L, 0L),
+    // Fork default: "Brief" preset (see BriefTransparenciesId in data/themes).
+    val uiTransparenciesId: UUID = UUID(0L, 1001L),
     @Serializable(with = UUIDSerializer::class)
     val uiTypographyId: UUID = UUID(0L, 0L),
 
@@ -28,7 +29,8 @@ data class LauncherSettingsData internal constructor(
     val uiBaseLayout: BaseLayout = BaseLayout.PullDown,
     val uiOrientation: ScreenOrientation = ScreenOrientation.Auto,
 
-    val wallpaperDim: Boolean = false,
+    // Fork default: dim keeps text readable on bright wallpapers (contrast rule).
+    val wallpaperDim: Boolean = true,
     val wallpaperBlur: Boolean = true,
     val wallpaperBlurRadius: Int = 32,
 

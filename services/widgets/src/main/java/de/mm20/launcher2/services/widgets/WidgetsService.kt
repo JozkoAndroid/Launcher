@@ -10,6 +10,10 @@ import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.widgets.LessonWidget
+import de.mm20.launcher2.widgets.BriefWidget
+import de.mm20.launcher2.widgets.TasksWidget
+import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 import de.mm20.launcher2.widgets.WidgetRepository
@@ -69,6 +73,22 @@ class WidgetsService(
             BuiltInWidgetInfo(
                 type = NotesWidget.Type,
                 label = context.getString(R.string.widget_name_notes),
+            ),
+            BuiltInWidgetInfo(
+                type = LessonWidget.Type,
+                label = context.getString(R.string.widget_name_lesson),
+            ),
+            BuiltInWidgetInfo(
+                type = BriefWidget.Type,
+                label = context.getString(R.string.widget_name_brief),
+            ),
+            BuiltInWidgetInfo(
+                type = TasksWidget.Type,
+                label = context.getString(R.string.widget_name_school_tasks),
+            ),
+            BuiltInWidgetInfo(
+                type = ContextWidget.Type,
+                label = context.getString(R.string.widget_name_context),
             ),
         )
     }

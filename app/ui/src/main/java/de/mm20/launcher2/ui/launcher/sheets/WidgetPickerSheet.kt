@@ -71,6 +71,10 @@ import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.widgets.BriefWidget
+import de.mm20.launcher2.widgets.ContextWidget
+import de.mm20.launcher2.widgets.LessonWidget
+import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 import java.util.UUID
@@ -386,6 +390,10 @@ fun WidgetPickerSheet(
                                     MusicWidget.Type -> MusicWidget(id)
                                     AppsWidget.Type -> AppsWidget(id)
                                     NotesWidget.Type -> NotesWidget(id)
+                                    LessonWidget.Type -> LessonWidget(id)
+                                    BriefWidget.Type -> BriefWidget(id)
+                                    TasksWidget.Type -> TasksWidget(id)
+                                    ContextWidget.Type -> ContextWidget(id)
                                     else -> return@clickable
                                 }
                                 onWidgetSelected(widget)
@@ -404,6 +412,10 @@ fun WidgetPickerSheet(
                                         MusicWidget.Type -> R.drawable.music_note_24px
                                         AppsWidget.Type -> R.drawable.apps_24px
                                         NotesWidget.Type -> R.drawable.sticky_note_2_24px
+                                        LessonWidget.Type -> R.drawable.school_24px
+                                        BriefWidget.Type -> R.drawable.newspaper_24px
+                                        TasksWidget.Type -> R.drawable.task_alt_24px
+                                        ContextWidget.Type -> R.drawable.bolt_24px
                                         else -> R.drawable.widgets_24px
                                     }
                                 ),
