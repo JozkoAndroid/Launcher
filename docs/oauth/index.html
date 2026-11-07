@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Prihlásenie do launchera</title>
+<style>
+  /* Schoolhelp login bounce page: hands the one-time code to the launcher app.
+     The code is useless without the PKCE secret that never leaves the phone. */
+  :root {
+    color-scheme: light dark;
+    --bg: oklch(99% 0.003 250);
+    --text: oklch(20% 0.01 250);
+    --muted: oklch(45% 0.01 250);
+    --ink: oklch(20% 0.01 250);
+    --on-ink: oklch(99% 0.003 250);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: oklch(16% 0.006 250); --text: oklch(96% 0.006 250); --muted: oklch(75% 0.008 250); --ink: oklch(96% 0.006 250); --on-ink: oklch(16% 0.006 250); }
+  }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 32rem; padding: 48px 24px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
+  p { margin: 0 0 24px; color: var(--muted); }
+  a.button { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-radius: 12px;
+    background: var(--ink); color: var(--on-ink); text-decoration: none; font-weight: 500; }
+  a.button:active { transform: scale(0.97); }
+  a.button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Vraciam ťa do launchera…</h1>
+  <p id="text">Ak sa launcher neotvorí sám, ťukni na tlačidlo.</p>
+  <a class="button" id="go" href="#">Otvoriť launcher</a>
+</main>
+<script>
+  (function () {
+    var q = location.search;
+    var params = new URLSearchParams(q);
+    if (!params.has('code') && !params.has('error')) {
+      document.getElementById('title').textContent = 'Táto stránka sa otvára len pri prihlásení.';
+      document.getElementById('text').textContent = 'Prihlásenie spusti v launcheri na domovskej obrazovke.';
+      document.getElementById('go').hidden = true;
+      return;
+    }
+    // Android browsers open intent:// links in the app that declares launcherbrief://oauth.
+    var target = 'intent://oauth' + q + '#Intent;scheme=launcherbrief;end';
+    if (!/Android/i.test(navigator.userAgent)) target = 'launcherbrief://oauth' + q;
+    document.getElementById('go').href = target;
+    location.replace(target);
+  })();
+</script>
+</body>
+</html>
