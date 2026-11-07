@@ -5,4 +5,5 @@
     <include domain="sharedpref" path="."/>
     <exclude domain="sharedpref" path="nextcloud.xml" />
     <exclude domain="sharedpref" path="owncloud.xml" />
+    <exclude domain="sharedpref" path="schoolbrief_secrets.xml" />
 </full-backup-content>

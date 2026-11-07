@@ -117,6 +117,7 @@ import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
+import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureSchoolBrief
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.LessonWidget
@@ -156,8 +157,9 @@ fun ConfigureWidgetSheet(
                 is AppsWidget -> ConfigureFavoritesWidget(widget, onWidgetUpdated)
                 is MusicWidget -> ConfigureMusicWidget(widget, onWidgetUpdated)
                 is NotesWidget -> ConfigureNotesWidget(widget, onWidgetUpdated)
-                // School widgets have no options in version 1.
-                is LessonWidget, is BriefWidget, is TasksWidget, is ContextWidget -> {}
+                is BriefWidget -> ConfigureSchoolBrief()
+                // The other school widgets have no options in version 1.
+                is LessonWidget, is TasksWidget, is ContextWidget -> {}
             }
         }
 

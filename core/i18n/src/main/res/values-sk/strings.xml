@@ -39,4 +39,21 @@
     <string name="app_page_info">Informácie o aplikácii</string>
     <string name="app_page_hidden_hint">skrytá</string>
     <string name="app_page_letter_index">Abecedný register: ťukni alebo potiahni</string>
+    <string name="school_login_needed">Prihlás sa do Schoolhelp a uvidíš tu svoj deň.</string>
+    <string name="school_login">Prihlásiť sa do Schoolhelp</string>
+    <string name="school_login_expired">Prihlásenie do Schoolhelp vypršalo.</string>
+    <string name="school_login_again">Prihlásiť sa znova</string>
+    <string name="school_login_in_browser">Dokonči prihlásenie v prehliadači.</string>
+    <string name="school_loading">Načítavam tvoj deň…</string>
+    <string name="school_load_failed">Deň sa nepodarilo načítať: %1$s</string>
+    <string name="school_retry">Skúsiť znova</string>
+    <string name="brief_settings_schoolhelp">Schoolhelp</string>
+    <string name="brief_settings_logged_in">Prihlásené. Úlohy a rozvrh sa načítajú, keď je domovská obrazovka zapnutá.</string>
+    <string name="brief_settings_logout">Odhlásiť sa</string>
+    <string name="brief_settings_gemini">Kľúč Gemini API</string>
+    <string name="brief_settings_gemini_info">Gemini 3-krát denne napíše prehľad a vyberie titulky. Bez kľúča sa prehľad skladá zo šablóny.</string>
+    <string name="brief_settings_gemini_saved">Kľúč je uložený v tomto zariadení (šifrovane).</string>
+    <string name="brief_settings_gemini_save">Uložiť kľúč</string>
+    <string name="brief_settings_gemini_remove">Odstrániť kľúč</string>
+    <string name="brief_settings_gemini_get">Získať bezplatný kľúč v Google AI Studio</string>
 </resources>

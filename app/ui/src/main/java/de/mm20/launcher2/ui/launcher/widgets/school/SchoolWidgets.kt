@@ -25,6 +25,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.graphics.luminance
+import de.mm20.launcher2.schoolbrief.BriefStatus
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -114,9 +119,62 @@ internal fun LessonContent(f: Feed, now: LocalDateTime) {
 fun BriefWidget(widget: BriefWidget) {
     val vm: SchoolBriefVM = viewModel(key = "school-brief")
     val feed by vm.feed.collectAsState(null)
+    val status by vm.status.collectAsState()
     vm.now.collectAsState(LocalDateTime.now()).value // recompose each minute for staleness
-    val f = feed ?: return
-    BriefContent(f, OffsetDateTime.now())
+    val context = LocalContext.current
+    Column {
+        feed?.let { BriefContent(it, OffsetDateTime.now()) }
+        BriefStatusContent(status, hasFeed = feed != null, onLogin = { vm.login(context) }, onRetry = { vm.retry() })
+    }
+}
+
+/**
+ * Login, loading and error states. With cached data on screen only an expired login is shown;
+ * a failed refresh just lets the data age into "staré údaje".
+ */
+@Composable
+internal fun BriefStatusContent(status: BriefStatus, hasFeed: Boolean, onLogin: () -> Unit, onRetry: () -> Unit) {
+    val line: String
+    var action: Pair<String, () -> Unit>? = null
+    var filled = false
+    when {
+        status is BriefStatus.NeedsLogin -> {
+            line = stringResource(if (hasFeed) R.string.school_login_expired else R.string.school_login_needed)
+            action = stringResource(if (hasFeed) R.string.school_login_again else R.string.school_login) to onLogin
+            filled = true
+        }
+        status is BriefStatus.LoggingIn -> line = stringResource(R.string.school_login_in_browser)
+        hasFeed -> return
+        status is BriefStatus.Error -> {
+            line = stringResource(R.string.school_load_failed, status.message)
+            action = stringResource(R.string.school_retry) to onRetry
+        }
+        else -> line = stringResource(R.string.school_loading)
+    }
+    SchoolBlock {
+        Column(Modifier.padding(horizontal = SchoolTokens.Inset, vertical = SchoolTokens.Gap)) {
+            Text(line, style = MaterialTheme.typography.bodyLarge)
+            action?.let { (label, onClick) ->
+                Spacer(Modifier.height(SchoolTokens.Gap))
+                val content = LocalContentColor.current
+                if (filled) {
+                    // Ink button: the one action of this state.
+                    Button(
+                        onClick = onClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = content,
+                            contentColor = if (content.luminance() > 0.5f) Color(0xFF15171A) else Color(0xFFF7F7F8),
+                        ),
+                        modifier = Modifier.heightIn(min = SchoolTokens.RowMin),
+                    ) { Text(label, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)) }
+                } else {
+                    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = SchoolTokens.RowMin)) {
+                        Text(label, color = content, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

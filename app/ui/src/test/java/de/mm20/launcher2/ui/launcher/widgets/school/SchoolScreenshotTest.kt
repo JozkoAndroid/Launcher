@@ -65,6 +65,22 @@ class SchoolScreenshotTest {
         Home(darkWallpaper, dim = false, darkContent = false, now = nowOffset.plusHours(13))
     }
 
+    /** First run: no data yet, one sentence and one action. */
+    @Test
+    fun brief_needsLogin() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
+            CompositionLocalProvider(
+                LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+            ) {
+                Box(Modifier.fillMaxSize().background(darkWallpaper)) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        BriefStatusContent(de.mm20.launcher2.schoolbrief.BriefStatus.NeedsLogin, hasFeed = false, onLogin = {}, onRetry = {})
+                    }
+                }
+            }
+        }
+    }
+
     @Composable
     private fun Home(wallpaper: Brush, dim: Boolean, darkContent: Boolean, now: OffsetDateTime = nowOffset) {
         // Wallpaper-derived scheme stand-in: a muted blue hue at the tones Kvaesitso's palette produces.

@@ -1169,4 +1169,21 @@
     <string name="app_page_info">App info</string>
     <string name="app_page_hidden_hint">hidden</string>
     <string name="app_page_letter_index">Letter index: tap or drag to jump</string>
+    <string name="school_login_needed">Log in to Schoolhelp to see your day here.</string>
+    <string name="school_login">Log in to Schoolhelp</string>
+    <string name="school_login_expired">Your Schoolhelp login has expired.</string>
+    <string name="school_login_again">Log in again</string>
+    <string name="school_login_in_browser">Finish logging in in the browser.</string>
+    <string name="school_loading">Loading your day…</string>
+    <string name="school_load_failed">Couldn’t load your day: %1$s</string>
+    <string name="school_retry">Try again</string>
+    <string name="brief_settings_schoolhelp">Schoolhelp</string>
+    <string name="brief_settings_logged_in">Logged in. Tasks and timetable load when the home screen is visible.</string>
+    <string name="brief_settings_logout">Log out</string>
+    <string name="brief_settings_gemini">Gemini API key</string>
+    <string name="brief_settings_gemini_info">Gemini writes the brief and picks the headlines 3 times a day. Without a key, the brief uses a fixed template.</string>
+    <string name="brief_settings_gemini_saved">Key saved on this device (encrypted).</string>
+    <string name="brief_settings_gemini_save">Save key</string>
+    <string name="brief_settings_gemini_remove">Remove key</string>
+    <string name="brief_settings_gemini_get">Get a free key in Google AI Studio</string>
 </resources>
