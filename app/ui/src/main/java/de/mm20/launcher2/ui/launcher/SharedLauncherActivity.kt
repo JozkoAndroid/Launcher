@@ -58,6 +58,8 @@ import de.mm20.launcher2.ui.launcher.scaffold.components.ClockHomeComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.DismissComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.FeedComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.AppPageComponent
+import de.mm20.launcher2.ui.launcher.scaffold.components.SchoolChatComponent
+import de.mm20.launcher2.ui.launcher.scaffold.components.SchoolWeekComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.LaunchComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.LauncherSettingsComponent
 import de.mm20.launcher2.ui.launcher.scaffold.components.NotificationsComponent
@@ -340,6 +342,16 @@ abstract class SharedLauncherActivity(
                                                     this@SharedLauncherActivity,
                                                     searchable
                                                 ),
+                                                animation = if (gesture.orientation == null) ScaffoldAnimation.ZoomIn else ScaffoldAnimation.Push,
+                                            )
+
+                                            is GestureAction.SchoolChat -> ScaffoldGesture(
+                                                component = SchoolChatComponent,
+                                                animation = if (gesture.orientation == null) ScaffoldAnimation.ZoomIn else ScaffoldAnimation.Push,
+                                            )
+
+                                            is GestureAction.SchoolWeek -> ScaffoldGesture(
+                                                component = SchoolWeekComponent,
                                                 animation = if (gesture.orientation == null) ScaffoldAnimation.ZoomIn else ScaffoldAnimation.Push,
                                             )
 

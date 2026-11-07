@@ -1081,4 +1081,14 @@
     <string name="folders_edit">Upraviť</string>
     <string name="folders_delete">Odstrániť priečinok</string>
     <string name="folders_empty_hint">Zoskup aplikácie, ktoré používaš spolu, napríklad školu alebo banky.</string>
+    <string name="chat_title">Spýtaj sa</string>
+    <string name="chat_intro">Spýtaj sa na svoj deň, testy alebo čokoľvek iné. Odpovede vychádzajú z tvojho rozvrhu a úloh.</string>
+    <string name="chat_no_key">Na chat pridaj kľúč Gemini v nastaveniach bloku Prehľad.</string>
+    <string name="chat_hint">Napíš otázku…</string>
+    <string name="chat_send">Odoslať</string>
+    <string name="chat_q_tomorrow">Čo mám zajtra?</string>
+    <string name="chat_q_test">Kedy mám najbližší test?</string>
+    <string name="chat_q_week">Zhrň mi týždeň</string>
+    <string name="chat_q_learn">Čo sa mám dnes učiť?</string>
+    <string name="week_title">Týždeň</string>
 </resources>

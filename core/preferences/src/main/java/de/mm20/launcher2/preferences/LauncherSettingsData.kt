@@ -157,8 +157,9 @@ data class LauncherSettingsData internal constructor(
     val widgetScreenCount: Int = 1,
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
-    val gesturesSwipeLeft: GestureAction = GestureAction.NoAction,
-    val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
+    val gesturesSwipeLeft: GestureAction = GestureAction.SchoolWeek,
+    // Fork defaults: swipe right = school chat, swipe left = week.
+    val gesturesSwipeRight: GestureAction = GestureAction.SchoolChat,
     // Fork default: one app list (Kvaesitso's, with favorites) on swipe up and swipe down.
     val gesturesSwipeUp: GestureAction = GestureAction.Search,
     val gesturesDoubleTap: GestureAction = GestureAction.ScreenLock,
@@ -432,6 +433,16 @@ sealed interface GestureAction {
     @Serializable
     @SerialName("app_page")
     data object AppPage : GestureAction
+
+    /** Fork: "Spýtaj sa" school chat (Gemini with the school data). */
+    @Serializable
+    @SerialName("school_chat")
+    data object SchoolChat : GestureAction
+
+    /** Fork: the week ahead: lessons and tasks per school day. */
+    @Serializable
+    @SerialName("school_week")
+    data object SchoolWeek : GestureAction
 }
 
 

@@ -393,7 +393,7 @@ private fun TaskRowItem(row: TaskRow, onClick: () -> Unit) {
 
 /** Subject-colored circle with the task's kind icon (homework, test, project, appointment). */
 @Composable
-private fun KindBadge(t: SchoolTask, kindLabel: String) {
+internal fun KindBadge(t: SchoolTask, kindLabel: String) {
     val c = subjectColors(t.subject)
     Box(
         Modifier.size(SchoolTokens.BadgeSmall).clip(CircleShape).background(c.container)
@@ -537,7 +537,7 @@ private fun ContextChip(item: ContextItem) {
 
 /** Timetable subjects (plus task subjects) get distinct badge colors. */
 @Composable
-private fun RegisterSubjects(f: Feed) {
+internal fun RegisterSubjects(f: Feed) {
     remember(f) { SubjectPalette.register(f.timetable.values.flatten().map { it.subject } + f.tasks.map { it.subject }); 0 }
 }
 
@@ -584,7 +584,7 @@ private fun CardHeader(title: String, trailing: String?) {
 }
 
 @Composable
-private fun SubjectBadge(subject: String, size: androidx.compose.ui.unit.Dp, fontSize: Int = 16) {
+internal fun SubjectBadge(subject: String, size: androidx.compose.ui.unit.Dp, fontSize: Int = 16) {
     val c = subjectColors(subject)
     Box(
         Modifier.size(size).clip(RoundedCornerShape(if (size > 32.dp) SchoolTokens.BadgeRadius else 8.dp)).background(c.container),
@@ -605,7 +605,7 @@ private fun IconBadge(@DrawableRes icon: Int, size: androidx.compose.ui.unit.Dp)
 }
 
 @Composable
-private fun Secondary(text: String, modifier: Modifier = Modifier) {
+internal fun Secondary(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium.merge(SchoolTokens.Tabular),
@@ -631,7 +631,7 @@ private fun ProgressLine(progress: Float) {
 
 /** "dnes", "zajtra", weekday within a week, else short date; locale-aware. */
 @Composable
-private fun dueLabel(due: LocalDate, today: LocalDate, time: String?): String {
+internal fun dueLabel(due: LocalDate, today: LocalDate, time: String?): String {
     val locale: Locale = LocalConfiguration.current.locales[0]
     val days = ChronoUnit.DAYS.between(today, due)
     val day = when {

@@ -157,6 +157,28 @@ internal fun GesturePreference(
                                     }
                                 )
                             }
+                            if (options.contains(GestureAction.SchoolChat::class)) {
+                                GestureItem(
+                                    title = stringResource(R.string.chat_title),
+                                    icon = R.drawable.chat_24px,
+                                    selected = value is GestureAction.SchoolChat,
+                                    onClick = {
+                                        onValueChanged(GestureAction.SchoolChat, null)
+                                        showSheet = false
+                                    }
+                                )
+                            }
+                            if (options.contains(GestureAction.SchoolWeek::class)) {
+                                GestureItem(
+                                    title = stringResource(R.string.week_title),
+                                    icon = R.drawable.calendar_today_24px,
+                                    selected = value is GestureAction.SchoolWeek,
+                                    onClick = {
+                                        onValueChanged(GestureAction.SchoolWeek, null)
+                                        showSheet = false
+                                    }
+                                )
+                            }
                             if (options.contains(GestureAction.AppPage::class)) {
                                 GestureItem(
                                     title = stringResource(R.string.gesture_action_app_page),

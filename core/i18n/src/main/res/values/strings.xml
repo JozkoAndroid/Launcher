@@ -1245,4 +1245,14 @@
     <string name="folders_edit">Edit</string>
     <string name="folders_delete">Delete folder</string>
     <string name="folders_empty_hint">Group apps you use together, like school or banking.</string>
+    <string name="chat_title">Ask</string>
+    <string name="chat_intro">Ask about your day, tests or anything else. Answers use your timetable and tasks.</string>
+    <string name="chat_no_key">Add a Gemini key in the Brief block\'s settings to use the chat.</string>
+    <string name="chat_hint">Ask something…</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_q_tomorrow">What do I have tomorrow?</string>
+    <string name="chat_q_test">When is my next test?</string>
+    <string name="chat_q_week">Sum up my week</string>
+    <string name="chat_q_learn">What should I study today?</string>
+    <string name="week_title">Week</string>
 </resources>

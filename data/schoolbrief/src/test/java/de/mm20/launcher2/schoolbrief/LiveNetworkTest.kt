@@ -34,4 +34,20 @@ class LiveNetworkTest {
         println("BRIEF: " + result!!.brief)
         result.news.forEach { println("NEWS ${it.topic}: ${it.title}") }
     }
+
+    @Test
+    fun schoolChatAnswersFromSchoolData() = runBlocking {
+        val key = System.getenv("GEMINI_API_KEY")
+        assumeTrue("GEMINI_API_KEY not set", !key.isNullOrBlank())
+        val now = java.time.LocalDateTime.parse("2026-11-10T07:30")
+        val feed = SampleFeed.create(now.toLocalDate())
+        val body = GeminiSchoolChat.request(listOf(ChatMessage(true, "Čo mám zajtra a kedy je najbližší test?")), feed, now)
+        val res = de.mm20.launcher2.schoolbrief.live.Http.request(
+            "https://generativelanguage.googleapis.com/v1beta/models/${GeminiWriter.DefaultModel}:generateContent", "POST",
+            body = kotlinx.serialization.json.Json.encodeToString(kotlinx.serialization.json.JsonObject.serializer(), body),
+            headers = mapOf("Content-Type" to "application/json", "x-goog-api-key" to key!!), timeoutMs = 30_000,
+        )
+        println("CHAT ${res.code}: " + res.body.substringAfter("\"text\": \"").substringBefore("\"").take(400))
+        assertTrue(res.ok)
+    }
 }

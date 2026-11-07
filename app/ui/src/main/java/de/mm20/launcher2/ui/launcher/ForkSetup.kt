@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 4
+    private const val Version = 5
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -59,6 +59,11 @@ object ForkSetup : KoinComponent {
             if (gestureSettings.swipeRight.first() is GestureAction.AppPage) gestureSettings.setSwipeRight(GestureAction.NoAction)
             // v3 (device test): no keyboard when the app list opens by a swipe; only on tapping the field.
             if (from < 3) searchUiSettings.setOpenKeyboard(false)
+            // v5: swipe right = school chat, swipe left = week (only where nothing else is set).
+            if (from < 5) {
+                if (gestureSettings.swipeRight.first() is GestureAction.NoAction) gestureSettings.setSwipeRight(GestureAction.SchoolChat)
+                if (gestureSettings.swipeLeft.first() is GestureAction.NoAction) gestureSettings.setSwipeLeft(GestureAction.SchoolWeek)
+            }
             // v4: folders block on the home screen, after the context chips.
             if (from < 4) {
                 val parent = WidgetScreenTarget.Default.id

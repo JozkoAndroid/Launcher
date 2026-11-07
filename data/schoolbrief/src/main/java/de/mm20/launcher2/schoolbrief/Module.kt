@@ -6,4 +6,5 @@ import org.koin.dsl.module
 
 val schoolBriefModule = module {
     single<BriefRepository> { LiveBriefRepository(androidContext()) }
+    single<SchoolChat> { GeminiSchoolChat(androidContext()) }
 }
