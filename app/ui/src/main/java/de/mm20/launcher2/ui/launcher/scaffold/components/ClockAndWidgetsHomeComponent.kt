@@ -1,5 +1,14 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
+import de.mm20.launcher2.ui.launcher.apppage.TwoPane
+import de.mm20.launcher2.ui.theme.transparency.transparency
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -94,40 +103,49 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
             }
         }
 
-        Column(
-            modifier = modifier
-                .verticalScroll(scrollState, enabled = !state.isDragged)
-                .padding(horizontal = 8.dp)
-                .padding(top = topPadding)
-                .padding(insets),
-        ) {
-            val bottomPadding by animateDpAsState(
-                if (fillHeight == true && scrollState.value == 0) insets.calculateBottomPadding()
-                else 0.dp
-            )
+        val homeColumn: @Composable (Modifier) -> Unit = { columnModifier ->
+            Column(
+                modifier = columnModifier
+                    .verticalScroll(scrollState, enabled = !state.isDragged)
+                    .padding(horizontal = 8.dp)
+                    .padding(top = topPadding)
+                    .padding(insets),
+            ) {
+                val bottomPadding by animateDpAsState(
+                    if (fillHeight == true && scrollState.value == 0) insets.calculateBottomPadding()
+                    else 0.dp
+                )
 
-            ClockWidget(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    then if (fillHeight == true) {
-                        Modifier
-                            .padding(bottom = bottomPadding)
-                            .height(state.size.height.toDp() - insets.calculateTopPadding() - insets.calculateBottomPadding())
-                } else Modifier,
-                editMode = editMode,
-                fillScreenHeight = fillHeight == true,
-            )
-            WidgetColumn(
-                modifier = Modifier
-                    .padding(top = 16.dp),
-                editMode = editMode,
-                onEditModeChange = {
-                    scope.launch { state.lock(hideSearchBar = true) }
-                    editMode = it
-                },
-                parentId = WidgetScreenTarget.Default.id.toString(),
-            )
+                ClockWidget(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        then if (fillHeight == true) {
+                            Modifier
+                                .padding(bottom = bottomPadding)
+                                .height(state.size.height.toDp() - insets.calculateTopPadding() - insets.calculateBottomPadding())
+                    } else Modifier,
+                    editMode = editMode,
+                    fillScreenHeight = fillHeight == true,
+                )
+                WidgetColumn(
+                    modifier = Modifier
+                        .padding(top = 16.dp),
+                    editMode = editMode,
+                    onEditModeChange = {
+                        scope.launch { state.lock(hideSearchBar = true) }
+                        editMode = it
+                    },
+                    parentId = WidgetScreenTarget.Default.id.toString(),
+                )
+            }
         }
+
+        // Fork, step 6: wide screens (Fold inner screen, tablet) show home and the app page side by side.
+        TwoPane.Layout(
+            modifier = modifier,
+            home = homeColumn,
+            side = { AppPageComponent.Component(Modifier.fillMaxSize(), insets, state) },
+        )
         if (editMode) {
             BackHandler {
                 editMode = false

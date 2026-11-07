@@ -227,7 +227,10 @@ abstract class SharedLauncherActivity(
                                 NavBarEffects(modifier = Modifier.fillMaxSize())
                             }
 
+                            // Fork: on wide screens the app page is already visible next to home (folding changes this).
+                            val wideScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= de.mm20.launcher2.ui.launcher.apppage.TwoPane.MinWidthDp
                             val config = remember(
+                                wideScreen,
                                 mode,
                                 reverseSearchResults,
                                 bottomSearchBar,
@@ -379,7 +382,7 @@ abstract class SharedLauncherActivity(
                                             gestures.swipeLeftApp,
                                             Gesture.SwipeLeft,
                                         ),
-                                        swipeRight = getScaffoldGesture(
+                                        swipeRight = if (wideScreen && gestures.swipeRightAction is GestureAction.AppPage) null else getScaffoldGesture(
                                             gestures.swipeRightAction,
                                             gestures.swipeRightApp,
                                             Gesture.SwipeRight,
