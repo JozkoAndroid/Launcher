@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.theme.typography.fontfamily.GoogleSansFlex
@@ -60,16 +61,48 @@ internal fun ChipBlock(items: List<ContextItem>, config: ChipWidgetConfig) {
         ContextContent(items.map { if (config.icon == "none") it.copy(icon = null) else it })
         return
     }
+    val one: @Composable (ContextItem) -> Unit = { item ->
+        when {
+            config.style == "glance" -> GlanceChip(item, config)
+            config.style == "ring" && item.progress != null -> RingChip(item, config)
+            else -> TileChip(item, config)
+        }
+    }
+    // In the tile grid each block is one cell (a column keeps its own width); on its own it wraps in a row.
+    if (LocalTileWidth.current != null) {
+        Column { for (item in items) one(item) }
+        return
+    }
     FlowRow(
         Modifier.fillMaxWidth().padding(vertical = SchoolTokens.BlockPad),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for (item in items) {
-            when {
-                config.style == "glance" -> GlanceChip(item, config)
-                config.style == "ring" && item.progress != null -> RingChip(item, config)
-                else -> TileChip(item, config)
+        for (item in items) one(item)
+    }
+}
+
+/** Width of one tile when single-value blocks share rows (set by [ChipTiles]); null = block on its own. */
+val LocalTileWidth = androidx.compose.runtime.staticCompositionLocalOf<Dp?> { null }
+
+/**
+ * Consecutive single-value blocks (name day, data, steps, ...) as a grid: 2 tiles per row on the cover
+ * screen, 4 when unfolded. Blocks with nothing to show take no space.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ChipTiles(
+    widgets: List<de.mm20.launcher2.widgets.Widget>,
+    modifier: Modifier = Modifier,
+    item: @Composable (de.mm20.launcher2.widgets.Widget) -> Unit,
+) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
+        val cols = if (maxWidth >= 560.dp) 4 else 2
+        // 1dp slack: rounding to pixels must not push the last tile of a row onto the next line.
+        val w = (maxWidth - 8.dp * (cols - 1)) / cols - 1.dp
+        CompositionLocalProvider(LocalTileWidth provides w) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                for (x in widgets) androidx.compose.runtime.key(x.id) { item(x) }
             }
         }
     }
@@ -102,42 +135,54 @@ private fun ChipIcon(item: ContextItem, config: ChipWidgetConfig, tint: Color, s
 
 private fun Modifier.tap(item: ContextItem) = if (item.onClick != null) clickable(role = Role.Button, onClick = item.onClick) else this
 
+/**
+ * Tile: the value is the hero (display cut by default, or the chosen font), the label sits under it,
+ * the icon top-left. A thin bar when the value has a goal (data, steps).
+ */
 @Composable
 private fun TileChip(item: ContextItem, config: ChipWidgetConfig) {
     val bg = if (config.accent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = SchoolTokens.CardAlpha)
     else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = SchoolTokens.CardAlpha)
     val fg = if (config.accent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-    val family = chipFont(config.font)
+    val family = chipFont(config.font) ?: SchoolFonts.Display
+    val size = if (config.font == "serif") 30 else 26
     CompositionLocalProvider(LocalContentColor provides fg) {
         Column(
-            Modifier.width(168.dp).clip(RoundedCornerShape(SchoolTokens.CardRadius)).background(bg).tap(item).padding(16.dp),
+            Modifier
+                .width(LocalTileWidth.current ?: 168.dp)
+                .height(160.dp)
+                .padding(bottom = 8.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(bg)
+                .tap(item)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ChipIcon(item, config, tint = if (config.accent) fg else MaterialTheme.colorScheme.onSurfaceVariant)
-                if (item.icon != null && config.icon != "none") Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.weight(1f))
+                if (item.onTogglePlay != null && item.playing != null) PlayButton(item)
+            }
+            Column {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    item.value,
+                    style = androidx.compose.ui.text.TextStyle(fontFamily = family, fontSize = size.sp, lineHeight = (size + 4).sp, fontWeight = FontWeight.Medium)
+                        .merge(SchoolTokens.Tabular),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
                 item.label?.let {
-                    Text(
-                        it, style = MaterialTheme.typography.labelLarge, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha),
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                item.progress?.let { p ->
+                    Spacer(Modifier.height(10.dp))
+                    LinearProgressIndicator(
+                        progress = { p }, modifier = Modifier.fillMaxWidth().height(SchoolTokens.ProgressHeight).clip(CircleShape),
+                        color = if (config.accent) fg else MaterialTheme.colorScheme.primary,
+                        trackColor = fg.copy(alpha = 0.14f), drawStopIndicator = {},
                     )
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                item.value,
-                style = MaterialTheme.typography.headlineSmall.merge(SchoolTokens.Tabular)
-                    .copy(fontFamily = family ?: MaterialTheme.typography.headlineSmall.fontFamily, fontWeight = FontWeight.SemiBold),
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
-            )
-            item.progress?.let { p ->
-                Spacer(Modifier.height(10.dp))
-                LinearProgressIndicator(
-                    progress = { p }, modifier = Modifier.fillMaxWidth().height(SchoolTokens.ProgressHeight).clip(CircleShape),
-                    color = if (config.accent) fg else MaterialTheme.colorScheme.primary,
-                    trackColor = fg.copy(alpha = 0.14f), drawStopIndicator = {},
-                )
-            }
-            if (item.onTogglePlay != null && item.playing != null) PlayButton(item)
         }
     }
 }
@@ -180,29 +225,50 @@ private fun RingChip(item: ContextItem, config: ChipWidgetConfig) {
     else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = SchoolTokens.CardAlpha)
     val fg = if (config.accent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     val family = chipFont(config.font)
+    val tileWidth = LocalTileWidth.current
+    val ring = @Composable {
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                progress = { p }, modifier = Modifier.size(56.dp), strokeWidth = 6.dp, strokeCap = StrokeCap.Round,
+                color = if (config.accent) fg else MaterialTheme.colorScheme.primary, trackColor = fg.copy(alpha = 0.14f),
+                gapSize = 0.dp,
+            )
+            if (config.icon != "none") item.icon?.let { Icon(painterResource(it), null, Modifier.size(22.dp)) }
+            else Text("${(p * 100).toInt()} %", style = MaterialTheme.typography.labelMedium)
+        }
+    }
+    val valueStyle = androidx.compose.ui.text.TextStyle(fontFamily = family ?: SchoolFonts.Display, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.Medium)
+        .merge(SchoolTokens.Tabular)
     CompositionLocalProvider(LocalContentColor provides fg) {
-        Row(
-            Modifier.clip(RoundedCornerShape(SchoolTokens.CardRadius)).background(bg).tap(item).padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { p }, modifier = Modifier.size(56.dp), strokeWidth = 6.dp, strokeCap = StrokeCap.Round,
-                    color = if (config.accent) fg else MaterialTheme.colorScheme.primary, trackColor = fg.copy(alpha = 0.14f),
-                    gapSize = 0.dp,
-                )
-                if (config.icon != "none") item.icon?.let { Icon(painterResource(it), null, Modifier.size(22.dp)) }
-                else Text("${(p * 100).toInt()} %", style = MaterialTheme.typography.labelMedium)
+        if (tileWidth != null) {
+            // In the grid: ring on top, the value and its label under it, same height as the other tiles.
+            Column(
+                Modifier.width(tileWidth).height(160.dp).padding(bottom = 8.dp)
+                    .clip(RoundedCornerShape(24.dp)).background(bg).tap(item).padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ring()
+                    Spacer(Modifier.weight(1f))
+                    Text("${(p * 100).toInt()} %", style = MaterialTheme.typography.labelLarge.merge(SchoolTokens.Tabular), color = fg.copy(alpha = SchoolTokens.SecondaryAlpha))
+                }
+                Column {
+                    Spacer(Modifier.height(10.dp))
+                    Text(item.value, style = valueStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    item.label?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
             }
-            Spacer(Modifier.width(14.dp))
-            Column {
-                Text(
-                    item.value,
-                    style = MaterialTheme.typography.titleLarge.merge(SchoolTokens.Tabular)
-                        .copy(fontFamily = family ?: MaterialTheme.typography.titleLarge.fontFamily, fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                )
-                item.label?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha), maxLines = 1) }
+        } else {
+            Row(
+                Modifier.clip(RoundedCornerShape(SchoolTokens.CardRadius)).background(bg).tap(item).padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ring()
+                Spacer(Modifier.width(14.dp))
+                Column {
+                    Text(item.value, style = valueStyle, maxLines = 1)
+                    item.label?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha), maxLines = 1) }
+                }
             }
         }
     }

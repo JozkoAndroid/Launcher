@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 8
+    private const val Version = 9
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -89,9 +89,35 @@ object ForkSetup : KoinComponent {
                     gestureSettings.setSwipeRight(GestureAction.SchoolChat) // "Môj deň"
                 }
             }
+            // v9 (device test: "add more of your widgets on the home screen"): richer home, panel unchanged.
+            if (from == 8) layoutHome()
             // v4 (folders on home) is superseded by v8.
             prefs.edit().putInt("version", Version).apply()
         }
+    }
+
+    /**
+     * Recommended home (round 8): the lesson on the wallpaper; one sheet with the brief, tasks and today's
+     * weather; then a grid of tiles (name day in serif, mobile data and steps as rings, Instagram, the
+     * next test as a countdown); then the context chips. The dock floats below. App widgets stay.
+     */
+    private suspend fun layoutHome() {
+        val parent = WidgetScreenTarget.Default.id
+        widgets.get(parent).first().filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
+        fun chip(kind: String, cfg: de.mm20.launcher2.widgets.ChipWidgetConfig) = de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), kind, cfg)
+        val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle")
+        listOf(
+            LessonWidget(UUID.randomUUID()),
+            BriefWidget(UUID.randomUUID()),
+            TasksWidget(UUID.randomUUID()),
+            WeatherWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.WeatherWidgetConfig(showForecast = false)),
+            chip("test", tile.copy(accent = true)),
+            chip("nameday", tile.copy(font = "serif")),
+            chip("data", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
+            chip("steps", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
+            chip("instagram", tile.copy(font = "condensed")),
+            ContextWidget(UUID.randomUUID()),
+        ).forEachIndexed { i, w -> widgets.create(w, i, parent) }
     }
 
     private suspend fun applyRecommendedLayout() {
@@ -100,14 +126,7 @@ object ForkSetup : KoinComponent {
             current.filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
             blocks.forEachIndexed { i, w -> widgets.create(w, i, parent) }
         }
-        layout(
-            WidgetScreenTarget.Default.id, listOf(
-                LessonWidget(UUID.randomUUID()),
-                BriefWidget(UUID.randomUUID()),
-                TasksWidget(UUID.randomUUID()),
-                ContextWidget(UUID.randomUUID()),
-            )
-        )
+        layoutHome()
         layout(
             WidgetScreenTarget.Widgets2.id, listOf(
                 WeatherWidget(UUID.randomUUID()),

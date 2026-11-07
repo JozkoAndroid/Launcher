@@ -18,9 +18,15 @@ internal object SchoolChatComponent : ScaffoldComponent() {
     override val hasIme: Boolean = true
     override val survivesPause: Boolean = true
 
+    /** False as soon as the page starts leaving: the page drops focus so the keyboard goes with it. */
+    val shown = androidx.compose.runtime.mutableStateOf(false)
+
+    override fun onPreActivate(state: LauncherScaffoldState) { shown.value = true }
+    override fun onPreDismiss(state: LauncherScaffoldState) { shown.value = false }
+
     @Composable
     override fun Component(modifier: Modifier, insets: PaddingValues, state: LauncherScaffoldState) {
-        de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState)
+        de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState, shown)
     }
 }
 

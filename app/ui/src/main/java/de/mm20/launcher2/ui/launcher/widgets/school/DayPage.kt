@@ -94,7 +94,10 @@ class DayVM : ViewModel(), KoinComponent {
  * Aufgabe". The same bar switches to asking the assistant.
  */
 @Composable
-fun DayPage(listState: LazyListState = rememberLazyListState()) {
+fun DayPage(listState: LazyListState = rememberLazyListState(), shown: androidx.compose.runtime.State<Boolean>? = null) {
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val leaving = shown?.value == false
+    LaunchedEffect(leaving) { if (leaving) focus.clearFocus(force = true) }
     val brief: SchoolBriefVM = viewModel(key = "school-brief")
     val vm: DayVM = viewModel(key = "school-day")
     val feed by brief.feed.collectAsState(null)

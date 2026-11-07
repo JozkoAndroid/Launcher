@@ -1343,4 +1343,10 @@
     <string name="day_mode_ask">Ask</string>
     <string name="day_capture_hint">What shouldn\'t you forget?</string>
     <string name="day_add">Add task</string>
+    <plurals name="glance_days_in">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="glance_test_of">Test: %1$s</string>
+    <string name="glance_until_test">until the test: %1$s</string>
 </resources>

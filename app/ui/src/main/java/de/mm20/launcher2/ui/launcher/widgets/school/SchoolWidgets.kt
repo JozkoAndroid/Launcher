@@ -530,12 +530,13 @@ internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): Contex
                 else -> stringResource(R.string.context_test_in, c.subject.ifBlank { c.title }, c.days.toInt())
             },
             R.drawable.quiz_24px, onClick = open,
-            value = c.subject.ifBlank { c.title },
-            label = when (c.days) {
-                0L -> stringResource(R.string.glance_test_today)
-                1L -> stringResource(R.string.glance_test_tomorrow)
-                else -> pluralStringResource(R.plurals.glance_test_in, c.days.toInt(), c.days.toInt())
+            // Countdown tile: the time left is the value, the subject the label.
+            value = when (c.days) {
+                0L -> stringResource(R.string.due_today).replaceFirstChar { it.titlecase() }
+                1L -> stringResource(R.string.due_tomorrow).replaceFirstChar { it.titlecase() }
+                else -> pluralStringResource(R.plurals.glance_days_in, c.days.toInt(), c.days.toInt())
             },
+            label = stringResource(if (c.days >= 2) R.string.glance_until_test else R.string.glance_test_of, c.subject.ifBlank { c.title }),
         )
         is ContextCard.Chats -> ContextItem(
             "chats", pluralStringResource(R.plurals.context_chats, c.unread, c.unread), R.drawable.chat_24px, onClick = open,

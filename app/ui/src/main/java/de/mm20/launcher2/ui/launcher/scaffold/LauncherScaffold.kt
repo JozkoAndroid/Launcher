@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.scaffold
 
+import androidx.compose.ui.draw.drawBehind
 import android.app.WallpaperManager
 import android.view.animation.PathInterpolator
 import androidx.activity.compose.LocalActivity
@@ -463,7 +464,9 @@ internal class LauncherScaffoldState(
     private suspend fun animateOffset3DTo(
         target: Offset3D,
         initialVelocity: Offset3D = Offset3D.Zero,
-        animationSpec: AnimationSpec<Offset3D> = spring(),
+        // Fork: stop at half a pixel instead of 0.01px, so a page does not creep the last pixels for long
+        // after the swipe (device test: the page "sticks there for a second" when swiping back).
+        animationSpec: AnimationSpec<Offset3D> = spring(visibilityThreshold = Offset3D(0.5f, 0.5f, 0.002f)),
     ) {
         offsetAnimatable.snapTo(currentOffset3D)
         offsetAnimatable.animateTo(
@@ -1096,10 +1099,14 @@ internal fun LauncherScaffold(
             else 104.dp
         )
 
-        val isFilterBarVisible =
-            (state.currentProgress == 1f && state.currentComponent is SearchComponent ||
-                    state.currentProgress == 0f && config.homeComponent is SearchComponent) &&
-                    filterBar && WindowInsets.isImeVisible
+        // Fork: progress read through derivedStateOf so a swipe does not recompose the scaffold every frame.
+        val searchSettled by remember(state, config) {
+            derivedStateOf {
+                state.currentProgress == 1f && state.currentComponent is SearchComponent ||
+                    state.currentProgress == 0f && config.homeComponent is SearchComponent
+            }
+        }
+        val isFilterBarVisible = searchSettled && filterBar && WindowInsets.isImeVisible
 
 
         val imeCurrent = WindowInsets.ime.getBottom(LocalDensity.current).toFloat()
@@ -1173,7 +1180,8 @@ internal fun LauncherScaffold(
             WallpaperBlur { (maxRadius * state.currentProgress).toInt() }
         }
 
-        if (!config.finishOnBack || state.currentProgress > 0) {
+        val awayFromHome by remember(state) { derivedStateOf { state.currentProgress > 0f } }
+        if (!config.finishOnBack || awayFromHome) {
             PredictiveBackHandler {
                 try {
                     state.lock()
@@ -1607,24 +1615,29 @@ private fun Modifier.homePageAnimation(
             })
 }
 
+/**
+ * Fork: the swipe progress is read only in draw and layout lambdas (background alpha, offsets, corner
+ * shape), never during composition, so the side pages are not recomposed on every frame of a swipe.
+ */
 private fun Modifier.secondaryPageAnimation(
     state: LauncherScaffoldState,
     backgroundColor: Color,
 ): Modifier {
-    val dir = state.currentGesture ?: return this
+    state.currentGesture ?: return this
     val component = state.currentComponent ?: return this
-
-    val background =
-        if (component.drawBackground) backgroundColor.copy(alpha = backgroundColor.alpha * state.currentProgress) else Color.Transparent
+    val drawBg = component.drawBackground
+    val background = Modifier.drawBehind {
+        if (drawBg) drawRect(backgroundColor.copy(alpha = backgroundColor.alpha * state.currentProgress))
+    }
 
     if (state.currentAnimation == ScaffoldAnimation.Rubberband) {
-        return this then Modifier
-            .background(background)
+        return this then background
             .graphicsLayer {
+                val dir = state.currentGesture
                 translationX =
-                    if (dir.orientation == Orientation.Horizontal) state.currentOffset.x else 0f
+                    if (dir?.orientation == Orientation.Horizontal) state.currentOffset.x else 0f
                 translationY =
-                    if (dir.orientation == Orientation.Vertical) state.currentOffset.y else 0f
+                    if (dir?.orientation == Orientation.Vertical) state.currentOffset.y else 0f
                 if (state.isSettledOnSecondaryPage) {
                     alpha = (state.currentProgress).coerceAtMost(1f)
                     scaleX = 1f - ((1f - state.currentProgress) * 0.03f)
@@ -1636,8 +1649,7 @@ private fun Modifier.secondaryPageAnimation(
 
     }
     if (state.currentAnimation == ScaffoldAnimation.ZoomIn) {
-        return this then Modifier
-            .background(background)
+        return this then background
             .graphicsLayer {
                 scaleX = 1f - ((1f - state.currentProgress) * 0.03f)
                 scaleY = 1f - ((1f - state.currentProgress) * 0.03f)
@@ -1662,33 +1674,34 @@ private fun Modifier.secondaryPageAnimation(
             )
         }
         .composed {
-            val shape = MaterialTheme.shapes.extraLarge.let {
-                if (state.currentProgress < 0.95f) {
-                    it
-                } else {
-                    val density = LocalDensity.current
-                    val p = 1f - ((state.currentProgress - 0.95f) * 20f).coerceIn(0f, 1f)
-                    if (it is CutCornerShape) {
-                        CutCornerShape(
-                            topStart = it.topStart.toPx(state.size, density) * p,
-                            topEnd = it.topEnd.toPx(state.size, density) * p,
-                            bottomEnd = it.bottomEnd.toPx(state.size, density) * p,
-                            bottomStart = it.bottomStart.toPx(state.size, density) * p,
-                        )
-                    } else {
-                        RoundedCornerShape(
-                            topStart = it.topStart.toPx(state.size, density) * p,
-                            topEnd = it.topEnd.toPx(state.size, density) * p,
-                            bottomEnd = it.bottomEnd.toPx(state.size, density) * p,
-                            bottomStart = it.bottomStart.toPx(state.size, density) * p,
-                        )
-                    }
-                }
-            }
-
+            val base = MaterialTheme.shapes.extraLarge
             Modifier
-                .background(background, shape)
-                .clip(shape)
+                .graphicsLayer {
+                    val progress = state.currentProgress
+                    shape = if (progress < 0.95f) {
+                        base
+                    } else {
+                        val p = 1f - ((progress - 0.95f) * 20f).coerceIn(0f, 1f)
+                        val shapeSize = state.size
+                        if (base is CutCornerShape) {
+                            CutCornerShape(
+                                topStart = base.topStart.toPx(shapeSize, this) * p,
+                                topEnd = base.topEnd.toPx(shapeSize, this) * p,
+                                bottomEnd = base.bottomEnd.toPx(shapeSize, this) * p,
+                                bottomStart = base.bottomStart.toPx(shapeSize, this) * p,
+                            )
+                        } else {
+                            RoundedCornerShape(
+                                topStart = base.topStart.toPx(shapeSize, this) * p,
+                                topEnd = base.topEnd.toPx(shapeSize, this) * p,
+                                bottomEnd = base.bottomEnd.toPx(shapeSize, this) * p,
+                                bottomStart = base.bottomStart.toPx(shapeSize, this) * p,
+                            )
+                        }
+                    }
+                    clip = true
+                }
+                .then(background)
         }
 }
 
@@ -1700,28 +1713,26 @@ private fun Modifier.searchBarAnimation(
     val offsetFactor = if (config.searchBarPosition == SearchBarPosition.Top) -1f else 1f
 
     val component = state.currentComponent
-    val anim = state.currentAnimation
-
-    val progress = if (anim == ScaffoldAnimation.Rubberband) {
-        (state.currentProgress * 2f).coerceAtMost(1f)
-    } else {
-        state.currentProgress
-    }
 
     val systemBarInset =
         if (config.searchBarPosition == SearchBarPosition.Top) insets.calculateTopPadding() else insets.calculateBottomPadding()
+    val hidden = config.searchBarStyle == SearchBarStyle.Hidden
 
-    val offset = if (config.searchBarStyle == SearchBarStyle.Hidden) {
-        offsetFactor * (1 - progress).pow(2) * (128.dp + systemBarInset)
-    } else {
-        0.dp
-    }
-
+    // Fork: progress read in the offset lambda (layout phase), not in composition.
     val modifier =
-        if (component?.showSearchBar == false && config.searchBarStyle == SearchBarStyle.Hidden) {
+        if (component?.showSearchBar == false && hidden) {
             Modifier.alpha(0f)
+        } else if (!hidden) {
+            Modifier
         } else {
-            Modifier.offset(y = offset)
+            Modifier.offset {
+                val progress = if (state.currentAnimation == ScaffoldAnimation.Rubberband) {
+                    (state.currentProgress * 2f).coerceAtMost(1f)
+                } else {
+                    state.currentProgress
+                }
+                IntOffset(0, (offsetFactor * (1 - progress).pow(2) * (128.dp + systemBarInset).toPx()).toInt())
+            }
         }
 
     return this then (component?.searchBarModifier(state, modifier)

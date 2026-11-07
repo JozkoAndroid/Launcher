@@ -1183,4 +1183,12 @@
     <string name="day_mode_ask">Opýtaj sa</string>
     <string name="day_capture_hint">Čo nechceš zabudnúť?</string>
     <string name="day_add">Pridať úlohu</string>
+    <plurals name="glance_days_in">
+        <item quantity="one">%d deň</item>
+        <item quantity="few">%d dni</item>
+        <item quantity="many">%d dňa</item>
+        <item quantity="other">%d dní</item>
+    </plurals>
+    <string name="glance_test_of">Test: %1$s</string>
+    <string name="glance_until_test">do testu: %1$s</string>
 </resources>

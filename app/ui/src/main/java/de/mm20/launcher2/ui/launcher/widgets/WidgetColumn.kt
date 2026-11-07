@@ -80,6 +80,18 @@ fun WidgetColumn(
             }
             val widgetsWithIndex = remember(widgets) { widgets.withIndex() }
             for ((i, widget) in widgetsWithIndex) {
+                // Fork (round 8): single-value blocks that follow each other share rows as tiles.
+                if (!editMode && widget is de.mm20.launcher2.widgets.ChipWidget) {
+                    if (i > 0 && widgets[i - 1] is de.mm20.launcher2.widgets.ChipWidget) continue
+                    val run = widgets.drop(i).takeWhile { it is de.mm20.launcher2.widgets.ChipWidget }
+                    key(widget.id, "tiles") {
+                        de.mm20.launcher2.ui.launcher.widgets.school.ChipTiles(
+                            run,
+                            Modifier.padding(top = if (i == 0) 0.dp else de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.GroupGap),
+                        ) { w -> WidgetItem(widget = w, onWidgetUpdate = { viewModel.updateWidget(it) }) }
+                    }
+                    continue
+                }
                 // Fork (round 7): sheet blocks that follow each other join into one sheet.
                 val seg = de.mm20.launcher2.ui.launcher.widgets.school.Segment(
                     joinedTop = !editMode && i > 0 && isSheet(widgets[i - 1]) && isSheet(widget),
