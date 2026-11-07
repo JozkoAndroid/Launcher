@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Upstream Kvaesitso strings, translated for the fork (Czech used as reference). -->
+    <string name="dimension_length">Dĺžka</string>
+    <string name="dimension_mass">Hmotnosť</string>
+    <string name="dimension_velocity">Rýchlosť</string>
+    <string name="dimension_volume">Objem</string>
+    <string name="dimension_area">Plocha</string>
+    <string name="dimension_currency">Mena</string>
+    <string name="dimension_data">Dáta</string>
+    <string name="dimension_bitrate">Dátový tok</string>
+    <string name="dimension_pressure">Tlak</string>
+    <string name="dimension_energy">Energia</string>
+    <string name="dimension_frequency">Frekvencia</string>
+    <string name="dimension_temperature">Teplota</string>
+    <string name="dimension_time">Čas</string>
+    <string name="unit_meter_symbol">m</string>
+    <string name="unit_kilometer_symbol">km</string>
+    <string name="unit_decimeter_symbol">dm</string>
+    <string name="unit_centimeter_symbol">cm</string>
+    <string name="unit_millimeter_symbol">mm</string>
+    <string name="unit_inch_symbol">in</string>
+    <string name="unit_foot_symbol">ft</string>
+    <string name="unit_yard_symbol">yd</string>
+    <string name="unit_mile_symbol">mi</string>
+    <string name="unit_nautic_mile_symbol">nmi</string>
+    <string name="unit_sqmeter_symbol">m²</string>
+    <string name="unit_sqkilometer_symbol">km²</string>
+    <string name="unit_sqcentimeter_symbol">cm²</string>
+    <string name="unit_sqmillimeter_symbol">mm²</string>
+    <string name="unit_sqinch_symbol">sq in</string>
+    <string name="unit_sqfoot_symbol">sq ft</string>
+    <string name="unit_sqyard_symbol">sq yd</string>
+    <string name="unit_hectare_symbol">ha</string>
+    <string name="unit_acre_symbol">ac</string>
+    <string name="unit_second_symbol">s</string>
+    <string name="unit_millisecond_symbol">ms</string>
+    <string name="unit_minute_symbol">min</string>
+    <string name="unit_hour_symbol">h</string>
+    <string name="unit_day_symbol">d</string>
+    <string name="unit_year_symbol">r.</string>
+    <string name="unit_byte_symbol">B</string>
+    <string name="unit_kilobyte_symbol">kB</string>
+    <string name="unit_megabyte_symbol">MB</string>
+    <string name="unit_gigabyte_symbol">GB</string>
+    <string name="unit_terabyte_symbol">TB</string>
+    <string name="unit_kibibyte_symbol">kiB</string>
+    <string name="unit_mebibyte_symbol">MiB</string>
+    <string name="unit_gibibyte_symbol">GiB</string>
+    <string name="unit_tebibyte_symbol">TiB</string>
+    <string name="unit_bit_symbol">bit</string>
+    <string name="unit_kilobit_symbol">kbit</string>
+    <string name="unit_megabit_symbol">Mbit</string>
+    <string name="unit_gigabit_symbol">Gbit</string>
+    <string name="unit_terabit_symbol">Tbit</string>
+    <string name="unit_meter_per_second_symbol">m/s</string>
+    <string name="unit_kilometer_per_hour_symbol">km/h</string>
+    <string name="unit_mile_per_hour_symbol">mph</string>
+    <string name="unit_knot_symbol">kn</string>
+    <string name="unit_kilogram_symbol">kg</string>
+    <string name="unit_gram_symbol">g</string>
+    <string name="unit_metric_ton_symbol">t</string>
+    <string name="unit_long_ton_symbol">long ton</string>
+    <string name="unit_stone_symbol">st</string>
+    <string name="unit_pound_symbol">lb</string>
+    <string name="unit_ounce_symbol">oz</string>
+    <string name="unit_short_ton_symbol">short ton</string>
+    <string name="unit_degree_celsius_symbol">°C</string>
+    <string name="unit_degree_fahrenheit_symbol">°F</string>
+    <string name="unit_kelvin_symbol">K</string>
+    <string name="unit_liter_symbol">L</string>
+    <string name="unit_milliliter_symbol">mL</string>
+    <string name="unit_cubic_meter_symbol">m³</string>
+    <string name="unit_cubic_centimeter_symbol">cm³</string>
+    <string name="unit_cubic_millimeter_symbol">mm³</string>
+    <string name="unit_cubic_inch_symbol">cu in</string>
+    <string name="unit_cubic_foot_symbol">cu ft</string>
+    <string name="unit_cubic_yard_symbol">cu yd</string>
+    <string name="unit_gallon_us_symbol">gal US</string>
+    <string name="unit_gallon_imp_symbol">gal imp</string>
+    <string name="unit_pint_us_symbol">pt US</string>
+    <string name="unit_pint_imp_symbol">pt imp</string>
+    <string name="unit_fluid_ounce_us_symbol">fl oz US</string>
+    <string name="unit_fluid_ounce_imp_symbol">fl oz imp</string>
+    <string name="unit_cup_symbol">cup</string>
+    <string name="unit_tablespoon_symbol">PL</string>
+    <string name="unit_teaspoon_symbol">ČL</string>
+    <plurals name="unit_meter">
+        <item quantity="one">meter</item>
+        <item quantity="few">metre</item>
+        <item quantity="many">metra</item>
+        <item quantity="other">metrov</item>
+    </plurals>
+    <plurals name="unit_kilometer">
+        <item quantity="one">kilometer</item>
+        <item quantity="few">kilometre</item>
+        <item quantity="many">kilometra</item>
+        <item quantity="other">kilometrov</item>
+    </plurals>
+    <plurals name="unit_decimeter">
+        <item quantity="one">decimeter</item>
+        <item quantity="few">decimetre</item>
+        <item quantity="many">decimetra</item>
+        <item quantity="other">decimetrov</item>
+    </plurals>
+    <plurals name="unit_centimeter">
+        <item quantity="one">centimeter</item>
+        <item quantity="few">centimetre</item>
+        <item quantity="many">centimetra</item>
+        <item quantity="other">centimetrov</item>
+    </plurals>
+    <plurals name="unit_millimeter">
+        <item quantity="one">milimeter</item>
+        <item quantity="few">milimetre</item>
+        <item quantity="many">milimetra</item>
+        <item quantity="other">milimetrov</item>
+    </plurals>
+    <plurals name="unit_inch">
+        <item quantity="one">palec</item>
+        <item quantity="few">palce</item>
+        <item quantity="many">palca</item>
+        <item quantity="other">palcov</item>
+    </plurals>
+    <plurals name="unit_foot">
+        <item quantity="one">stopa</item>
+        <item quantity="few">stopy</item>
+        <item quantity="many">stopy</item>
+        <item quantity="other">stôp</item>
+    </plurals>
+    <plurals name="unit_yard">
+        <item quantity="one">yard</item>
+        <item quantity="few">yardy</item>
+        <item quantity="many">yardu</item>
+        <item quantity="other">yardov</item>
+    </plurals>
+    <plurals name="unit_mile">
+        <item quantity="one">míľa</item>
+        <item quantity="few">míle</item>
+        <item quantity="many">míle</item>
+        <item quantity="other">míľ</item>
+    </plurals>
+    <plurals name="unit_nautic_mile">
+        <item quantity="one">námorná míľa</item>
+        <item quantity="few">námorné míle</item>
+        <item quantity="many">námornej míle</item>
+        <item quantity="other">námorných míľ</item>
+    </plurals>
+    <plurals name="unit_sqmeter">
+        <item quantity="one">štvorcový meter</item>
+        <item quantity="few">štvorcové metre</item>
+        <item quantity="many">štvorcového metra</item>
+        <item quantity="other">štvorcových metrov</item>
+    </plurals>
+    <plurals name="unit_sqkilometer">
+        <item quantity="one">štvorcový kilometer</item>
+        <item quantity="few">štvorcové kilometre</item>
+        <item quantity="many">štvorcového kilometra</item>
+        <item quantity="other">štvorcových kilometrov</item>
+    </plurals>
+    <plurals name="unit_sqcentimeter">
+        <item quantity="one">štvorcový centimeter</item>
+        <item quantity="few">štvorcové centimetre</item>
+        <item quantity="many">štvorcového centimetra</item>
+        <item quantity="other">štvorcových centimetrov</item>
+    </plurals>
+    <plurals name="unit_sqmillimeter">
+        <item quantity="one">štvorcový milimeter</item>
+        <item quantity="few">štvorcové milimetre</item>
+        <item quantity="many">štvorcového milimetra</item>
+        <item quantity="other">štvorcových milimetrov</item>
+    </plurals>
+    <plurals name="unit_sqinch">
+        <item quantity="one">štvorcový palec</item>
+        <item quantity="few">štvorcové palce</item>
+        <item quantity="many">štvorcového palca</item>
+        <item quantity="other">štvorcových palcov</item>
+    </plurals>
+    <plurals name="unit_sqfoot">
+        <item quantity="one">štvorcová stopa</item>
+        <item quantity="few">štvorcové stopy</item>
+        <item quantity="many">štvorcovej stopy</item>
+        <item quantity="other">štvorcových stôp</item>
+    </plurals>
+    <plurals name="unit_sqyard">
+        <item quantity="one">štvorcový yard</item>
+        <item quantity="few">štvorcové yardy</item>
+        <item quantity="many">štvorcového yardu</item>
+        <item quantity="other">štvorcových yardov</item>
+    </plurals>
+    <plurals name="unit_hectare">
+        <item quantity="one">hektár</item>
+        <item quantity="few">hektáre</item>
+        <item quantity="many">hektára</item>
+        <item quantity="other">hektárov</item>
+    </plurals>
+    <plurals name="unit_acre">
+        <item quantity="one">aker</item>
+        <item quantity="few">akre</item>
+        <item quantity="many">akra</item>
+        <item quantity="other">akrov</item>
+    </plurals>
+    <plurals name="unit_second">
+        <item quantity="one">sekunda</item>
+        <item quantity="few">sekundy</item>
+        <item quantity="many">sekundy</item>
+        <item quantity="other">sekúnd</item>
+    </plurals>
+    <plurals name="unit_millisecond">
+        <item quantity="one">milisekunda</item>
+        <item quantity="few">milisekundy</item>
+        <item quantity="many">milisekundy</item>
+        <item quantity="other">milisekúnd</item>
+    </plurals>
+    <plurals name="unit_minute">
+        <item quantity="one">minúta</item>
+        <item quantity="few">minúty</item>
+        <item quantity="many">minúty</item>
+        <item quantity="other">minút</item>
+    </plurals>
+    <plurals name="unit_hour">
+        <item quantity="one">hodina</item>
+        <item quantity="few">hodiny</item>
+        <item quantity="many">hodiny</item>
+        <item quantity="other">hodín</item>
+    </plurals>
+    <plurals name="unit_day">
+        <item quantity="one">deň</item>
+        <item quantity="few">dni</item>
+        <item quantity="many">dňa</item>
+        <item quantity="other">dní</item>
+    </plurals>
+    <plurals name="unit_year">
+        <item quantity="one">rok</item>
+        <item quantity="few">roky</item>
+        <item quantity="many">roka</item>
+        <item quantity="other">rokov</item>
+    </plurals>
+    <plurals name="unit_byte">
+        <item quantity="one">bajt</item>
+        <item quantity="few">bajty</item>
+        <item quantity="many">bajtu</item>
+        <item quantity="other">bajtov</item>
+    </plurals>
+    <plurals name="unit_kilobyte">
+        <item quantity="one">kilobajt</item>
+        <item quantity="few">kilobajty</item>
+        <item quantity="many">kilobajtu</item>
+        <item quantity="other">kilobajtov</item>
+    </plurals>
+    <plurals name="unit_megabyte">
+        <item quantity="one">megabajt</item>
+        <item quantity="few">megabajty</item>
+        <item quantity="many">megabajtu</item>
+        <item quantity="other">megabajtov</item>
+    </plurals>
+    <plurals name="unit_gigabyte">
+        <item quantity="one">gigabajt</item>
+        <item quantity="few">gigabajty</item>
+        <item quantity="many">gigabajtu</item>
+        <item quantity="other">gigabajtov</item>
+    </plurals>
+    <plurals name="unit_terabyte">
+        <item quantity="one">terabajt</item>
+        <item quantity="few">terabajty</item>
+        <item quantity="many">terabajtu</item>
+        <item quantity="other">terabajtov</item>
+    </plurals>
+    <plurals name="unit_kibibyte">
+        <item quantity="one">kibibajt</item>
+        <item quantity="few">kibibajty</item>
+        <item quantity="many">kibibajtu</item>
+        <item quantity="other">kibibajtov</item>
+    </plurals>
+    <plurals name="unit_mebibyte">
+        <item quantity="one">mebibajt</item>
+        <item quantity="few">mebibajty</item>
+        <item quantity="many">mebibajtu</item>
+        <item quantity="other">mebibajtov</item>
+    </plurals>
+    <plurals name="unit_gibibyte">
+        <item quantity="one">gibibajt</item>
+        <item quantity="few">gibibajty</item>
+        <item quantity="many">gibibajtu</item>
+        <item quantity="other">gibibajtov</item>
+    </plurals>
+    <plurals name="unit_tebibyte">
+        <item quantity="one">tebibajt</item>
+        <item quantity="few">tebibajty</item>
+        <item quantity="many">tebibajtu</item>
+        <item quantity="other">tebibajtov</item>
+    </plurals>
+    <plurals name="unit_bit">
+        <item quantity="one">bit</item>
+        <item quantity="few">bity</item>
+        <item quantity="many">bitu</item>
+        <item quantity="other">bitov</item>
+    </plurals>
+    <plurals name="unit_kilobit">
+        <item quantity="one">kilobit</item>
+        <item quantity="few">kilobity</item>
+        <item quantity="many">kilobitu</item>
+        <item quantity="other">kilobitov</item>
+    </plurals>
+    <plurals name="unit_megabit">
+        <item quantity="one">megabit</item>
+        <item quantity="few">megabity</item>
+        <item quantity="many">megabitu</item>
+        <item quantity="other">megabitov</item>
+    </plurals>
+    <plurals name="unit_gigabit">
+        <item quantity="one">gigabit</item>
+        <item quantity="few">gigabity</item>
+        <item quantity="many">gigabitu</item>
+        <item quantity="other">gigabitov</item>
+    </plurals>
+    <plurals name="unit_terabit">
+        <item quantity="one">terabit</item>
+        <item quantity="few">terabity</item>
+        <item quantity="many">terabitu</item>
+        <item quantity="other">terabitov</item>
+    </plurals>
+    <plurals name="unit_meter_per_second">
+        <item quantity="one">meter za sekundu</item>
+        <item quantity="few">metre za sekundu</item>
+        <item quantity="many">metra za sekundu</item>
+        <item quantity="other">metrov za sekundu</item>
+    </plurals>
+    <plurals name="unit_kilometer_per_hour">
+        <item quantity="one">kilometer za hodinu</item>
+        <item quantity="few">kilometre za hodinu</item>
+        <item quantity="many">kilometra za hodinu</item>
+        <item quantity="other">kilometrov za hodinu</item>
+    </plurals>
+    <plurals name="unit_mile_per_hour">
+        <item quantity="one">míľa za hodinu</item>
+        <item quantity="few">míle za hodinu</item>
+        <item quantity="many">míle za hodinu</item>
+        <item quantity="other">míľ za hodinu</item>
+    </plurals>
+    <plurals name="unit_knot">
+        <item quantity="one">uzol</item>
+        <item quantity="few">uzly</item>
+        <item quantity="many">uzla</item>
+        <item quantity="other">uzlov</item>
+    </plurals>
+    <plurals name="unit_kilogram">
+        <item quantity="one">kilogram</item>
+        <item quantity="few">kilogramy</item>
+        <item quantity="many">kilogramu</item>
+        <item quantity="other">kilogramov</item>
+    </plurals>
+    <plurals name="unit_gram">
+        <item quantity="one">gram</item>
+        <item quantity="few">gramy</item>
+        <item quantity="many">gramu</item>
+        <item quantity="other">gramov</item>
+    </plurals>
+    <plurals name="unit_metric_ton">
+        <item quantity="one">tona</item>
+        <item quantity="few">tony</item>
+        <item quantity="many">tony</item>
+        <item quantity="other">ton</item>
+    </plurals>
+    <plurals name="unit_long_ton">
+        <item quantity="one">dlhá tona</item>
+        <item quantity="few">dlhé tony</item>
+        <item quantity="many">dlhej tony</item>
+        <item quantity="other">dlhých ton</item>
+    </plurals>
+    <plurals name="unit_stone">
+        <item quantity="one">kameň</item>
+        <item quantity="few">kamene</item>
+        <item quantity="many">kameňa</item>
+        <item quantity="other">kameňov</item>
+    </plurals>
+    <plurals name="unit_pound">
+        <item quantity="one">libra</item>
+        <item quantity="few">libry</item>
+        <item quantity="many">libry</item>
+        <item quantity="other">libier</item>
+    </plurals>
+    <plurals name="unit_ounce">
+        <item quantity="one">unca</item>
+        <item quantity="few">unce</item>
+        <item quantity="many">unce</item>
+        <item quantity="other">uncí</item>
+    </plurals>
+    <plurals name="unit_short_ton">
+        <item quantity="one">krátka tona</item>
+        <item quantity="few">krátke tony</item>
+        <item quantity="many">krátkej tony</item>
+        <item quantity="other">krátkych ton</item>
+    </plurals>
+    <plurals name="unit_degree_celsius">
+        <item quantity="one">stupeň Celzia</item>
+        <item quantity="few">stupne Celzia</item>
+        <item quantity="many">stupňa Celzia</item>
+        <item quantity="other">stupňov Celzia</item>
+    </plurals>
+    <plurals name="unit_degree_fahrenheit">
+        <item quantity="one">stupeň Fahrenheita</item>
+        <item quantity="few">stupne Fahrenheita</item>
+        <item quantity="many">stupňa Fahrenheita</item>
+        <item quantity="other">stupňov Fahrenheita</item>
+    </plurals>
+    <plurals name="unit_kelvin">
+        <item quantity="one">kelvin</item>
+        <item quantity="few">kelviny</item>
+        <item quantity="many">kelvina</item>
+        <item quantity="other">kelvinov</item>
+    </plurals>
+    <plurals name="unit_liter">
+        <item quantity="one">liter</item>
+        <item quantity="few">litre</item>
+        <item quantity="many">litra</item>
+        <item quantity="other">litrov</item>
+    </plurals>
+    <plurals name="unit_milliliter">
+        <item quantity="one">mililiter</item>
+        <item quantity="few">mililitre</item>
+        <item quantity="many">mililitra</item>
+        <item quantity="other">mililitrov</item>
+    </plurals>
+    <plurals name="unit_cubic_meter">
+        <item quantity="one">kubický meter</item>
+        <item quantity="few">kubické metre</item>
+        <item quantity="many">kubického metra</item>
+        <item quantity="other">kubických metrov</item>
+    </plurals>
+    <plurals name="unit_cubic_centimeter">
+        <item quantity="one">kubický centimeter</item>
+        <item quantity="few">kubické centimetre</item>
+        <item quantity="many">kubického centimetra</item>
+        <item quantity="other">kubických centimetrov</item>
+    </plurals>
+    <plurals name="unit_cubic_millimeter">
+        <item quantity="one">kubický milimeter</item>
+        <item quantity="few">kubické milimetre</item>
+        <item quantity="many">kubického milimetra</item>
+        <item quantity="other">kubických milimetrov</item>
+    </plurals>
+    <plurals name="unit_cubic_inch">
+        <item quantity="one">kubický palec</item>
+        <item quantity="few">kubické palce</item>
+        <item quantity="many">kubického palca</item>
+        <item quantity="other">kubických palcov</item>
+    </plurals>
+    <plurals name="unit_cubic_foot">
+        <item quantity="one">kubická stopa</item>
+        <item quantity="few">kubické stopy</item>
+        <item quantity="many">kubickej stopy</item>
+        <item quantity="other">kubických stôp</item>
+    </plurals>
+    <plurals name="unit_cubic_yard">
+        <item quantity="one">kubický yard</item>
+        <item quantity="few">kubické yardy</item>
+        <item quantity="many">kubického yardu</item>
+        <item quantity="other">kubických yardov</item>
+    </plurals>
+    <plurals name="unit_gallon_us">
+        <item quantity="one">galón (US)</item>
+        <item quantity="few">galóny (US)</item>
+        <item quantity="many">galónu (US)</item>
+        <item quantity="other">galónov (US)</item>
+    </plurals>
+    <plurals name="unit_gallon_imp">
+        <item quantity="one">galón (imperiálny)</item>
+        <item quantity="few">galóny (imperiálne)</item>
+        <item quantity="many">galónu (imperiálneho)</item>
+        <item quantity="other">galónov (imperiálnych)</item>
+    </plurals>
+    <plurals name="unit_pint_us">
+        <item quantity="one">pinta (US)</item>
+        <item quantity="few">pinty (US)</item>
+        <item quantity="many">pinty (US)</item>
+        <item quantity="other">pínt (US)</item>
+    </plurals>
+    <plurals name="unit_pint_imp">
+        <item quantity="one">pinta (imperiálna)</item>
+        <item quantity="few">pinty (imperiálne)</item>
+        <item quantity="many">pinty (imperiálnej)</item>
+        <item quantity="other">pínt (imperiálnych)</item>
+    </plurals>
+    <plurals name="unit_fluid_ounce_us">
+        <item quantity="one">objemová unca (US)</item>
+        <item quantity="few">objemové unce (US)</item>
+        <item quantity="many">objemovej unce (US)</item>
+        <item quantity="other">objemových uncí (US)</item>
+    </plurals>
+    <plurals name="unit_fluid_ounce_imp">
+        <item quantity="one">objemová unca (imperiálna)</item>
+        <item quantity="few">objemové unce (imperiálne)</item>
+        <item quantity="many">objemovej unce (imperiálnej)</item>
+        <item quantity="other">objemových uncí (imperiálnych)</item>
+    </plurals>
+    <plurals name="unit_cup">
+        <item quantity="one">hrnček (US)</item>
+        <item quantity="few">hrnčeky (US)</item>
+        <item quantity="many">hrnčeka (US)</item>
+        <item quantity="other">hrnčekov (US)</item>
+    </plurals>
+    <plurals name="unit_tablespoon">
+        <item quantity="one">polievková lyžica (US)</item>
+        <item quantity="few">polievkové lyžice (US)</item>
+        <item quantity="many">polievkovej lyžice (US)</item>
+        <item quantity="other">polievkových lyžíc (US)</item>
+    </plurals>
+    <plurals name="unit_teaspoon">
+        <item quantity="one">čajová lyžička (US)</item>
+        <item quantity="few">čajové lyžičky (US)</item>
+        <item quantity="many">čajovej lyžičky (US)</item>
+        <item quantity="other">čajových lyžičiek (US)</item>
+    </plurals>
+</resources>
