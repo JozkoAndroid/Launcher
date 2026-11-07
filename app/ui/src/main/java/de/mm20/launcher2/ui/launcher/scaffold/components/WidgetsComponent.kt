@@ -1,5 +1,8 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
@@ -13,6 +16,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
@@ -110,24 +117,47 @@ internal class WidgetsComponent(
             }
         }
 
-        Column(
-            modifier = modifier
-                .nestedScroll(scrollConnection)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 8.dp)
-                .padding(top = topPadding)
-                .padding(insets),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            WidgetColumn(
-                modifier = Modifier.widthIn(max = 900.dp).fillMaxHeight(),
-                editMode = editMode,
-                onEditModeChange = {
-                    scope.launch { state.lock(hideSearchBar = true) }
-                    editMode = it
-                },
-                parentId = target.id.toString(),
-            )
+        // Fork: the second widget screen is the side panel (swipe left) with the chat docked at the bottom.
+        val sidePanel = target == WidgetScreenTarget.Widgets2
+        androidx.compose.foundation.layout.Box(modifier) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollConnection)
+                    // Fork: long press edits the panel, like the home screen.
+                    .pointerInput(editMode) {
+                        if (!editMode) detectTapGestures(onLongPress = {
+                            scope.launch { state.lock(hideSearchBar = true) }
+                            editMode = true
+                        })
+                    }
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 8.dp)
+                    .padding(top = topPadding)
+                    .padding(insets)
+                    .padding(bottom = if (sidePanel && !editMode) 96.dp else 0.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                WidgetColumn(
+                    modifier = Modifier.widthIn(max = 900.dp).fillMaxHeight(),
+                    editMode = editMode,
+                    onEditModeChange = {
+                        scope.launch { state.lock(hideSearchBar = true) }
+                        editMode = it
+                    },
+                    parentId = target.id.toString(),
+                )
+            }
+            if (sidePanel && !editMode) {
+                de.mm20.launcher2.ui.launcher.widgets.school.ChatDock(
+                    Modifier.align(Alignment.BottomCenter),
+                    // Keyboard or nav bar only: the scaffold insets also add the search filter bar,
+                    // which pushed the field far above the keyboard (device test).
+                    bottomInset = androidx.compose.foundation.layout.WindowInsets.ime
+                        .union(androidx.compose.foundation.layout.WindowInsets.navigationBars)
+                        .asPaddingValues().calculateBottomPadding(),
+                )
+            }
         }
         if (editMode) {
             BackHandler {

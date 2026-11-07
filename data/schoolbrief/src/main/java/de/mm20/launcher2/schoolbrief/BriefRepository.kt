@@ -39,6 +39,9 @@ interface BriefRepository {
     /** Lesson recording in Schoolhelp, checked every 2 minutes while the home screen is visible. */
     val recording: StateFlow<Recording?>
 
+    /** Ticks a task done in Schoolhelp (the student's own tick) and hides it at once. */
+    fun markDone(taskId: String)
+
     /** Unread messages in Schoolhelp chats (not muted); checked with the recording. */
     val unreadChats: StateFlow<Int>
 
@@ -59,6 +62,7 @@ class SampleBriefRepository : BriefRepository {
     override fun setGeminiKey(key: String?) {}
     override val recording = MutableStateFlow<Recording?>(null)
     override val unreadChats = MutableStateFlow(0)
+    override fun markDone(taskId: String) {}
     override fun pauseRecording(pause: Boolean) {}
     override fun stopRecording() {}
 }

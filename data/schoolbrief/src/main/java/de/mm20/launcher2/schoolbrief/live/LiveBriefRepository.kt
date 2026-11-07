@@ -89,6 +89,16 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         }
     }
 
+    override fun markDone(taskId: String) {
+        // Hide at once; Schoolhelp's mark_done changes only the student's own tick.
+        feed.value?.let { f -> feed.value = f.copy(tasks = f.tasks.map { if (it.id == taskId) it.copy(done = true) else it }) }
+        scope.launch {
+            runCatching { mcp.appCall("mark_done", buildJsonObject { put("event_id", taskId); put("done", true) }) }
+                .onSuccess { feed.value?.let { writeCache(it) } }
+                .onFailure { Log.w(Tag, "mark_done failed", it); lastAttempt = 0; prefs.edit().putLong(KeyDataAt, 0).apply() }
+        }
+    }
+
     override fun pauseRecording(pause: Boolean) {
         scope.launch {
             runCatching { mcp.appCall("lessons.pause", buildJsonObject { put("on", pause) }) }

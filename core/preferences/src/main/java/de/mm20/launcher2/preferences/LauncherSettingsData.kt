@@ -157,9 +157,9 @@ data class LauncherSettingsData internal constructor(
     val widgetScreenCount: Int = 1,
 
     val gesturesSwipeDown: GestureAction = GestureAction.Search,
-    val gesturesSwipeLeft: GestureAction = GestureAction.SchoolWeek,
-    // Fork defaults: swipe right = school chat, swipe left = week.
-    val gesturesSwipeRight: GestureAction = GestureAction.SchoolChat,
+    // Fork default: swipe left = side panel (widget screen 2: real app widgets, chat docked at the bottom).
+    val gesturesSwipeLeft: GestureAction = GestureAction.Widgets(WidgetScreenTarget.Widgets2),
+    val gesturesSwipeRight: GestureAction = GestureAction.NoAction,
     // Fork default: one app list (Kvaesitso's, with favorites) on swipe up and swipe down.
     val gesturesSwipeUp: GestureAction = GestureAction.Search,
     val gesturesDoubleTap: GestureAction = GestureAction.ScreenLock,

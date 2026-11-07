@@ -123,6 +123,23 @@ class SchoolScreenshotTest {
     }
 
     @Test
+    fun myDay() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
+            CompositionLocalProvider(
+                LocalTransparencyScheme provides TransparencyScheme(background = 0.85f, surface = 0f, elevatedSurface = 1f),
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+            ) {
+                Box(Modifier.fillMaxSize().background(darkWallpaper)) {
+                    Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {
+                        MyDayContent(feed, LocalDateTime.parse("2026-11-10T07:30"))
+                        Box(Modifier.padding(top = 8.dp)) { MyDayContent(feed, LocalDateTime.parse("2026-11-10T19:30")) }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun assistantButton() = paparazzi.snapshot {
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
             CompositionLocalProvider(

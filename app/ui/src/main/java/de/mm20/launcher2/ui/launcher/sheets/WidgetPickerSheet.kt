@@ -75,6 +75,10 @@ import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.FoldersWidget
+import de.mm20.launcher2.widgets.ChipWidget
+import de.mm20.launcher2.widgets.WeekWidget
+import de.mm20.launcher2.widgets.MyDayWidget
+import de.mm20.launcher2.widgets.TestPrepWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
@@ -398,7 +402,12 @@ fun WidgetPickerSheet(
                                     ContextWidget.Type -> ContextWidget(id)
                                     AssistantWidget.Type -> AssistantWidget(id)
                                     FoldersWidget.Type -> FoldersWidget(id)
-                                    else -> return@clickable
+                                    WeekWidget.Type -> WeekWidget(id)
+                                    MyDayWidget.Type -> MyDayWidget(id)
+                                    TestPrepWidget.Type -> TestPrepWidget(id)
+                                    else -> if (it.type.startsWith(ChipWidget.TypePrefix)) {
+                                        ChipWidget(id, it.type.removePrefix(ChipWidget.TypePrefix))
+                                    } else return@clickable
                                 }
                                 onWidgetSelected(widget)
                                 onDismiss()
@@ -422,6 +431,18 @@ fun WidgetPickerSheet(
                                         ContextWidget.Type -> R.drawable.bolt_24px
                                         AssistantWidget.Type -> R.drawable.chat_24px
                                         FoldersWidget.Type -> R.drawable.folder_24px
+                                        WeekWidget.Type -> R.drawable.calendar_today_24px
+                                        MyDayWidget.Type -> R.drawable.light_mode_24px
+                                        TestPrepWidget.Type -> R.drawable.school_24px
+                                        ChipWidget.TypePrefix + "test" -> R.drawable.quiz_24px
+                                        ChipWidget.TypePrefix + "chats" -> R.drawable.chat_24px
+                                        ChipWidget.TypePrefix + "lunch" -> R.drawable.restaurant_24px
+                                        ChipWidget.TypePrefix + "nameday" -> R.drawable.celebration_24px
+                                        ChipWidget.TypePrefix + "birthday" -> R.drawable.cake_24px
+                                        ChipWidget.TypePrefix + "music" -> R.drawable.music_note_24px
+                                        ChipWidget.TypePrefix + "steps" -> R.drawable.directions_walk_24px
+                                        ChipWidget.TypePrefix + "data" -> R.drawable.data_usage_24px
+                                        ChipWidget.TypePrefix + "instagram" -> R.drawable.timer_24px
                                         else -> R.drawable.widgets_24px
                                     }
                                 ),

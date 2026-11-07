@@ -42,6 +42,8 @@ data class SchoolTask(
     val done: Boolean = false,
     /** Schoolhelp guessed the date ("Datum geschätzt"). */
     val estimated: Boolean = false,
+    /** Note from Schoolhelp; for tests usually the topics. Shortened. */
+    val note: String? = null,
 ) {
     companion object {
         const val Homework = "hausaufgabe"

@@ -118,11 +118,16 @@ import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureSchoolBrief
+import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureChipWidget
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ConfigureSchoolContext
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.FoldersWidget
+import de.mm20.launcher2.widgets.ChipWidget
+import de.mm20.launcher2.widgets.WeekWidget
+import de.mm20.launcher2.widgets.MyDayWidget
+import de.mm20.launcher2.widgets.TestPrepWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
@@ -163,7 +168,8 @@ fun ConfigureWidgetSheet(
                 is BriefWidget -> ConfigureSchoolBrief()
                 // The other school widgets have no options in version 1.
                 is ContextWidget -> ConfigureSchoolContext()
-                is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget -> {}
+                is ChipWidget -> ConfigureChipWidget(widget, onWidgetUpdated)
+                is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget, is WeekWidget, is MyDayWidget, is TestPrepWidget -> {}
             }
         }
 
@@ -706,6 +712,10 @@ fun ColumnScope.ConfigureAppWidget(
                     is ContextWidget -> it.copy(id = widget.id)
                     is AssistantWidget -> it.copy(id = widget.id)
                     is FoldersWidget -> it.copy(id = widget.id)
+                    is ChipWidget -> it.copy(id = widget.id)
+                    is WeekWidget -> it.copy(id = widget.id)
+                    is MyDayWidget -> it.copy(id = widget.id)
+                    is TestPrepWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdated(updatedWidget)
                 replaceWidget = false

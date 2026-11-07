@@ -74,6 +74,14 @@ sealed class Widget {
                 ContextWidget.Type -> ContextWidget(entity.id)
                 AssistantWidget.Type -> AssistantWidget(entity.id)
                 FoldersWidget.Type -> FoldersWidget(entity.id)
+                WeekWidget.Type -> WeekWidget(entity.id)
+                MyDayWidget.Type -> MyDayWidget(entity.id)
+                TestPrepWidget.Type -> TestPrepWidget(entity.id)
+                in ChipWidget.Kinds.map { ChipWidget.TypePrefix + it } -> ChipWidget(
+                    entity.id,
+                    entity.type.removePrefix(ChipWidget.TypePrefix),
+                    Json.decodeFromStringOrNull(entity.config?.takeIf { it.isNotBlank() }) ?: ChipWidgetConfig(),
+                )
 
                 else -> null
             }

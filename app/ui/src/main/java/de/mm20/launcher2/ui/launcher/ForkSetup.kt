@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 5
+    private const val Version = 6
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -63,6 +63,18 @@ object ForkSetup : KoinComponent {
             if (from < 5) {
                 if (gestureSettings.swipeRight.first() is GestureAction.NoAction) gestureSettings.setSwipeRight(GestureAction.SchoolChat)
                 if (gestureSettings.swipeLeft.first() is GestureAction.NoAction) gestureSettings.setSwipeLeft(GestureAction.SchoolWeek)
+            }
+            // v6 (device test): the chat page is gone. Swipe left opens the side panel (widget screen 2)
+            // with app widgets and the chat docked at the bottom; swipe right does nothing.
+            if (from < 6) {
+                if (gestureSettings.swipeRight.first() is GestureAction.SchoolChat) gestureSettings.setSwipeRight(GestureAction.NoAction)
+                if (gestureSettings.swipeLeft.first().let { it is GestureAction.SchoolWeek || it is GestureAction.SchoolChat || it is GestureAction.NoAction }) {
+                    gestureSettings.setSwipeLeft(GestureAction.Widgets(WidgetScreenTarget.Widgets2))
+                }
+                val panel = WidgetScreenTarget.Widgets2.id
+                if (widgets.get(panel).first().isEmpty()) {
+                    widgets.create(de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()), 0, panel)
+                }
             }
             // v4: folders block on the home screen, after the context chips.
             if (from < 4) {

@@ -78,6 +78,9 @@ class SchoolChatVM : ViewModel(), KoinComponent {
     var thinking by mutableStateOf(false)
         private set
     val hasKey: Boolean get() = chat.hasKey
+    /** Observable key state, so the dock switches from "add key" to chat at once. */
+    val keyState = brief.hasGeminiKey
+    fun saveKey(key: String) = brief.setGeminiKey(key)
 
     fun send(text: String) {
         val q = text.trim()
@@ -276,6 +279,100 @@ private fun DayCardContent(f: Feed, day: LocalDate, today: LocalDate) {
                     Text(r.task.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
                 }
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Chat dock (side panel)
+
+/**
+ * The chat docked at the bottom of the side panel. Collapsed it is one input line; after the first
+ * question the conversation opens above it. Without a Gemini key it asks for one right here.
+ * Bottom padding comes from the scaffold insets, which already include the keyboard (no imePadding:
+ * doing both pushed the field off screen in the device test).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
+    val vm: SchoolChatVM = viewModel(key = "school-chat")
+    val hasKey by vm.keyState.collectAsState()
+    var input by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    val listState = rememberLazyListState()
+    LaunchedEffect(vm.messages.size, vm.thinking) { if (vm.messages.isNotEmpty()) listState.animateScrollToItem(vm.messages.size) }
+    val surface = MaterialTheme.colorScheme.surfaceContainerHigh
+
+    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+        Column(modifier.fillMaxWidth().widthIn(max = 640.dp).padding(horizontal = 12.dp).padding(bottom = bottomInset + 8.dp)) {
+            if (vm.messages.isNotEmpty()) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.chat_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        )
+                        androidx.compose.material3.TextButton(onClick = { vm.clear() }) { Text(stringResource(R.string.chat_close)) }
+                    }
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                        items(vm.messages) { m -> Bubble(m) }
+                        if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            if (!hasKey) {
+                KeyRow(onSave = { vm.saveKey(it) })
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(surface)
+                        .padding(start = 18.dp, end = 4.dp).heightIn(min = 52.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        if (input.isEmpty()) Text(stringResource(R.string.chat_hint), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        BasicTextField(
+                            input, { input = it },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { vm.send(input); input = "" }),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    IconButton(onClick = { vm.send(input); input = "" }, enabled = input.isNotBlank()) {
+                        Icon(painterResource(R.drawable.arrow_forward_20px), contentDescription = stringResource(R.string.chat_send))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Inline Gemini key entry (device test: the key setting was hard to find). Stored encrypted on the phone. */
+@Composable
+private fun KeyRow(onSave: (String) -> Unit) {
+    var key by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(16.dp),
+    ) {
+        Text(stringResource(R.string.chat_key_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+        Spacer(Modifier.height(4.dp))
+        Text(stringResource(R.string.brief_settings_gemini_info), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.OutlinedTextField(
+            key, { key = it.trim() }, singleLine = true,
+            label = { Text(stringResource(R.string.brief_settings_gemini)) },
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            androidx.compose.material3.Button(onClick = { onSave(key) }, enabled = key.length >= 20) { Text(stringResource(R.string.brief_settings_gemini_save)) }
+            androidx.compose.material3.TextButton(onClick = {
+                context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/apikey")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }) { Text(stringResource(R.string.brief_settings_gemini_get)) }
         }
     }
 }

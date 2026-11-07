@@ -169,15 +169,16 @@ internal class ContextSettingsStore(context: Context) {
         get() = prefs.getString("lunch_package", null)
         set(v) { prefs.edit().putString("lunch_package", v).apply() }
 
-    /** Today's lunch, kept after the notification is dismissed: "yyyy-MM-dd|pkg|text". */
-    fun storedLunch(today: LocalDate): Pair<String, String>? {
+    /** The latest lunch seen, kept after the notification is dismissed: (lunch day, package, text). */
+    fun storedLunch(): Triple<LocalDate, String, String>? {
         val raw = prefs.getString("lunch_today", null) ?: return null
         val parts = raw.split('|', limit = 3)
-        return if (parts.size == 3 && parts[0] == today.toString()) parts[1] to parts[2] else null
+        val day = parts.getOrNull(0)?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: return null
+        return if (parts.size == 3) Triple(day, parts[1], parts[2]) else null
     }
 
-    fun storeLunch(today: LocalDate, pkg: String, text: String) {
-        prefs.edit().putString("lunch_today", "$today|$pkg|$text").apply()
+    fun storeLunch(day: LocalDate, pkg: String, text: String) {
+        prefs.edit().putString("lunch_today", "$day|$pkg|$text").apply()
     }
 
     fun load(): ContextSettings {

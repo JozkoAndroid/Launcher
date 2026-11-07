@@ -43,6 +43,8 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     fun setGeminiKey(key: String?) = repository.setGeminiKey(key)
     fun retry() = repository.refreshIfDue()
 
+    fun markDone(taskId: String) = repository.markDone(taskId)
+
     val recording: StateFlow<de.mm20.launcher2.schoolbrief.Recording?> = repository.recording
 
     /** Schoolhelp confirms pause/stop with a tap, so its app opens right after the request. */

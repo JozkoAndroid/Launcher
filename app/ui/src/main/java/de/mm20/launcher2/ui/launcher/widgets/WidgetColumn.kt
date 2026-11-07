@@ -206,25 +206,35 @@ fun WidgetColumn(
 internal const val WideDashboardMinWidthDp = 600
 
 /**
- * Fork: two-column dashboard for wide screens. Blocks alternate between the columns in their
- * order (Lesson, Tasks | Brief, Context); the Gemini button spans the full width below.
+ * Fork: two-column dashboard for wide screens. Masonry: each block goes into the column that is
+ * shorter so far (device test: alternating left/right left one column half empty after reordering).
+ * The Gemini button spans the full width below.
  */
 @Composable
 private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWidgetUpdate: (de.mm20.launcher2.widgets.Widget) -> Unit) {
     val full = widgets.filter { it is de.mm20.launcher2.widgets.AssistantWidget }
     val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget }
-    androidx.compose.foundation.layout.Row(
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        for (col in 0..1) {
-            Column(Modifier.weight(1f)) {
-                rest.filterIndexed { i, _ -> i % 2 == col }.forEachIndexed { i, w ->
-                    key(w.id) {
-                        WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth().padding(top = if (i > 0) 8.dp else 0.dp))
-                    }
-                }
-            }
+    val gap = 12.dp
+    androidx.compose.ui.layout.Layout(
+        content = {
+            for (w in rest) key(w.id) { WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth()) }
+        },
+    ) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val colWidth = (constraints.maxWidth - gapPx) / 2
+        val heights = intArrayOf(0, 0)
+        val placed = measurables.map { m ->
+            val p = m.measure(androidx.compose.ui.unit.Constraints.fixedWidth(colWidth))
+            // Empty blocks (a chip with nothing to show) take no slot.
+            if (p.height == 0) return@map Triple(p, 0, -1)
+            val col = if (heights[0] <= heights[1]) 0 else 1
+            val y = heights[col]
+            heights[col] += p.height + gapPx
+            Triple(p, y, col)
+        }
+        val height = (heights.maxOrNull() ?: 0).coerceAtLeast(0)
+        layout(constraints.maxWidth, height) {
+            for ((p, y, col) in placed) if (col >= 0) p.placeRelative(col * (colWidth + gapPx), y)
         }
     }
     for (w in full) {

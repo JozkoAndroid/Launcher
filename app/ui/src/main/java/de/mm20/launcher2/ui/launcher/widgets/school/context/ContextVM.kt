@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -55,23 +56,20 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     private val lunchCard: Flow<ContextCard.Lunch?> = combine(notificationRepository.notifications, lunchPackage, polled) { list, chosen, _ ->
         val ctx = getApplication<Application>()
         val zone = ZoneId.systemDefault()
-        val today = LocalDate.now(zone)
+        val now = java.time.LocalDateTime.now(zone)
         // Chosen app, else any app whose name looks like a lunch app (e.g. "Lunch Bell").
         val isLunchApp = { pkg: String -> if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(ContextSources.appLabel(ctx, pkg)) }
-        list.filter {
-            isLunchApp(it.packageName) &&
-                ContextRules.lunchDay(java.time.Instant.ofEpochMilli(it.postTime).atZone(zone).toLocalDateTime()) == today
+        list.filter { isLunchApp(it.packageName) }.maxByOrNull { it.postTime }?.let { n ->
+            val day = ContextRules.lunchDay(java.time.Instant.ofEpochMilli(n.postTime).atZone(zone).toLocalDateTime())
+            ContextRules.lunchText(
+                n.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString(),
+                n.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
+                n.extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
+            )?.let { store.storeLunch(day, n.packageName, it) }
         }
-            .maxByOrNull { it.postTime }
-            ?.let { n ->
-                ContextRules.lunchText(
-                    n.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString(),
-                    n.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString(),
-                    n.extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
-                )?.let { store.storeLunch(today, n.packageName, it) }
-            }
-        if (LocalTime.now(zone).isAfter(ContextRules.LunchUntil)) null
-        else store.storedLunch(today)?.let { (pkg, text) -> ContextCard.Lunch(text, pkg) }
+        store.storedLunch()?.takeIf { (day, _, _) -> ContextRules.lunchVisible(day, now) }?.let { (day, pkg, text) ->
+            ContextCard.Lunch(text, pkg, tomorrow = day.isAfter(now.toLocalDate()))
+        }
     }
 
     /** School chips from the brief: nearest test within 3 days, unread Schoolhelp messages. */
@@ -82,9 +80,13 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         )
     }
 
-    val cards: Flow<List<ContextCard>> = combine(musicCard, lunchCard, schoolCards, polled) { m, l, s, p ->
-        ContextRules.pick(listOfNotNull(m, l) + s + p)
+    /** Every card that applies right now, most urgent first (single chip blocks pick theirs from here). */
+    val allCards: Flow<List<ContextCard>> = combine(musicCard, lunchCard, schoolCards, polled) { m, l, s, p ->
+        (listOfNotNull(m, l) + s + p).sortedBy { it.rank }
     }
+
+    /** "Práve teraz": the most urgent four. */
+    val cards: Flow<List<ContextCard>> = allCards.map { it.take(ContextRules.MaxCards) }
 
     fun setLunchPackage(pkg: String?) {
         store.lunchPackage = pkg; lunchPackage.value = pkg

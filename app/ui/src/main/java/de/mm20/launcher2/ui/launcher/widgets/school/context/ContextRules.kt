@@ -27,7 +27,7 @@ sealed interface ContextCard {
     }
 
     /** Today's school lunch, from the EduPage food app's notification. */
-    data class Lunch(val text: String, val packageName: String) : ContextCard {
+    data class Lunch(val text: String, val packageName: String, val tomorrow: Boolean = false) : ContextCard {
         override val rank = 4
     }
 
@@ -115,8 +115,12 @@ object ContextRules {
             .minByOrNull { it.second }
             ?.let { (t, d) -> ContextCard.TestSoon(t.title, t.subject, d) }
 
-    /** Lunch is only relevant until the afternoon. */
+    /** A lunch stays relevant until this time on its day; before that it shows as "zajtra" the evening before. */
     val LunchUntil: java.time.LocalTime = java.time.LocalTime.of(15, 0)
+
+    /** Whether a lunch for [lunchDay] is still worth showing at [now] (device test: hidden every evening before). */
+    fun lunchVisible(lunchDay: LocalDate, now: java.time.LocalDateTime): Boolean =
+        now.isBefore(lunchDay.atTime(LunchUntil)) && !lunchDay.isAfter(now.toLocalDate().plusDays(1))
 
     /** App names that look like the EduPage food app (used when no app is chosen in settings). */
     private val lunchKeywords = listOf("lunch bell", "edupage", "jedál", "jedal", "obed", "lunch", "food", "menu", "mensa", "essen")
@@ -127,8 +131,11 @@ object ContextRules {
     fun lunchText(title: String?, text: String?, bigText: String?): String? =
         listOf(bigText, text, title).firstOrNull { !it.isNullOrBlank() }?.replace(Regex("\\s+"), " ")?.trim()
 
-    /** Lunch Bell only says "1", "2" or "3": the ordered menu. Returns that number, or null for real text. */
-    fun menuNumber(text: String): String? = Regex("""^\D{0,12}?(\d{1,2})\D{0,3}$""").find(text.trim())?.groupValues?.get(1)
+    /**
+     * Lunch Bell shows a short menu code ("2", "Z2"): returns it, or null when the text is a real
+     * description (then it is shown as is). Device test: the notification read "Z2".
+     */
+    fun menuNumber(text: String): String? = text.trim().takeIf { Regex("""^[A-Za-z]{0,2}\d{1,2}[A-Za-z]?$""").matches(it) }
 
     /**
      * Which day a lunch notification is for: one posted from 12:00 on is about the next day

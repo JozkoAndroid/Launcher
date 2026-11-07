@@ -310,12 +310,12 @@ fun TasksWidget(widget: TasksWidget) {
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
     val f = feed ?: return
-    TasksContent(f, now.toLocalDate(), OffsetDateTime.now())
+    TasksContent(f, now.toLocalDate(), OffsetDateTime.now(), onDone = { vm.markDone(it) })
 }
 
 /** Up to 5 tasks grouped by day ("Po termíne", "Dnes", "Zajtra", …); the rest one tap away in Schoolhelp. */
 @Composable
-internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
+internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime, onDone: (String) -> Unit = {}) {
     val context = LocalContext.current
     RegisterSubjects(f)
     val all = remember(f, today) { BriefLogic.visibleTasks(f.tasks, today) }
@@ -346,7 +346,7 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
                 )
                 lastGroup = group
             }
-            TaskRowItem(row) { Links.openSchoolhelp(context) }
+            TaskRowItem(row, onDone = { onDone(row.task.id) }) { Links.openSchoolhelp(context) }
         }
         val more = all.size - shown.size
         if (more > 0) {
@@ -358,7 +358,7 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
 }
 
 @Composable
-private fun TaskRowItem(row: TaskRow, onClick: () -> Unit) {
+private fun TaskRowItem(row: TaskRow, onDone: () -> Unit = {}, onClick: () -> Unit) {
     val t = row.task
     val kind = when (t.kind) {
         SchoolTask.Homework -> stringResource(R.string.task_kind_hausaufgabe)
@@ -387,6 +387,15 @@ private fun TaskRowItem(row: TaskRow, onClick: () -> Unit) {
             // Titles exactly as in Schoolhelp, never translated or shortened.
             Text(t.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (meta.isNotEmpty()) Secondary(meta)
+        }
+        // One-tap "Hotovo" for homework and projects: ticks it in Schoolhelp (only the student's own tick).
+        if (t.kind == SchoolTask.Homework || t.kind == SchoolTask.Project) {
+            IconButton(onClick = onDone) {
+                Icon(
+                    painterResource(R.drawable.check_circle_24px), contentDescription = stringResource(R.string.task_done),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -460,8 +469,9 @@ private fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM): ContextI
         )
         is ContextCard.Lunch -> ContextItem(
             "lunch",
-            ContextRules.menuNumber(c.text)?.let { stringResource(R.string.context_lunch_menu, it) }
-                ?: stringResource(R.string.context_lunch, c.text),
+            ContextRules.menuNumber(c.text)?.let {
+                stringResource(if (c.tomorrow) R.string.context_lunch_menu_tomorrow else R.string.context_lunch_menu, it)
+            } ?: stringResource(if (c.tomorrow) R.string.context_lunch_tomorrow else R.string.context_lunch, c.text),
             R.drawable.restaurant_24px, onClick = { vm.open(c) },
         )
         is ContextCard.NameDay -> ContextItem(
@@ -543,7 +553,7 @@ internal fun RegisterSubjects(f: Feed) {
 
 /** One block = one calm card: tinted surface, 24dp corners, no border, no shadow. */
 @Composable
-private fun SchoolCard(
+internal fun SchoolCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
@@ -572,7 +582,7 @@ internal fun SchoolBlockFrame(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun CardHeader(title: String, trailing: String?) {
+internal fun CardHeader(title: String, trailing: String?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             title,
@@ -646,3 +656,48 @@ internal fun dueLabel(due: LocalDate, today: LocalDate, time: String?): String {
 private fun updatedTime(feed: Feed): String =
     runCatching { OffsetDateTime.parse(feed.updated).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }
         .getOrDefault("–")
+
+// ---------------------------------------------------------------- Single chip blocks
+
+private fun ContextCard.kind(): String = when (this) {
+    is ContextCard.TestSoon -> "test"
+    is ContextCard.Chats -> "chats"
+    is ContextCard.Lunch -> "lunch"
+    is ContextCard.NameDay -> "nameday"
+    is ContextCard.Birthday -> "birthday"
+    is ContextCard.Music -> "music"
+    is ContextCard.Steps -> "steps"
+    is ContextCard.MobileData -> "data"
+    is ContextCard.Instagram -> "instagram"
+}
+
+/** One chip as its own block: shown only when its card applies (birthdays: one chip per person). */
+@Composable
+fun ChipWidget(widget: de.mm20.launcher2.widgets.ChipWidget) {
+    val vm: ContextVM = viewModel(key = "school-context")
+    val all by vm.allCards.collectAsState(emptyList())
+    val locale: Locale = LocalConfiguration.current.locales[0]
+    val mine = all.filter { it.kind() == widget.kind }
+        .filter { widget.kind != "nameday" || !widget.config.onlyContacts || (it as ContextCard.NameDay).contactName != null }
+    if (mine.isNotEmpty()) ContextContent(mine.map { contextItem(it, locale, vm) })
+}
+
+@Composable
+fun ColumnScope.ConfigureChipWidget(
+    widget: de.mm20.launcher2.widgets.ChipWidget,
+    onWidgetUpdated: (de.mm20.launcher2.widgets.ChipWidget) -> Unit,
+) {
+    if (widget.kind == "nameday") {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable {
+                onWidgetUpdated(widget.copy(config = widget.config.copy(onlyContacts = !widget.config.onlyContacts)))
+            },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.chip_only_contacts), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(checked = widget.config.onlyContacts, onCheckedChange = null)
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+    Text(stringResource(R.string.chip_hidden_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}

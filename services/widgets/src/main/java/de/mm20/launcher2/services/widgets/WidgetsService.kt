@@ -16,6 +16,10 @@ import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.FoldersWidget
+import de.mm20.launcher2.widgets.ChipWidget
+import de.mm20.launcher2.widgets.WeekWidget
+import de.mm20.launcher2.widgets.MyDayWidget
+import de.mm20.launcher2.widgets.TestPrepWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
 import de.mm20.launcher2.widgets.WidgetRepository
@@ -100,7 +104,12 @@ class WidgetsService(
                 type = FoldersWidget.Type,
                 label = context.getString(R.string.widget_name_folders),
             ),
-        )
+            BuiltInWidgetInfo(type = MyDayWidget.Type, label = context.getString(R.string.widget_name_myday)),
+            BuiltInWidgetInfo(type = TestPrepWidget.Type, label = context.getString(R.string.widget_name_testprep)),
+            BuiltInWidgetInfo(type = WeekWidget.Type, label = context.getString(R.string.widget_name_week)),
+        ) + ChipWidget.Kinds.map {
+            BuiltInWidgetInfo(type = ChipWidget.TypePrefix + it, label = context.getString(ChipWidget.labelRes(it)))
+        }
     }
 
     fun addWidget(widget: Widget, position: Int, parentId: UUID? = null) {

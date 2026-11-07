@@ -56,6 +56,7 @@ object FeedBuilder {
                 time = time,
                 done = done,
                 estimated = e.str("note").orEmpty().contains("Datum geschätzt"),
+                note = e.str("note")?.takeIf { kind == SchoolTask.Test && it.isNotBlank() }?.take(600),
             )
         }
         return Parts(tasks, daysOff)

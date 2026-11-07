@@ -61,6 +61,15 @@ android {
             applicationIdSuffix = ".debug"
             isDebuggable = true
         }
+        // Fork: optimized build for the phone (R8 like release, not debuggable) that installs over the
+        // earlier test builds: same app id suffix and the same debug signature, so logins and blocks stay.
+        create("fork") {
+            initWith(getByName("release"))
+            matchingFallbacks += "release"
+            applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+        }
         create("nightly") {
             initWith(getByName("release"))
             matchingFallbacks += "release"

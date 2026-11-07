@@ -48,6 +48,10 @@ import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.FoldersWidget
+import de.mm20.launcher2.widgets.ChipWidget
+import de.mm20.launcher2.widgets.WeekWidget
+import de.mm20.launcher2.widgets.MyDayWidget
+import de.mm20.launcher2.widgets.TestPrepWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.ui.launcher.widgets.school.BriefWidget
@@ -84,7 +88,8 @@ fun WidgetItem(
     // Fork: school blocks draw their own card; Kvaesitso's widgets get the same card look
     // (tinted surface, 24dp corners, no shadow) so the dashboard reads as one design.
     val schoolBlock = widget is LessonWidget || widget is BriefWidget || widget is TasksWidget ||
-        widget is ContextWidget || widget is AssistantWidget || widget is FoldersWidget
+        widget is ContextWidget || widget is AssistantWidget || widget is FoldersWidget || widget is ChipWidget ||
+        widget is WeekWidget || widget is MyDayWidget || widget is TestPrepWidget
     val forkCard = !schoolBlock && !(widget is AppWidget && !widget.config.background)
     LauncherCard(
         modifier = modifier.zIndex(if (isDragged) 1f else 0f),
@@ -172,6 +177,10 @@ fun WidgetItem(
                     is ContextWidget -> ContextWidget(widget)
                     is AssistantWidget -> AssistantWidget(widget)
                     is FoldersWidget -> de.mm20.launcher2.ui.launcher.widgets.school.FoldersWidget(widget)
+                    is ChipWidget -> de.mm20.launcher2.ui.launcher.widgets.school.ChipWidget(widget)
+                    is WeekWidget -> de.mm20.launcher2.ui.launcher.widgets.school.WeekWidget(widget)
+                    is MyDayWidget -> de.mm20.launcher2.ui.launcher.widgets.school.MyDayWidget(widget)
+                    is TestPrepWidget -> de.mm20.launcher2.ui.launcher.widgets.school.TestPrepWidget(widget)
 
                     is AppWidget -> {
                         AppWidget(
