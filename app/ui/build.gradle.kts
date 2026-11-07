@@ -135,6 +135,7 @@ dependencies {
     implementation(project(":data:files"))
     implementation(project(":data:widgets"))
     implementation(project(":data:schoolbrief"))
+    implementation(libs.androidx.health.connect)
     testImplementation(libs.junit)
     implementation(project(":data:searchable"))
     implementation(project(":data:themes"))

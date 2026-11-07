@@ -44,5 +44,11 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     fun retry() = repository.refreshIfDue()
 }
 
-/** One quiet line in the Context block. Real rules (music, Instagram, steps, data, birthday) come in build step 5. */
-data class ContextItem(val key: String, val text: String)
+/** One quiet line in the Context block; music adds an inline play/pause button. */
+data class ContextItem(
+    val key: String,
+    val text: String,
+    val onClick: (() -> Unit)? = null,
+    val playing: Boolean? = null,
+    val onTogglePlay: (() -> Unit)? = null,
+)

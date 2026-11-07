@@ -60,4 +60,23 @@
     <string name="assistant_button">Opýtaj sa Gemini</string>
     <string name="assistant_missing">Asistent sa nenašiel. Nastav Gemini ako predvoleného digitálneho asistenta v nastaveniach Androidu.</string>
     <string name="lesson_next_day">%1$s: %2$s o %3$s</string>
+    <string name="context_mobile_data">Mobilné dáta: %1$s z %2$s GB</string>
+    <string name="context_birthday">Dnes má narodeniny %1$s</string>
+    <string name="context_play">Prehrať</string>
+    <string name="context_pause">Pozastaviť</string>
+    <string name="context_settings_title">Karty</string>
+    <string name="context_settings_info">Každá karta sa ukáže, len keď je dôležitá. Povoľ, čo chceš vidieť; nič neopúšťa telefón.</string>
+    <string name="context_perm_music">Hudba: prístup k upozorneniam</string>
+    <string name="context_perm_usage">Mobilné dáta a Instagram: prístup k používaniu</string>
+    <string name="context_perm_contacts">Narodeniny: kontakty</string>
+    <string name="context_perm_steps">Kroky: Health Connect</string>
+    <string name="context_perm_steps_missing">Kroky: nainštaluj Health Connect a zapni synchronizáciu v Samsung Health.</string>
+    <string name="context_perm_granted">Povolené</string>
+    <string name="context_perm_grant">Povoliť</string>
+    <string name="context_plan_gb">Dátový balík (GB)</string>
+    <string name="context_cycle_start">Deň, keď začína obdobie (RRRR-MM-DD)</string>
+    <string name="context_cycle_start_hint">Obdobie sa opakuje každých 30 dní od tohto dňa.</string>
+    <string name="context_steps_goal">Denný cieľ krokov</string>
+    <string name="context_save">Uložiť</string>
+    <string name="context_health_rationale">Launcher číta z Health Connect iba dnešný počet krokov, aby ti po 15:00 ticho pripomenul, keď si pod cieľom. Nikdy nezapisuje zdravotné údaje a nikam ich neposiela.</string>
 </resources>

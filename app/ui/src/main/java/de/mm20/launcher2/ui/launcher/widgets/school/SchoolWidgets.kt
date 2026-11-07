@@ -250,12 +250,42 @@ internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
 
 @Composable
 fun ContextWidget(widget: ContextWidget) {
-    // Build step 1: sample items. Each real rule (music, Instagram, steps, data, birthday) arrives in step 5.
-    val items = listOf(
-        ContextItem("instagram", stringResource(R.string.context_instagram_today, "47")),
-        ContextItem("steps", stringResource(R.string.context_steps, "3 120", "8 000")),
-    )
-    ContextContent(items)
+    val vm: de.mm20.launcher2.ui.launcher.widgets.school.context.ContextVM = viewModel(key = "school-context")
+    val cards by vm.cards.collectAsState(emptyList())
+    val locale: java.util.Locale = LocalConfiguration.current.locales[0]
+    val items = cards.map { c -> contextItem(c, locale, vm) }
+    if (items.isNotEmpty()) ContextContent(items)
+}
+
+@Composable
+private fun contextItem(
+    c: de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard,
+    locale: java.util.Locale,
+    vm: de.mm20.launcher2.ui.launcher.widgets.school.context.ContextVM,
+): ContextItem {
+    val nf = java.text.NumberFormat.getIntegerInstance(locale)
+    val gb = { b: Long -> java.text.NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1; minimumFractionDigits = 1 }.format(b / 1e9) }
+    return when (c) {
+        is de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard.Music -> ContextItem(
+            key = "music",
+            text = listOfNotNull(c.title, c.artist?.takeIf { it.isNotBlank() }).joinToString(" · "),
+            onClick = { vm.open(c) },
+            playing = c.playing,
+            onTogglePlay = { vm.togglePause() },
+        )
+        is de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard.MobileData -> ContextItem(
+            "data", stringResource(R.string.context_mobile_data, gb(c.usedBytes), gb(c.planBytes)), onClick = { vm.open(c) },
+        )
+        is de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard.Birthday -> ContextItem(
+            "birthday:${c.contactId}", stringResource(R.string.context_birthday, c.name), onClick = { vm.open(c) },
+        )
+        is de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard.Steps -> ContextItem(
+            "steps", stringResource(R.string.context_steps, nf.format(c.steps), nf.format(c.goal)), onClick = { vm.open(c) },
+        )
+        is de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard.Instagram -> ContextItem(
+            "instagram", stringResource(R.string.context_instagram_today, nf.format(c.minutes)),
+        )
+    }
 }
 
 /** At most 3 cards at once (spec); the caller orders them: music first, then by urgency. */
@@ -263,23 +293,51 @@ fun ContextWidget(widget: ContextWidget) {
 internal fun ContextContent(items: List<ContextItem>) {
     SchoolBlock {
         for (item in items.take(3)) {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing)) +
-                    scaleIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing), initialScale = 0.95f),
-                exit = fadeOut(tween(SchoolTokens.ExitMs, easing = SchoolTokens.EnterEasing)) +
-                    scaleOut(tween(SchoolTokens.ExitMs, easing = SchoolTokens.EnterEasing), targetScale = 0.95f),
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = SchoolTokens.RowMin)
-                        .padding(horizontal = SchoolTokens.Inset),
-                    contentAlignment = Alignment.CenterStart,
+            androidx.compose.runtime.key(item.key) {
+                // Starts hidden so the fade-in really plays when a card appears.
+                val state = remember { androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true } }
+                AnimatedVisibility(
+                    visibleState = state,
+                    enter = fadeIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing)) +
+                        scaleIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing), initialScale = 0.95f),
+                    exit = fadeOut(tween(SchoolTokens.ExitMs, easing = SchoolTokens.EnterEasing)) +
+                        scaleOut(tween(SchoolTokens.ExitMs, easing = SchoolTokens.EnterEasing), targetScale = 0.95f),
                 ) {
-                    Text(item.text, style = MaterialTheme.typography.bodyLarge.merge(SchoolTokens.Tabular))
+                    ContextRow(item)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ContextRow(item: ContextItem) {
+    val content = LocalContentColor.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = SchoolTokens.RowMin)
+            .then(if (item.onClick != null) Modifier.pressable(role = Role.Button, onClick = item.onClick) else Modifier)
+            .padding(start = SchoolTokens.Inset),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            item.text,
+            style = MaterialTheme.typography.bodyLarge.merge(SchoolTokens.Tabular),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (item.onTogglePlay != null && item.playing != null) {
+            androidx.compose.material3.IconButton(onClick = item.onTogglePlay) {
+                androidx.compose.material3.Icon(
+                    androidx.compose.ui.res.painterResource(if (item.playing) R.drawable.pause_24px else R.drawable.play_arrow_24px),
+                    contentDescription = stringResource(if (item.playing) R.string.context_pause else R.string.context_play),
+                    tint = content,
+                )
+            }
+        } else {
+            Spacer(Modifier.width(SchoolTokens.Inset))
         }
     }
 }
