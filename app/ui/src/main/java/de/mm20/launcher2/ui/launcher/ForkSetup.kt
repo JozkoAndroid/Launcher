@@ -32,11 +32,12 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 2
+    private const val Version = 4
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
     private val widgets: WidgetRepository by inject()
+    private val searchUiSettings: de.mm20.launcher2.preferences.ui.SearchUiSettings by inject()
 
     fun run(context: Context) {
         val prefs = context.getSharedPreferences(Prefs, Context.MODE_PRIVATE)
@@ -56,6 +57,17 @@ object ForkSetup : KoinComponent {
                 gestureSettings.setSwipeUp(GestureAction.Search)
             }
             if (gestureSettings.swipeRight.first() is GestureAction.AppPage) gestureSettings.setSwipeRight(GestureAction.NoAction)
+            // v3 (device test): no keyboard when the app list opens by a swipe; only on tapping the field.
+            if (from < 3) searchUiSettings.setOpenKeyboard(false)
+            // v4: folders block on the home screen, after the context chips.
+            if (from < 4) {
+                val parent = WidgetScreenTarget.Default.id
+                val current = widgets.get(parent).first()
+                if (current.none { it is de.mm20.launcher2.widgets.FoldersWidget }) {
+                    val at = current.indexOfFirst { it is ContextWidget }.let { if (it < 0) current.size else it + 1 }
+                    widgets.create(de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()), at, parent)
+                }
+            }
             prefs.edit().putInt("version", Version).apply()
         }
     }

@@ -73,6 +73,7 @@ sealed class Widget {
                 TasksWidget.Type -> TasksWidget(entity.id)
                 ContextWidget.Type -> ContextWidget(entity.id)
                 AssistantWidget.Type -> AssistantWidget(entity.id)
+                FoldersWidget.Type -> FoldersWidget(entity.id)
 
                 else -> null
             }

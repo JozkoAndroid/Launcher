@@ -56,15 +56,25 @@ class ContextRulesTest {
     }
 
     @Test
-    fun musicFirstThenUrgencyMaxThree() {
+    fun musicFirstThenUrgencyMaxFour() {
         val cards = listOf(
             ContextCard.Instagram(47), ContextCard.Steps(3120, 8000), ContextCard.Birthday("Jana", 1),
             ContextCard.MobileData(3_000_000_000L, 3_500_000_000L), ContextCard.Music("Song", null, true),
         )
         assertEquals(
-            listOf(ContextCard.Music::class, ContextCard.MobileData::class, ContextCard.Birthday::class),
+            listOf(ContextCard.Music::class, ContextCard.MobileData::class, ContextCard.Birthday::class, ContextCard.Steps::class),
             ContextRules.pick(cards).map { it::class },
         )
+    }
+
+    @Test
+    fun testCountdownPicksNearestOpenTestWithinThreeDays() {
+        val d = LocalDate.parse("2026-11-10")
+        fun t(id: String, due: String, done: Boolean = false, kind: String = "test") =
+            de.mm20.launcher2.schoolbrief.SchoolTask(id, kind, "T$id", "Bio", due, done = done)
+        val tasks = listOf(t("far", "2026-11-14"), t("done", "2026-11-11", done = true), t("hw", "2026-11-11", kind = "hausaufgabe"), t("soon", "2026-11-12"))
+        assertEquals(ContextCard.TestSoon("Tsoon", "Bio", 2), ContextRules.testSoon(tasks, d))
+        assertEquals(null, ContextRules.testSoon(listOf(t("far", "2026-11-14")), d))
     }
 
     @Test
@@ -77,6 +87,12 @@ class ContextRulesTest {
     fun lunchAppAndTextDetection() {
         assertTrue(ContextRules.looksLikeLunchApp("EduPage Jedálny lístok"))
         assertTrue(ContextRules.looksLikeLunchApp("School Food"))
+        assertTrue(ContextRules.looksLikeLunchApp("Lunch Bell"))
+        assertEquals("2", ContextRules.menuNumber("2"))
+        assertEquals("3", ContextRules.menuNumber("Menu 3"))
+        assertEquals(null, ContextRules.menuNumber("Rizoto s kuracím mäsom"))
+        assertEquals(LocalDate.parse("2026-11-10"), ContextRules.lunchDay(java.time.LocalDateTime.parse("2026-11-09T18:30")))
+        assertEquals(LocalDate.parse("2026-11-10"), ContextRules.lunchDay(java.time.LocalDateTime.parse("2026-11-10T07:00")))
         assertFalse(ContextRules.looksLikeLunchApp("Instagram"))
         assertEquals("Polievka, rizoto", ContextRules.lunchText("Obed", "Polievka,\n  rizoto", null))
         assertEquals("Obed dnes", ContextRules.lunchText("Obed dnes", " ", null))

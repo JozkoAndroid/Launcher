@@ -1228,4 +1228,21 @@
     <string name="recording_pause">Pause</string>
     <string name="recording_resume">Resume</string>
     <string name="recording_stop">Stop</string>
+    <string name="context_lunch_menu">Lunch today: menu %1$s</string>
+    <string name="context_test_today">%1$s test today</string>
+    <string name="context_test_tomorrow">%1$s test tomorrow</string>
+    <string name="context_test_in">%1$s test in %2$d days</string>
+    <plurals name="context_chats">
+        <item quantity="one">%1$d new message in Schoolhelp</item>
+        <item quantity="other">%1$d new messages in Schoolhelp</item>
+    </plurals>
+    <string name="widget_name_folders">Folders</string>
+    <string name="folders_new">New</string>
+    <string name="folders_name">Folder name</string>
+    <string name="folders_apps">Apps in the folder</string>
+    <string name="folders_search">Search apps…</string>
+    <string name="folders_save">Save folder</string>
+    <string name="folders_edit">Edit</string>
+    <string name="folders_delete">Delete folder</string>
+    <string name="folders_empty_hint">Group apps you use together, like school or banking.</string>
 </resources>

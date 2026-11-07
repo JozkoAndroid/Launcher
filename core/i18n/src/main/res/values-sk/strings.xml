@@ -1062,4 +1062,23 @@
     <string name="recording_pause">Pozastaviť</string>
     <string name="recording_resume">Pokračovať</string>
     <string name="recording_stop">Ukončiť</string>
+    <string name="context_lunch_menu">Obed dnes: menu %1$s</string>
+    <string name="context_test_today">Test z predmetu %1$s dnes</string>
+    <string name="context_test_tomorrow">Test z predmetu %1$s zajtra</string>
+    <string name="context_test_in">Test z predmetu %1$s o %2$d dni</string>
+    <plurals name="context_chats">
+        <item quantity="one">%1$d nová správa v Schoolhelp</item>
+        <item quantity="few">%1$d nové správy v Schoolhelp</item>
+        <item quantity="many">%1$d novej správy v Schoolhelp</item>
+        <item quantity="other">%1$d nových správ v Schoolhelp</item>
+    </plurals>
+    <string name="widget_name_folders">Priečinky</string>
+    <string name="folders_new">Nový</string>
+    <string name="folders_name">Názov priečinka</string>
+    <string name="folders_apps">Aplikácie v priečinku</string>
+    <string name="folders_search">Hľadať aplikácie…</string>
+    <string name="folders_save">Uložiť priečinok</string>
+    <string name="folders_edit">Upraviť</string>
+    <string name="folders_delete">Odstrániť priečinok</string>
+    <string name="folders_empty_hint">Zoskup aplikácie, ktoré používaš spolu, napríklad školu alebo banky.</string>
 </resources>

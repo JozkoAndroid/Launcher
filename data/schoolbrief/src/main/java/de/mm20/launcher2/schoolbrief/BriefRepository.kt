@@ -36,8 +36,11 @@ interface BriefRepository {
     /** Stored encrypted on the device; null removes it (the brief then uses the template). */
     fun setGeminiKey(key: String?)
 
-    /** Lesson recording in Schoolhelp, checked every 2 minutes on school days while visible. */
+    /** Lesson recording in Schoolhelp, checked every 2 minutes while the home screen is visible. */
     val recording: StateFlow<Recording?>
+
+    /** Unread messages in Schoolhelp chats (not muted); checked with the recording. */
+    val unreadChats: StateFlow<Int>
 
     /** Pause/continue or stop: Schoolhelp asks for a tap to confirm, so the caller opens Schoolhelp. */
     fun pauseRecording(pause: Boolean)
@@ -55,6 +58,7 @@ class SampleBriefRepository : BriefRepository {
     override fun logout() {}
     override fun setGeminiKey(key: String?) {}
     override val recording = MutableStateFlow<Recording?>(null)
+    override val unreadChats = MutableStateFlow(0)
     override fun pauseRecording(pause: Boolean) {}
     override fun stopRecording() {}
 }

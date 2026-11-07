@@ -74,6 +74,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
+import de.mm20.launcher2.widgets.FoldersWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.widgets.WeatherWidget
@@ -396,6 +397,7 @@ fun WidgetPickerSheet(
                                     TasksWidget.Type -> TasksWidget(id)
                                     ContextWidget.Type -> ContextWidget(id)
                                     AssistantWidget.Type -> AssistantWidget(id)
+                                    FoldersWidget.Type -> FoldersWidget(id)
                                     else -> return@clickable
                                 }
                                 onWidgetSelected(widget)
@@ -418,7 +420,8 @@ fun WidgetPickerSheet(
                                         BriefWidget.Type -> R.drawable.newspaper_24px
                                         TasksWidget.Type -> R.drawable.task_alt_24px
                                         ContextWidget.Type -> R.drawable.bolt_24px
-                                        AssistantWidget.Type -> R.drawable.auto_awesome_24dp
+                                        AssistantWidget.Type -> R.drawable.chat_24px
+                                        FoldersWidget.Type -> R.drawable.folder_24px
                                         else -> R.drawable.widgets_24px
                                     }
                                 ),

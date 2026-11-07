@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -68,6 +69,7 @@ import de.mm20.launcher2.schoolbrief.SchoolTask
 import de.mm20.launcher2.schoolbrief.TaskRow
 import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextCard
+import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextRules
 import de.mm20.launcher2.ui.launcher.widgets.school.context.ContextVM
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
@@ -418,15 +420,9 @@ private fun KindBadge(t: SchoolTask, kindLabel: String) {
 fun ContextWidget(widget: ContextWidget) {
     val vm: ContextVM = viewModel(key = "school-context")
     val cards by vm.cards.collectAsState(emptyList())
-    val folders by vm.folders.collectAsState(emptyList())
     val locale: Locale = LocalConfiguration.current.locales[0]
     val items = cards.map { c -> contextItem(c, locale, vm) }
-    val openFolderState = androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    val folderItems = folders.map { tag ->
-        ContextItem("folder:$tag", tag, R.drawable.folder_24px, onClick = { openFolderState.value = tag })
-    }
-    if (items.isNotEmpty() || folderItems.isNotEmpty()) ContextContent(items.take(3) + folderItems)
-    openFolderState.value?.let { FolderSheet(it, vm) { openFolderState.value = null } }
+    if (items.isNotEmpty()) ContextContent(items)
 }
 
 @Composable
@@ -450,8 +446,23 @@ private fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM): ContextI
         is ContextCard.Instagram -> ContextItem(
             "instagram", stringResource(R.string.context_instagram_today, nf.format(c.minutes)), R.drawable.timer_24px,
         )
+        is ContextCard.TestSoon -> ContextItem(
+            "test:${c.title}",
+            when (c.days) {
+                0L -> stringResource(R.string.context_test_today, c.subject.ifBlank { c.title })
+                1L -> stringResource(R.string.context_test_tomorrow, c.subject.ifBlank { c.title })
+                else -> stringResource(R.string.context_test_in, c.subject.ifBlank { c.title }, c.days.toInt())
+            },
+            R.drawable.quiz_24px, onClick = { vm.open(c) },
+        )
+        is ContextCard.Chats -> ContextItem(
+            "chats", pluralStringResource(R.plurals.context_chats, c.unread, c.unread), R.drawable.chat_24px, onClick = { vm.open(c) },
+        )
         is ContextCard.Lunch -> ContextItem(
-            "lunch", stringResource(R.string.context_lunch, c.text), R.drawable.restaurant_24px, onClick = { vm.open(c) },
+            "lunch",
+            ContextRules.menuNumber(c.text)?.let { stringResource(R.string.context_lunch_menu, it) }
+                ?: stringResource(R.string.context_lunch, c.text),
+            R.drawable.restaurant_24px, onClick = { vm.open(c) },
         )
         is ContextCard.NameDay -> ContextItem(
             "nameday",
@@ -472,7 +483,7 @@ internal fun ContextContent(items: List<ContextItem>) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Context cards (max 3, chosen by the caller) followed by folder chips.
+        // At most 4 context cards, chosen and ordered by ContextRules.pick.
         for (item in items) {
             key(item.key) {
                 val inspection = LocalInspectionMode.current
@@ -635,54 +646,3 @@ private fun dueLabel(due: LocalDate, today: LocalDate, time: String?): String {
 private fun updatedTime(feed: Feed): String =
     runCatching { OffsetDateTime.parse(feed.updated).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }
         .getOrDefault("–")
-
-// ---------------------------------------------------------------- Folders
-
-/** A folder = a Kvaesitso tag: its apps in a sheet, tap to open. */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun FolderSheet(tag: String, vm: ContextVM, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val items by remember(tag) { vm.folderItems(tag) }.collectAsState(emptyList())
-    val iconService: de.mm20.launcher2.icons.IconService = org.koin.compose.koinInject()
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            tag, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
-        if (items.isEmpty()) {
-            Text(
-                stringResource(R.string.folder_empty), style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            )
-        }
-        FlowRow(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).padding(bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            maxItemsInEachRow = 4,
-        ) {
-            for (item in items) {
-                val px = with(density) { 52.dp.roundToPx() }
-                val icon by remember(item.key) { iconService.getIcon(item, px) }.collectAsState(null)
-                Column(
-                    Modifier.weight(1f).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
-                        .clickable(role = Role.Button) { item.launch(context, null); onDismiss() }
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    de.mm20.launcher2.ui.component.ShapedLauncherIcon(size = 52.dp, icon = { icon })
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        item.labelOverride ?: item.label, style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            // Fill the last row so items keep their width.
-            repeat((4 - items.size % 4) % 4) { Spacer(Modifier.weight(1f)) }
-        }
-    }
-}

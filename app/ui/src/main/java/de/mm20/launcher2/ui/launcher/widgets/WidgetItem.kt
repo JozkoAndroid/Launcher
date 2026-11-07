@@ -47,6 +47,7 @@ import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
+import de.mm20.launcher2.widgets.FoldersWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.TasksWidget
 import de.mm20.launcher2.ui.launcher.widgets.school.BriefWidget
@@ -80,10 +81,18 @@ fun WidgetItem(
         label = "widgetCardBackgroundOpacity",
     )
 
+    // Fork: school blocks draw their own card; Kvaesitso's widgets get the same card look
+    // (tinted surface, 24dp corners, no shadow) so the dashboard reads as one design.
+    val schoolBlock = widget is LessonWidget || widget is BriefWidget || widget is TasksWidget ||
+        widget is ContextWidget || widget is AssistantWidget || widget is FoldersWidget
+    val forkCard = !schoolBlock && !(widget is AppWidget && !widget.config.background)
     LauncherCard(
         modifier = modifier.zIndex(if (isDragged) 1f else 0f),
-        elevation = elevation,
-        backgroundOpacity = backgroundOpacity,
+        elevation = if (forkCard) 0.dp else elevation,
+        backgroundOpacity = if (forkCard && !editMode) 0.86f else backgroundOpacity,
+        shape = if (forkCard) androidx.compose.foundation.shape.RoundedCornerShape(24.dp) else MaterialTheme.shapes.medium,
+        color = if (forkCard && !editMode) MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.86f)
+        else MaterialTheme.colorScheme.surface.copy(alpha = backgroundOpacity.coerceIn(0f, 1f)),
     ) {
         Column {
             AnimatedVisibility(editMode) {
@@ -162,6 +171,7 @@ fun WidgetItem(
                     is TasksWidget -> TasksWidget(widget)
                     is ContextWidget -> ContextWidget(widget)
                     is AssistantWidget -> AssistantWidget(widget)
+                    is FoldersWidget -> de.mm20.launcher2.ui.launcher.widgets.school.FoldersWidget(widget)
 
                     is AppWidget -> {
                         AppWidget(

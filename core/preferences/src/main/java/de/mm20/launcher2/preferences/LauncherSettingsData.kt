@@ -118,7 +118,8 @@ data class LauncherSettingsData internal constructor(
     // Fork default: the home screen has one main action (Gemini); search lives on the app page and swipe down.
     val searchBarStyle: SearchBarStyle = SearchBarStyle.Hidden,
     val searchBarColors: SearchBarColors = SearchBarColors.Auto,
-    val searchBarKeyboard: Boolean = true,
+    // Fork default: the keyboard opens only when the search field is tapped.
+    val searchBarKeyboard: Boolean = false,
     val searchLaunchOnEnter: Boolean = true,
     val searchBarBottom: Boolean = false,
     val searchBarFixed: Boolean = false,

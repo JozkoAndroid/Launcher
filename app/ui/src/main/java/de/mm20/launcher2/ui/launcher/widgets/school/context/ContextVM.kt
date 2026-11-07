@@ -26,11 +26,10 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     private val music: MusicService by inject()
     private val permissions: PermissionsManager by inject()
     private val notificationRepository: de.mm20.launcher2.notifications.NotificationRepository by inject()
-    private val tagsService: de.mm20.launcher2.services.tags.TagsService by inject()
+    private val brief: de.mm20.launcher2.schoolbrief.BriefRepository by inject()
     private val store = ContextSettingsStore(app)
 
     val lunchPackage = MutableStateFlow(store.lunchPackage)
-    val folderSelection = MutableStateFlow(store.folders)
 
     val settings = MutableStateFlow(store.load())
 
@@ -57,8 +56,12 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         val ctx = getApplication<Application>()
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val packages = chosen?.let { setOf(it) } ?: ContextSources.lunchAppCandidates(ctx).map { it.first }.toSet()
-        list.filter { it.packageName in packages && java.time.Instant.ofEpochMilli(it.postTime).atZone(zone).toLocalDate() == today }
+        // Chosen app, else any app whose name looks like a lunch app (e.g. "Lunch Bell").
+        val isLunchApp = { pkg: String -> if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(ContextSources.appLabel(ctx, pkg)) }
+        list.filter {
+            isLunchApp(it.packageName) &&
+                ContextRules.lunchDay(java.time.Instant.ofEpochMilli(it.postTime).atZone(zone).toLocalDateTime()) == today
+        }
             .maxByOrNull { it.postTime }
             ?.let { n ->
                 ContextRules.lunchText(
@@ -71,18 +74,16 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         else store.storedLunch(today)?.let { (pkg, text) -> ContextCard.Lunch(text, pkg) }
     }
 
-    val cards: Flow<List<ContextCard>> = combine(musicCard, lunchCard, polled) { m, l, p -> ContextRules.pick(listOfNotNull(m, l) + p) }
-
-    /** Folders = Kvaesitso tags; the chosen ones, else all (max 4). Always shown, not ranked. */
-    val folders: Flow<List<String>> = combine(tagsService.getAllTags(), folderSelection) { all, chosen ->
-        (if (chosen.isEmpty()) all else chosen.filter { it in all }).take(4)
+    /** School chips from the brief: nearest test within 3 days, unread Schoolhelp messages. */
+    private val schoolCards: Flow<List<ContextCard>> = combine(brief.feed, brief.unreadChats, polled) { f, unread, _ ->
+        listOfNotNull(
+            f?.let { ContextRules.testSoon(it.tasks, LocalDate.now()) },
+            unread.takeIf { it > 0 }?.let { ContextCard.Chats(it) },
+        )
     }
-    val allTags: Flow<List<String>> = tagsService.getAllTags()
 
-    fun folderItems(tag: String): Flow<List<de.mm20.launcher2.search.SavableSearchable>> = tagsService.getTaggedItems(tag)
-
-    fun setFolders(tags: List<String>) {
-        store.folders = tags; folderSelection.value = tags
+    val cards: Flow<List<ContextCard>> = combine(musicCard, lunchCard, schoolCards, polled) { m, l, s, p ->
+        ContextRules.pick(listOfNotNull(m, l) + s + p)
     }
 
     fun setLunchPackage(pkg: String?) {
@@ -134,6 +135,9 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
             is ContextCard.Birthday -> Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, card.contactId.toString()))
             is ContextCard.Steps -> ctx.packageManager.getLaunchIntentForPackage(ContextSources.SamsungHealthPackage)
             is ContextCard.Instagram -> null
+            is ContextCard.TestSoon, is ContextCard.Chats -> {
+                de.mm20.launcher2.ui.launcher.widgets.school.Links.openSchoolhelp(ctx); null
+            }
             is ContextCard.Lunch -> ctx.packageManager.getLaunchIntentForPackage(card.packageName)
             is ContextCard.NameDay -> card.contactId?.let {
                 Intent(Intent.ACTION_VIEW, Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, it.toString()))

@@ -124,11 +124,11 @@ internal object ContextSources {
         }.getOrNull()
     }
 
-    /** Launcher apps whose name looks like the EduPage food app. */
+    /** Installed apps whose name looks like a lunch app (also apps without a launcher icon). */
     fun lunchAppCandidates(context: Context): List<Pair<String, String>> = runCatching {
         val pm = context.packageManager
-        pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
-            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+        pm.getInstalledApplications(0)
+            .map { it.packageName to it.loadLabel(pm).toString() }
             .filter { ContextRules.looksLikeLunchApp(it.second) }
             .distinctBy { it.first }
     }.getOrDefault(emptyList())
@@ -168,11 +168,6 @@ internal class ContextSettingsStore(context: Context) {
     var lunchPackage: String?
         get() = prefs.getString("lunch_package", null)
         set(v) { prefs.edit().putString("lunch_package", v).apply() }
-
-    /** Folders (Kvaesitso tags) shown as chips; empty = all, at most 4. */
-    var folders: List<String>
-        get() = prefs.getString("folders", null)?.split('\u001F')?.filter { it.isNotEmpty() } ?: emptyList()
-        set(v) { prefs.edit().putString("folders", v.joinToString("\u001F")).apply() }
 
     /** Today's lunch, kept after the notification is dismissed: "yyyy-MM-dd|pkg|text". */
     fun storedLunch(today: LocalDate): Pair<String, String>? {

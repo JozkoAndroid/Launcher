@@ -90,28 +90,6 @@ fun ColumnScope.ConfigureSchoolContext() {
         ChoiceRow(vm.appLabel(chosenLunch!!), true) {}
     }
 
-    // Folders: Kvaesitso tags shown as chips.
-    Spacer(Modifier.height(24.dp))
-    Text(stringResource(R.string.context_folders), style = MaterialTheme.typography.titleMedium)
-    Text(
-        stringResource(R.string.context_folders_hint),
-        style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    val tags by vm.allTags.collectAsState(emptyList())
-    val chosenFolders by vm.folderSelection.collectAsState()
-    for (tag in tags) {
-        val on = tag in chosenFolders
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                .clickable { vm.setFolders(if (on) chosenFolders - tag else (chosenFolders + tag).take(4)) },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            androidx.compose.material3.Checkbox(checked = on, onCheckedChange = null)
-            Spacer(Modifier.width(12.dp))
-            Text(tag, style = MaterialTheme.typography.bodyLarge)
-        }
-    }
-
     Spacer(Modifier.height(24.dp))
     val s by vm.settings.collectAsState()
     var plan by remember(s) { mutableStateOf(java.text.NumberFormat.getNumberInstance().format(s.planBytes / 1e9)) }

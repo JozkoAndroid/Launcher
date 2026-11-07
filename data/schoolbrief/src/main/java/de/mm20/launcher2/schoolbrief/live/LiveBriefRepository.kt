@@ -56,17 +56,15 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     private var lastAttempt = 0L
 
     override val recording = MutableStateFlow<de.mm20.launcher2.schoolbrief.Recording?>(null)
+    override val unreadChats = MutableStateFlow(0)
     private var recordingJob: Job? = null
     private var lastRecordingCheck = 0L
 
-    /** Every 2 minutes, Monday to Friday 7:00 to 17:00, while the home screen asks. */
+    /** Every 2 minutes while the home screen is visible (any day: recordings also happen outside lessons). */
     private fun checkRecordingIfDue() {
-        val now = LocalDateTime.now()
-        val schoolHours = now.dayOfWeek.value <= 5 && now.hour in 7..16
-        if (!schoolHours) { recording.value = null; return }
         if (recordingJob?.isActive == true || System.currentTimeMillis() - lastRecordingCheck < 2 * 60_000L) return
         lastRecordingCheck = System.currentTimeMillis()
-        recordingJob = scope.launch { readRecording() }
+        recordingJob = scope.launch { readRecording(); readUnreadChats() }
     }
 
     private suspend fun readRecording() {
@@ -77,6 +75,16 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
                     paused = l["paused"]?.jsonPrimitive?.booleanOrNull == true,
                     seconds = l["audio_seconds"]?.jsonPrimitive?.doubleOrNull?.toLong() ?: 0,
                 )
+            }
+        }
+    }
+
+    private suspend fun readUnreadChats() {
+        runCatching { mcp.appCall("talk.list", buildJsonObject { put("limit", 30) }) }.onSuccess { r ->
+            val chats = ((r["result"] as? JsonObject) ?: r)["chats"]?.jsonArray ?: return@onSuccess
+            unreadChats.value = chats.sumOf { c ->
+                val o = c.jsonObject
+                if (o["muted"]?.jsonPrimitive?.booleanOrNull == true) 0 else (o["unread"]?.jsonPrimitive?.intOrNull ?: 0)
             }
         }
     }

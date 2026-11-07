@@ -53,3 +53,13 @@ data class AssistantWidget(override val id: UUID) : Widget() {
         const val Type = "school_assistant"
     }
 }
+
+/** App folders (Kvaesitso tags) as tiles on the home screen; create and edit them right there. */
+data class FoldersWidget(override val id: UUID) : Widget() {
+    override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = null)
+    override fun getLabel(context: Context): String = context.getString(R.string.widget_name_folders)
+
+    companion object {
+        const val Type = "school_folders"
+    }
+}
