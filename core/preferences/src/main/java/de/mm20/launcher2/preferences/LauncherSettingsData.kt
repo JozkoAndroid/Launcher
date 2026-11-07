@@ -29,8 +29,7 @@ data class LauncherSettingsData internal constructor(
     val uiBaseLayout: BaseLayout = BaseLayout.PullDown,
     val uiOrientation: ScreenOrientation = ScreenOrientation.Auto,
 
-    // Fork default: dim keeps text readable on bright wallpapers (contrast rule).
-    val wallpaperDim: Boolean = true,
+    val wallpaperDim: Boolean = false,
     val wallpaperBlur: Boolean = true,
     val wallpaperBlurRadius: Int = 32,
 

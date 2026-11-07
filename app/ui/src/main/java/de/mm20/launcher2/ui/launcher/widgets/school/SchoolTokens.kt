@@ -21,8 +21,10 @@ internal object SchoolTokens {
     /** Inside a block between related lines. */
     val Tight = 4.dp
     val Gap = 8.dp
-    /** Block content inset; the widget column adds the outer 24dp gutter. */
+    /** Block content inset; with the widget column's 8dp this gives the 24dp side gutter. */
     val Inset = 16.dp
+    /** Top and bottom of each block; with the column's 8dp gap, blocks sit 32dp apart. */
+    val BlockPad = 12.dp
     /** Touch target for every tappable row. */
     val RowMin = 48.dp
     /** Corner of the press highlight; there are no visible surfaces. */
@@ -30,7 +32,7 @@ internal object SchoolTokens {
     val ProgressHeight = 2.dp
 
     /** Secondary text is the same color at reduced opacity, never a different hue. */
-    const val SecondaryAlpha = 0.72f
+    const val SecondaryAlpha = 0.8f
     /** Whole block when the feed is older than 12 hours. */
     const val StaleAlpha = 0.6f
 

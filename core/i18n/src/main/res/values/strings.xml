@@ -1146,7 +1146,7 @@
     <string name="lesson_weekend">Weekend, no school</string>
     <string name="lesson_progress">%1$d%% of the lesson done</string>
     <string name="task_overdue">overdue</string>
-    <string name="task_estimated">date estimated</string>
+    <string name="task_estimated">estimated</string>
     <string name="tasks_empty">Nothing due in the next 14 days.</string>
     <string name="task_kind_hausaufgabe">homework</string>
     <string name="task_kind_test">test</string>

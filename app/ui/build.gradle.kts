@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.kotlin.plugin.compose)
+    // Fork: JVM screenshot tests of the school blocks (no emulator needed).
+    id("app.cash.paparazzi") version "2.0.0-alpha05.1"
 }
 
 android {
@@ -133,6 +135,7 @@ dependencies {
     implementation(project(":data:files"))
     implementation(project(":data:widgets"))
     implementation(project(":data:schoolbrief"))
+    testImplementation(libs.junit)
     implementation(project(":data:searchable"))
     implementation(project(":data:themes"))
     implementation(project(":data:wikipedia"))

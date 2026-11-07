@@ -70,6 +70,11 @@ fun LessonWidget(widget: LessonWidget) {
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
     val f = feed ?: return
+    LessonContent(f, now)
+}
+
+@Composable
+internal fun LessonContent(f: Feed, now: LocalDateTime) {
     val context = LocalContext.current
     SchoolBlock {
         val content = LocalContentColor.current
@@ -111,8 +116,13 @@ fun BriefWidget(widget: BriefWidget) {
     val feed by vm.feed.collectAsState(null)
     vm.now.collectAsState(LocalDateTime.now()).value // recompose each minute for staleness
     val f = feed ?: return
+    BriefContent(f, OffsetDateTime.now())
+}
+
+@Composable
+internal fun BriefContent(f: Feed, now: OffsetDateTime) {
     val context = LocalContext.current
-    val stale = BriefLogic.isStale(f, OffsetDateTime.now())
+    val stale = BriefLogic.isStale(f, now)
     SchoolBlock(Modifier.alpha(if (stale) SchoolTokens.StaleAlpha else 1f)) {
         Column(Modifier.padding(horizontal = SchoolTokens.Inset, vertical = SchoolTokens.Gap)) {
             Text(
@@ -150,10 +160,14 @@ fun TasksWidget(widget: TasksWidget) {
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
     val f = feed ?: return
+    TasksContent(f, now.toLocalDate(), OffsetDateTime.now())
+}
+
+@Composable
+internal fun TasksContent(f: Feed, today: LocalDate, now: OffsetDateTime) {
     val context = LocalContext.current
-    val today = now.toLocalDate()
     val rows = remember(f, today) { BriefLogic.visibleTasks(f.tasks, today) }
-    val stale = BriefLogic.isStale(f, OffsetDateTime.now())
+    val stale = BriefLogic.isStale(f, now)
     SchoolBlock(Modifier.alpha(if (stale) SchoolTokens.StaleAlpha else 1f)) {
         Text(
             text = stringResource(R.string.widget_name_school_tasks),
@@ -178,9 +192,15 @@ fun ContextWidget(widget: ContextWidget) {
     val items = listOf(
         ContextItem("instagram", stringResource(R.string.context_instagram_today, "47")),
         ContextItem("steps", stringResource(R.string.context_steps, "3 120", "8 000")),
-    ).take(3)
+    )
+    ContextContent(items)
+}
+
+/** At most 3 cards at once (spec); the caller orders them: music first, then by urgency. */
+@Composable
+internal fun ContextContent(items: List<ContextItem>) {
     SchoolBlock {
-        for (item in items) {
+        for (item in items.take(3)) {
             AnimatedVisibility(
                 visible = true,
                 enter = fadeIn(tween(SchoolTokens.EnterMs, easing = SchoolTokens.EnterEasing)) +
@@ -226,26 +246,13 @@ private fun TaskRowItem(row: TaskRow, today: LocalDate, onClick: () -> Unit) {
             .pressable(role = Role.Button, onClick = onClick)
             .padding(horizontal = SchoolTokens.Inset, vertical = SchoolTokens.Gap),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (row.overdue) {
-                // Accent mark plus the "po termíne" text: status never by color alone.
-                Box(
-                    Modifier
-                        .width(SchoolTokens.Tight)
-                        .height(16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(accent)
-                )
-                Spacer(Modifier.width(SchoolTokens.Gap))
-            }
-            Text(
-                // Titles exactly as in Schoolhelp, never translated or shortened.
-                text = row.task.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            // Titles exactly as in Schoolhelp, never translated or shortened.
+            text = row.task.title,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         Spacer(Modifier.height(SchoolTokens.Tight))
         Text(
             text = meta,
@@ -261,7 +268,7 @@ private fun TaskRowItem(row: TaskRow, today: LocalDate, onClick: () -> Unit) {
 @Composable
 private fun SchoolBlock(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     CompositionLocalProvider(LocalContentColor provides schoolContentColor()) {
-        Column(modifier.fillMaxWidth().padding(vertical = SchoolTokens.Gap), content = content)
+        Column(modifier.fillMaxWidth().padding(vertical = SchoolTokens.BlockPad), content = content)
     }
 }
 

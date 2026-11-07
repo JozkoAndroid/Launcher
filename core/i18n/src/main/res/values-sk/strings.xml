@@ -15,7 +15,7 @@
     <string name="lesson_weekend">Víkend, bez školy</string>
     <string name="lesson_progress">Hodina z %1$d %% za tebou</string>
     <string name="task_overdue">po termíne</string>
-    <string name="task_estimated">odhadnutý dátum</string>
+    <string name="task_estimated">odhad</string>
     <string name="tasks_empty">Na najbližších 14 dní nič.</string>
     <string name="task_kind_hausaufgabe">úloha</string>
     <string name="task_kind_test">test</string>
