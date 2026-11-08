@@ -1245,4 +1245,5 @@
     <string name="voice_offline">Rozpoznávanie reči je offline. Skús neskôr.</string>
     <string name="voice_failed">Diktovanie zlyhalo. Skús znova.</string>
     <string name="voice_unavailable">Telefón nemá rozpoznávanie reči.</string>
+    <string name="glance_data_until">do %1$s</string>
 </resources>

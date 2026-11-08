@@ -1401,4 +1401,5 @@
     <string name="voice_offline">Speech recognition is offline. Try later.</string>
     <string name="voice_failed">Dictation failed. Try again.</string>
     <string name="voice_unavailable">This phone has no speech recognition.</string>
+    <string name="glance_data_until">until %1$s</string>
 </resources>
