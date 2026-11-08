@@ -1,5 +1,7 @@
 package de.mm20.launcher2.ui.launcher.scaffold
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.draw.drawBehind
 import android.app.WallpaperManager
 import android.view.animation.PathInterpolator
@@ -624,6 +626,12 @@ internal class LauncherScaffoldState(
         }
 
 
+        // Search opened from a side page and dragged away: back to that page, not home.
+        if (didPageChange && !isSettledOnSecondaryPage && gesture.component is SearchComponent && returnGesture != null) {
+            switchBack()
+            return
+        }
+
         val settleTarget = currentOffset3D.copy(x = targetOffset.x, y = targetOffset.y)
         if (didPageChange) {
             transitionToPage(
@@ -654,6 +662,7 @@ internal class LauncherScaffoldState(
     }
 
     suspend fun onHomeButtonPress() {
+        returnGesture = null
         performTapGesture(Gesture.HomeButton)
 
     }
@@ -771,6 +780,7 @@ internal class LauncherScaffoldState(
     }
 
     suspend fun navigateBack(fast: Boolean = false) {
+        if (currentComponent is SearchComponent && switchBack()) return
         val gesture = currentGesture ?: return
         val component = currentComponent ?: return
 
@@ -879,21 +889,40 @@ internal class LauncherScaffoldState(
         isOpeningSearch = false
     }
 
-    private suspend fun switchToSearch(from: ScaffoldComponent) = withContext(NonCancellable) {
+    /** The side page search was opened from; dragging search away or Back returns there (round 12). */
+    private var returnGesture: Gesture? = null
+
+    private suspend fun switchToSearch(from: ScaffoldComponent) {
         val g = listOf(Gesture.SwipeDown, Gesture.SwipeUp, Gesture.SwipeLeft, Gesture.SwipeRight)
             .find { config[it]?.component is SearchComponent } ?: Gesture.TapSearchBar
-        val search = config[g]?.component ?: return@withContext
+        val back = currentGesture
+        switchTo(g, from)
+        returnGesture = back
+    }
+
+    /** Search was opened from a side page: slide back to that page instead of going home. */
+    private suspend fun switchBack(): Boolean {
+        val g = returnGesture ?: return false
+        val from = currentComponent ?: return false
+        returnGesture = null
+        isSettledOnSecondaryPage = true
+        switchTo(g, from)
+        return true
+    }
+
+    /** Swaps one settled side page for another; the new one settles its last 15% with a short ease-out. */
+    private suspend fun switchTo(g: Gesture, from: ScaffoldComponent) = withContext(NonCancellable) {
+        val to = config[g]?.component ?: return@withContext
         val target = getAnimationController(g)?.calculateTargetOffset(g, ScaffoldPage.Secondary, size) ?: Offset3D(z = 1f)
         from.onPreDismiss(this@LauncherScaffoldState)
-        search.onPreActivate(this@LauncherScaffoldState)
+        to.onPreActivate(this@LauncherScaffoldState)
         offsetAnimatable.stop()
         currentGesture = g
-        // Settle the last 15% with a short ease-out instead of a hard cut (round 9).
         currentOffset3D = Offset3D(target.x * 0.85f, target.y * 0.85f, target.z)
         secondaryPageSearchBarOffset = 0f
         from.onDismiss(this@LauncherScaffoldState)
         animateOffset3DTo(target, animationSpec = tween(220, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)))
-        search.onActivate(this@LauncherScaffoldState)
+        to.onActivate(this@LauncherScaffoldState)
     }
 
     suspend fun navigateToPage(gesture: Gesture) {
@@ -929,6 +958,7 @@ internal class LauncherScaffoldState(
     }
 
     suspend fun reset() {
+        returnGesture = null
         isSearchBarFocused = false
         currentOffset3D = Offset3D.Zero
         unlock()
@@ -1171,6 +1201,25 @@ internal fun LauncherScaffold(
                     }
                 }
             }
+        }
+
+        // Fork (round 12): screen off means the next screen on starts on home, from any page.
+        val appContext = LocalContext.current.applicationContext
+        DisposableEffect(state, appContext) {
+            val receiver = object : android.content.BroadcastReceiver() {
+                override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
+                    if (state.isLocked) return
+                    scope.launch {
+                        state.reset()
+                        searchVM.reset()
+                    }
+                }
+            }
+            androidx.core.content.ContextCompat.registerReceiver(
+                appContext, receiver, android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF),
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            onDispose { runCatching { appContext.unregisterReceiver(receiver) } }
         }
 
         LaunchedEffect(

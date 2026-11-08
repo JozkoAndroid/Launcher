@@ -445,7 +445,7 @@ private fun TaskRowItem(row: TaskRow, onDone: () -> Unit = {}, onClick: () -> Un
                 }
             } else {
                 Icon(
-                    painterResource(if (t.kind == SchoolTask.Test) R.drawable.quiz_24px else R.drawable.event_24px),
+                    painterResource(if (t.kind == SchoolTask.Test) R.drawable.history_edu_24px else R.drawable.event_24px),
                     contentDescription = kind, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp),
                 )
             }
@@ -472,7 +472,7 @@ internal fun KindBadge(t: SchoolTask, kindLabel: String) {
             painterResource(
                 when (t.kind) {
                     SchoolTask.Homework -> R.drawable.edit_note_24px
-                    SchoolTask.Test -> R.drawable.quiz_24px
+                    SchoolTask.Test -> R.drawable.history_edu_24px
                     SchoolTask.Project -> R.drawable.folder_24px
                     else -> R.drawable.event_24px
                 }
@@ -529,7 +529,7 @@ internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): Contex
                 1L -> stringResource(R.string.context_test_tomorrow, c.subject.ifBlank { c.title })
                 else -> stringResource(R.string.context_test_in, c.subject.ifBlank { c.title }, c.days.toInt())
             },
-            R.drawable.quiz_24px, onClick = open,
+            R.drawable.history_edu_24px, onClick = open,
             // Countdown tile: the time left is the value, the subject the label.
             value = when (c.days) {
                 0L -> stringResource(R.string.due_today).replaceFirstChar { it.titlecase() }

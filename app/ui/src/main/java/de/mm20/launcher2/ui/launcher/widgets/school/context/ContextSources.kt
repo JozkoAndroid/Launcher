@@ -48,13 +48,14 @@ internal object ContextSources {
             val usm = context.getSystemService(UsageStatsManager::class.java)
             val events = usm.queryEvents(dayStart, nowMs)
             val e = UsageEvents.Event()
-            val list = mutableListOf<Pair<Long, Boolean>>()
+            val list = mutableListOf<ContextRules.AppEvent>()
             while (events.hasNextEvent()) {
                 events.getNextEvent(e)
                 if (e.packageName != InstagramPackage) continue
+                // Only resume/pause: "stopped" follows every pause and was counted as a new session (device test: 5 000 min).
                 when (e.eventType) {
-                    UsageEvents.Event.ACTIVITY_RESUMED -> list += e.timeStamp to true
-                    UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> list += e.timeStamp to false
+                    UsageEvents.Event.ACTIVITY_RESUMED -> list += ContextRules.AppEvent(e.timeStamp, e.className.orEmpty(), true)
+                    UsageEvents.Event.ACTIVITY_PAUSED -> list += ContextRules.AppEvent(e.timeStamp, e.className.orEmpty(), false)
                 }
             }
             ContextRules.foregroundMinutes(list, nowMs, dayStart)

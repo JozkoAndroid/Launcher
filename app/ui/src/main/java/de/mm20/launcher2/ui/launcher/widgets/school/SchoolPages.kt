@@ -239,7 +239,8 @@ private fun DayCardContent(f: Feed, day: LocalDate, today: LocalDate) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 dueLabel(day, today, null).replaceFirstChar { it.titlecase() },
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f),
+                // Day names in the soft serif: the week reads like a planner.
+                style = SchoolFonts.serifDisplay(24), modifier = Modifier.weight(1f),
             )
             Secondary(day.format(DateTimeFormatter.ofPattern("d. M.", locale)))
         }

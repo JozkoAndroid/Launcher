@@ -67,6 +67,10 @@ internal fun AddEventSheet(onDismiss: () -> Unit) {
     var title by rememberSaveable { mutableStateOf("") }
     var subject by rememberSaveable { mutableStateOf<String?>(null) }
     var day by rememberSaveable { mutableIntStateOf(1) }
+    // Any date (device test): an exact day from the calendar picker, else the quick choice above.
+    var custom by rememberSaveable { mutableStateOf<Long?>(null) }
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val date = custom?.let { LocalDate.ofEpochDay(it) } ?: today.plusDays(day.toLong())
     val subjects = feed?.timetable?.values?.flatten()?.map { it.subject }?.distinct()?.sorted().orEmpty()
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -89,11 +93,19 @@ internal fun AddEventSheet(onDismiss: () -> Unit) {
             Spacer(Modifier.height(16.dp))
             Text(stringResource(R.string.add_when), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (i in 0..7) {
-                    FilterChip(selected = day == i, onClick = { day = i }, label = {
+                for (i in 0..6) {
+                    FilterChip(selected = custom == null && day == i, onClick = { day = i; custom = null }, label = {
                         Text(dueLabel(today.plusDays(i.toLong()), today, null).replaceFirstChar { it.titlecase() })
                     })
                 }
+                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+                FilterChip(
+                    selected = custom != null, onClick = { picking = true },
+                    label = {
+                        Text(custom?.let { LocalDate.ofEpochDay(it).format(java.time.format.DateTimeFormatter.ofPattern("EEE d. M. yyyy", locale)) }
+                            ?: stringResource(R.string.add_other_date))
+                    },
+                )
             }
             if (subjects.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
@@ -105,7 +117,7 @@ internal fun AddEventSheet(onDismiss: () -> Unit) {
             Spacer(Modifier.height(20.dp))
             Row {
                 Button(
-                    onClick = { vm.addEvent(kind, title, today.plusDays(day.toLong()), subject); onDismiss() },
+                    onClick = { vm.addEvent(kind, title, date, subject); onDismiss() },
                     enabled = title.isNotBlank(),
                 ) { Text(stringResource(R.string.add_save)) }
                 Spacer(Modifier.weight(1f))
@@ -114,5 +126,19 @@ internal fun AddEventSheet(onDismiss: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Secondary(stringResource(R.string.add_hint))
         }
+    }
+    if (picking) {
+        // The picker works in UTC midnight millis.
+        val picker = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = date.toEpochDay() * 86_400_000L)
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { picking = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    picker.selectedDateMillis?.let { custom = it / 86_400_000L }
+                    picking = false
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = { TextButton(onClick = { picking = false }) { Text(stringResource(android.R.string.cancel)) } },
+        ) { androidx.compose.material3.DatePicker(state = picker) }
     }
 }

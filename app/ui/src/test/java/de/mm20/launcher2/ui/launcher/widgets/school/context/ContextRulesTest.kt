@@ -47,12 +47,28 @@ class ContextRulesTest {
     fun foregroundMinutesCountsOpenAndOvernightSessions() {
         val day = 1_000_000_000L
         val min = 60_000L
+        fun ev(m: Long, screen: String, resumed: Boolean) = ContextRules.AppEvent(day + m * min, screen, resumed)
         val events = listOf(
-            day + 5 * min to false,       // session from before midnight: 5 min
-            day + 60 * min to true, day + 80 * min to false, // 20 min
-            day + 100 * min to true,      // still open: until now
+            ev(5, "Main", false),                      // open since before midnight: 5 min
+            ev(60, "Main", true), ev(70, "Story", true), // switching screens is one session
+            ev(71, "Main", false), ev(80, "Story", false), // 20 min
+            ev(100, "Main", true),                     // still open: until now (22 min)
         )
         assertEquals(5 + 20 + 22, ContextRules.foregroundMinutes(events, day + 122 * min, day))
+    }
+
+    /** Device test: thousands of minutes. Pauses of screens never resumed today must not add time again. */
+    @Test
+    fun foregroundMinutesIgnoresRepeatedOrphanPauses() {
+        val day = 1_000_000_000L
+        val min = 60_000L
+        val events = listOf(
+            ContextRules.AppEvent(day + 600 * min, "Main", true),
+            ContextRules.AppEvent(day + 610 * min, "Main", false),
+            ContextRules.AppEvent(day + 700 * min, "Other", false),
+            ContextRules.AppEvent(day + 800 * min, "Other", false),
+        )
+        assertEquals(10, ContextRules.foregroundMinutes(events, day + 900 * min, day))
     }
 
     @Test

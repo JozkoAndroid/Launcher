@@ -118,7 +118,7 @@ internal fun chipFont(font: String): FontFamily? = when (font) {
     "rounded" -> GoogleSansFlex(mapOf("ROND" to 100f))
     "condensed" -> GoogleSansFlex(mapOf("wdth" to 75f))
     "wide" -> GoogleSansFlex(mapOf("wdth" to 120f))
-    "serif" -> FontFamily.Serif
+    "serif" -> SchoolFonts.SerifDisplay
     "mono" -> FontFamily.Monospace
     else -> null
 }
@@ -303,7 +303,7 @@ private fun sampleItem(kind: String): ContextItem = when (kind) {
     "nameday" -> ContextItem("s", "", R.drawable.celebration_24px, value = "René", label = stringResource(R.string.chip_name_nameday))
     "birthday" -> ContextItem("s", "", R.drawable.cake_24px, value = "Jana", label = stringResource(R.string.chip_name_birthday))
     "lunch" -> ContextItem("s", "", R.drawable.restaurant_24px, value = stringResource(R.string.glance_menu, "2"), label = stringResource(R.string.chip_name_lunch))
-    "test" -> ContextItem("s", "", R.drawable.quiz_24px, value = "Bio", label = stringResource(R.string.glance_test_tomorrow))
+    "test" -> ContextItem("s", "", R.drawable.history_edu_24px, value = "Bio", label = stringResource(R.string.glance_test_tomorrow))
     "chats" -> ContextItem("s", "", R.drawable.chat_24px, value = "3", label = stringResource(R.string.glance_chats))
     else -> ContextItem("s", "", R.drawable.music_note_24px, value = "Bohemian Rhapsody", label = "Queen")
 }

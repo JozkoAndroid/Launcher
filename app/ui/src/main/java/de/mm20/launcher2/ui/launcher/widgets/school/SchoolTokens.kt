@@ -77,7 +77,22 @@ internal object SchoolFonts {
     val Display: androidx.compose.ui.text.font.FontFamily by lazy {
         de.mm20.launcher2.ui.theme.typography.fontfamily.GoogleSansFlex(mapOf("wdth" to 112f, "opsz" to 48f))
     }
-    val Serif: androidx.compose.ui.text.font.FontFamily = androidx.compose.ui.text.font.FontFamily.Serif
+    /**
+     * Fraunces, bundled (round 12): the system "serif" was replaced by the phone's own handwriting font
+     * (device test). Text cut for reading (the brief), a soft display cut for names and page titles.
+     */
+    val Serif: androidx.compose.ui.text.font.FontFamily by lazy {
+        de.mm20.launcher2.ui.theme.typography.fontfamily.createVariableFontFamily(de.mm20.launcher2.ui.R.font.fraunces, mapOf("opsz" to 18f, "SOFT" to 50f))
+    }
+    val SerifDisplay: androidx.compose.ui.text.font.FontFamily by lazy {
+        de.mm20.launcher2.ui.theme.typography.fontfamily.createVariableFontFamily(de.mm20.launcher2.ui.R.font.fraunces, mapOf("opsz" to 72f, "SOFT" to 100f))
+    }
+
+    fun serifDisplay(size: Int, weight: Int = 500) = TextStyle(
+        fontFamily = SerifDisplay, fontSize = androidx.compose.ui.unit.TextUnit(size.toFloat(), androidx.compose.ui.unit.TextUnitType.Sp),
+        lineHeight = androidx.compose.ui.unit.TextUnit(size * 1.15f, androidx.compose.ui.unit.TextUnitType.Sp),
+        fontWeight = androidx.compose.ui.text.font.FontWeight(weight), letterSpacing = (-0.01).em,
+    )
 
     fun display(size: Int, weight: Int = 500) = TextStyle(
         fontFamily = Display, fontSize = androidx.compose.ui.unit.TextUnit(size.toFloat(), androidx.compose.ui.unit.TextUnitType.Sp),

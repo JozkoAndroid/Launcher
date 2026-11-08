@@ -107,22 +107,33 @@ object ContextRules {
         return month == 2 && day == 29 && !today.isLeapYear && today.monthValue == 2 && today.dayOfMonth == 28
     }
 
-    /** Foreground minutes from resume/pause event pairs (ms timestamps); an open session counts until [nowMs]. */
-    fun foregroundMinutes(events: List<Pair<Long, Boolean>>, nowMs: Long, dayStartMs: Long): Long {
+    /** One resume or pause of one of the app's screens (activities). */
+    data class AppEvent(val time: Long, val screen: String, val resumed: Boolean)
+
+    /**
+     * Minutes the app was on screen today. The app counts as open while any of its screens is resumed,
+     * so switching between its screens is one session. A pause before any resume today means the app
+     * was already open at midnight (counted once, from midnight). Capped at the time since midnight.
+     */
+    fun foregroundMinutes(events: List<AppEvent>, nowMs: Long, dayStartMs: Long): Long {
         var total = 0L
-        var since: Long? = null
-        for ((t, resumed) in events.sortedBy { it.first }) {
-            if (resumed) {
-                if (since == null) since = maxOf(t, dayStartMs)
-            } else if (since != null) {
-                total += t - since; since = null
-            } else {
-                // Paused without a resume today: the session started before midnight.
-                total += t - dayStartMs
+        val open = mutableSetOf<String>()
+        var since = 0L
+        var seenAny = false
+        for (e in events.sortedBy { it.time }) {
+            if (e.resumed) {
+                if (open.isEmpty()) since = maxOf(e.time, dayStartMs)
+                open += e.screen
+            } else if (e.screen in open) {
+                open -= e.screen
+                if (open.isEmpty()) total += e.time - since
+            } else if (!seenAny) {
+                total += e.time - dayStartMs
             }
+            seenAny = true
         }
-        if (since != null) total += nowMs - since
-        return total / 60_000
+        if (open.isNotEmpty()) total += nowMs - since
+        return (total.coerceIn(0, nowMs - dayStartMs)) / 60_000
     }
 
     fun pick(cards: List<ContextCard>): List<ContextCard> = cards.sortedBy { it.rank }.take(MaxCards)

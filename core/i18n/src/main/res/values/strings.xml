@@ -1377,4 +1377,5 @@
         <item quantity="one">%d change waits to be sent</item>
         <item quantity="other">%d changes wait to be sent</item>
     </plurals>
+    <string name="add_other_date">Other date</string>
 </resources>

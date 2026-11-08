@@ -151,7 +151,8 @@ internal fun DayContent(
                     Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                         Text(
                             date.format(DateTimeFormatter.ofPattern("EEEE", locale)).replaceFirstChar { it.titlecase(locale) },
-                            style = SchoolFonts.display(36),
+                            // The page title in the soft serif: "Môj deň" reads like a journal, home like a dashboard.
+                            style = SchoolFonts.serifDisplay(44),
                         )
                         val summary = listOfNotNull(
                             date.format(DateTimeFormatter.ofPattern("d. MMMM", locale)),

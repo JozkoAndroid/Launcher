@@ -435,7 +435,7 @@ fun WidgetPickerSheet(
                                         WeekWidget.Type -> R.drawable.calendar_today_24px
                                         MyDayWidget.Type -> R.drawable.light_mode_24px
                                         TestPrepWidget.Type -> R.drawable.school_24px
-                                        ChipWidget.TypePrefix + "test" -> R.drawable.quiz_24px
+                                        ChipWidget.TypePrefix + "test" -> R.drawable.history_edu_24px
                                         ChipWidget.TypePrefix + "chats" -> R.drawable.chat_24px
                                         ChipWidget.TypePrefix + "lunch" -> R.drawable.restaurant_24px
                                         ChipWidget.TypePrefix + "nameday" -> R.drawable.celebration_24px

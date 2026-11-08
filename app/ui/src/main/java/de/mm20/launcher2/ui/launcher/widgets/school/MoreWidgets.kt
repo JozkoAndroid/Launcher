@@ -92,7 +92,7 @@ internal fun MyDayContent(f: Feed, now: LocalDateTime) {
             val lessons = lessonsOn(f, today)
             val tests = f.tasks.filter { it.kind == SchoolTask.Test && !it.done && it.due == today.toString() }
             SchoolCard {
-                CardHeader(stringResource(R.string.myday_morning), null)
+                Text(stringResource(R.string.myday_morning), style = SchoolFonts.serifDisplay(26))
                 Spacer(Modifier.height(8.dp))
                 Text(stringResource(R.string.myday_first, lessons.first().subject, lessons.first().start), style = MaterialTheme.typography.bodyLarge)
                 tests.forEach { Text(stringResource(R.string.myday_tests_today, "„${it.title}“"), style = MaterialTheme.typography.bodyLarge) }
@@ -103,7 +103,10 @@ internal fun MyDayContent(f: Feed, now: LocalDateTime) {
             val tomorrow = today.plusDays(1)
             val lessons = lessonsOn(f, tomorrow)
             SchoolCard {
-                CardHeader(stringResource(R.string.myday_evening), tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d.\u00A0M.", androidx.compose.ui.platform.LocalConfiguration.current.locales[0])))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(stringResource(R.string.myday_evening), style = SchoolFonts.serifDisplay(26), modifier = Modifier.weight(1f))
+                    Secondary(tomorrow.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d.\u00A0M.", androidx.compose.ui.platform.LocalConfiguration.current.locales[0])))
+                }
                 Spacer(Modifier.height(8.dp))
                 if (lessons.isEmpty()) {
                     Text(stringResource(R.string.myday_no_school), style = MaterialTheme.typography.bodyLarge)

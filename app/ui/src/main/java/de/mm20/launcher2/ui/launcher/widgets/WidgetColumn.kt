@@ -221,12 +221,11 @@ fun WidgetColumn(
 
 /** Fork: blocks drawn as a section of the sheet (joined with their neighbors); others float on the wallpaper. */
 internal fun isSheet(w: de.mm20.launcher2.widgets.Widget): Boolean = when (w) {
+    // Only the school's own text blocks join; Kvaesitso's and apps' widgets keep all four corners round
+    // (device test: the weather block below the tasks looked cut off at the top).
     is de.mm20.launcher2.widgets.BriefWidget, is de.mm20.launcher2.widgets.TasksWidget, is de.mm20.launcher2.widgets.WeekWidget,
     is de.mm20.launcher2.widgets.TestPrepWidget, is de.mm20.launcher2.widgets.FoldersWidget -> true
-    is de.mm20.launcher2.widgets.LessonWidget, is de.mm20.launcher2.widgets.ContextWidget, is de.mm20.launcher2.widgets.ChipWidget,
-    is de.mm20.launcher2.widgets.AssistantWidget, is de.mm20.launcher2.widgets.MyDayWidget -> false
-    is AppWidget -> w.config.background
-    else -> true // Kvaesitso's own widgets (weather, calendar, notes, ...) share the sheet look
+    else -> false
 }
 
 /** Fork: width from which the home blocks sit in two columns (Fold 5 inner screen ~ 775dp, tablets). */
