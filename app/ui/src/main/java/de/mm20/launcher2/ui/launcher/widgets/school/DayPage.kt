@@ -255,21 +255,13 @@ private fun LessonLine(l: Lesson, now: String) {
 
 @Composable
 private fun StepLine(s: PlanStep, onStep: (Int, Boolean) -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    // The end of a session is a notification: ask for that permission when the first one starts.
-    val askNotify = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { FocusTimer.start(context, s) }
+    val startFocus = rememberFocusStarter()
     CheckLine(
         text = s.text, done = s.done,
         meta = listOfNotNull(s.minutes?.let { stringResource(R.string.day_minutes, it) }, s.subject.takeIf { it.isNotBlank() }).joinToString(" · "),
         onToggle = { onStep(s.index, !s.done) },
         trailing = if (s.done || s.minutes == null) null else ({
-            IconButton(onClick = {
-                val granted = android.os.Build.VERSION.SDK_INT < 33 ||
-                    context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (granted) FocusTimer.start(context, s) else askNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            }) {
+            IconButton(onClick = { startFocus(s.index, s.text, s.minutes ?: return@IconButton) }) {
                 Icon(painterResource(R.drawable.play_arrow_24px), contentDescription = stringResource(R.string.focus_start, s.minutes ?: 0))
             }
         }),
@@ -322,13 +314,14 @@ private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -
 @Composable
 private fun CaptureBar(onAdd: (String) -> Unit, modifier: Modifier) {
     var input by rememberSaveable { mutableStateOf("") }
-    val speak = rememberSpeechInput(onAdd)
+    // What is heard shows in the field while speaking; the final text is saved at once.
+    val speak = rememberSpeechInput(onText = { onAdd(it); input = "" }, onPartial = { input = it.take(200) })
     InputBar(
         value = input, onValue = { input = it.take(200) },
         hint = stringResource(R.string.day_capture_hint),
         submitIcon = R.drawable.add_24px, submitLabel = stringResource(R.string.day_add),
         onSubmit = { if (input.isNotBlank()) { onAdd(input); input = "" } },
-        onVoice = speak,
+        voice = speak,
         imeAction = ImeAction.Done,
         modifier = modifier.widthIn(max = 640.dp).padding(horizontal = 16.dp),
     )

@@ -1223,9 +1223,21 @@
     </plurals>
     <string name="add_other_date">Iný dátum</string>
     <string name="focus_channel">Časovač sústredenia</string>
-    <string name="focus_done_title">Čas vypršal. Krok je odškrtnutý.</string>
+    <string name="focus_done_title">Čas vypršal</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>
     <string name="focus_start">Spustiť %1$d min sústredenia</string>
+    <string name="focus_extend">+%1$d min</string>
+    <string name="focus_live_text">Sústredenie, %1$d min</string>
+    <string name="focus_live_channel">Prebiehajúce sústredenie</string>
+    <string name="focus_free">Sústredenie bez úlohy</string>
+    <string name="focus_no_notifications">Upozornenia sú vypnuté: koniec uvidíš len tu.</string>
+    <string name="voice_listening">Počúvam…</string>
+    <string name="voice_stop">Zastaviť diktovanie</string>
+    <string name="voice_nothing_heard">Nič nebolo počuť. Skús znova.</string>
+    <string name="voice_mic_denied">Bez prístupu k mikrofónu. Povoľ ho v nastaveniach aplikácie.</string>
+    <string name="voice_offline">Rozpoznávanie reči je offline. Skús neskôr.</string>
+    <string name="voice_failed">Diktovanie zlyhalo. Skús znova.</string>
+    <string name="voice_unavailable">Telefón nemá rozpoznávanie reči.</string>
 </resources>

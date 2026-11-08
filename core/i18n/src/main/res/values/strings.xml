@@ -1379,9 +1379,21 @@
     </plurals>
     <string name="add_other_date">Other date</string>
     <string name="focus_channel">Focus timer</string>
-    <string name="focus_done_title">Time is up. Step ticked off.</string>
+    <string name="focus_done_title">Time is up</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>
     <string name="focus_start">Start %1$d min focus</string>
+    <string name="focus_extend">+%1$d min</string>
+    <string name="focus_live_text">Focus, %1$d min</string>
+    <string name="focus_live_channel">Running focus session</string>
+    <string name="focus_free">Focus without a task</string>
+    <string name="focus_no_notifications">Notifications are off: the end shows only here.</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_stop">Stop dictation</string>
+    <string name="voice_nothing_heard">Nothing heard. Try again.</string>
+    <string name="voice_mic_denied">No microphone access. Allow it in the app settings.</string>
+    <string name="voice_offline">Speech recognition is offline. Try later.</string>
+    <string name="voice_failed">Dictation failed. Try again.</string>
+    <string name="voice_unavailable">This phone has no speech recognition.</string>
 </resources>

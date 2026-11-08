@@ -15,11 +15,23 @@
         <package android:name="com.google.android.apps.healthdata" />
     </queries>
 
+    <!-- Fork, dictation in the chat and task bars: the launcher listens itself (round 15). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+    <!-- Fork, focus timer: the end on time (round 13's inexact alarm came minutes late) and the live countdown. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+
     <uses-permission android:name="com.kieronquinn.app.smartspacer.permission.ACCESS_SMARTSPACER"/>
     <uses-sdk tools:overrideLibrary="com.kieronquinn.app.smartspacer.sdk,com.kieronquinn.app.smartspacer.sdk.client" />
 
     <application>
-        <!-- Fork: the focus timer's end (notification, ticks the plan step). -->
+        <!-- Fork: the focus timer's end and its notification buttons (Hotovo, Zastaviť, +5 min). -->
         <receiver android:name="de.mm20.launcher2.ui.launcher.widgets.school.FocusAlarmReceiver" android:exported="false" />
 
         <activity

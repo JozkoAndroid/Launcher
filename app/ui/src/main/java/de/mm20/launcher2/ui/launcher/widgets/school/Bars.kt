@@ -90,26 +90,10 @@ internal fun InkButton(@DrawableRes icon: Int, label: String, base: Color, onCli
     }
 }
 
-/** Android's speech input in Slovak; [onText] gets what was said. */
-@Composable
-internal fun rememberSpeechInput(onText: (String) -> Unit): () -> Unit {
-    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { r -> r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let(onText) }
-    return {
-        runCatching {
-            launcher.launch(
-                android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
-            )
-        }
-    }
-}
-
 /**
  * Text field in the pill, ink button beside it: the mic while the field is empty, [submitIcon] once
- * something is typed. Enter submits too.
+ * something is typed, stop while listening. Enter submits too. The hint shows [voice]'s status
+ * ("Počúvam…", or why nothing was heard).
  */
 @Composable
 internal fun InputBar(
@@ -119,7 +103,7 @@ internal fun InputBar(
     @DrawableRes submitIcon: Int,
     submitLabel: String,
     onSubmit: () -> Unit,
-    onVoice: () -> Unit,
+    voice: SpeechInput,
     modifier: Modifier = Modifier,
     imeAction: ImeAction = ImeAction.Send,
 ) {
@@ -127,7 +111,7 @@ internal fun InputBar(
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PillBar(Modifier.weight(1f)) {
             Box(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-                if (value.isEmpty()) Text(hint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                if (value.isEmpty()) Text(voice.status ?: hint, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 BasicTextField(
                     value, onValue,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = text, fontSize = 16.sp),
@@ -140,8 +124,11 @@ internal fun InputBar(
             }
         }
         Spacer(Modifier.width(10.dp))
-        if (value.isBlank()) InkButton(R.drawable.mic_24px, stringResource(R.string.chat_voice), text, onVoice)
-        else InkButton(submitIcon, submitLabel, text, onSubmit)
+        when {
+            voice.listening -> InkButton(R.drawable.stop_24px, stringResource(R.string.voice_stop), text, voice::toggle)
+            value.isBlank() -> InkButton(R.drawable.mic_24px, stringResource(R.string.chat_voice), text, voice::toggle)
+            else -> InkButton(submitIcon, submitLabel, text, onSubmit)
+        }
     }
 }
 
