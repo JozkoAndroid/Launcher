@@ -66,6 +66,7 @@ class WidgetsService(
             BuiltInWidgetInfo(type = WeekWidget.Type, label = context.getString(R.string.widget_name_week)),
             BuiltInWidgetInfo(type = TestPrepWidget.Type, label = context.getString(R.string.widget_name_testprep)),
             BuiltInWidgetInfo(type = de.mm20.launcher2.widgets.FocusWidget.Type, label = context.getString(R.string.widget_name_focus)),
+            BuiltInWidgetInfo(type = de.mm20.launcher2.widgets.AppGridWidget.Type, label = context.getString(R.string.widget_name_appgrid)),
             BuiltInWidgetInfo(type = FoldersWidget.Type, label = context.getString(R.string.widget_name_folders)),
             BuiltInWidgetInfo(type = WeatherWidget.Type, label = context.getString(R.string.widget_name_weather)),
             BuiltInWidgetInfo(type = CalendarWidget.Type, label = context.getString(R.string.widget_name_calendar)),

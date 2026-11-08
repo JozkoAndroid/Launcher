@@ -1280,6 +1280,10 @@
     <string name="widget_name_week">Week</string>
     <string name="widget_name_myday">My day (morning and evening)</string>
     <string name="widget_name_focus">Focus</string>
+    <string name="widget_name_appgrid">Apps</string>
+    <string name="appgrid_pick">Choose apps</string>
+    <string name="appgrid_edit">Edit apps</string>
+    <string name="appgrid_remove">Remove from block</string>
     <string name="widget_name_testprep">Test prep</string>
     <string name="myday_morning">Good morning</string>
     <string name="myday_evening">Tomorrow</string>

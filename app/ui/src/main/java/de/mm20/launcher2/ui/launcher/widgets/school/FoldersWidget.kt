@@ -84,6 +84,9 @@ class FoldersVM : ViewModel(), KoinComponent {
     }
 
     fun delete(tag: String) = tags.deleteTag(tag)
+
+    /** Counted like any launch (most-used order in the dock and search). */
+    fun launched(item: SavableSearchable) = favorites.reportLaunch(item)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

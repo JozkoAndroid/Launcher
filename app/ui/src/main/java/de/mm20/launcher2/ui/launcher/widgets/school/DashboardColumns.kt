@@ -29,7 +29,8 @@ object DashboardColumns {
     /** Now and the to-do list on the left, the reading blocks on the right; anything else spread by id. */
     private fun default(w: Widget, index: Int, cols: Int): Int = when (w) {
         is de.mm20.launcher2.widgets.LessonWidget, is de.mm20.launcher2.widgets.TasksWidget,
-        is de.mm20.launcher2.widgets.MyDayWidget, is de.mm20.launcher2.widgets.FoldersWidget -> 0
+        is de.mm20.launcher2.widgets.MyDayWidget, is de.mm20.launcher2.widgets.FoldersWidget,
+        is de.mm20.launcher2.widgets.AppGridWidget, is de.mm20.launcher2.widgets.FocusWidget -> 0
         is de.mm20.launcher2.widgets.WeatherWidget, is de.mm20.launcher2.widgets.BriefWidget,
         is de.mm20.launcher2.widgets.CalendarWidget, is de.mm20.launcher2.widgets.NotesWidget,
         is de.mm20.launcher2.widgets.WeekWidget, is de.mm20.launcher2.widgets.TestPrepWidget,

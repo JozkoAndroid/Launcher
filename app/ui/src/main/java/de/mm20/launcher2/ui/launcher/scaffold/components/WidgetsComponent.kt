@@ -157,8 +157,7 @@ internal class WidgetsComponent(
             }
         }
 
-        // Fork: the second widget screen is the side panel (swipe left). Round 10: it has two pages, the
-        // widgets and the apps page, swiped like a phone's home pages; the chat lives on "Môj deň".
+        // Fork: the second widget screen is the side panel (swipe left), one scrolling page of blocks.
         val widgetsPage: @Composable () -> Unit = {
             Column(
                 modifier = Modifier
@@ -190,19 +189,9 @@ internal class WidgetsComponent(
             }
         }
         androidx.compose.foundation.layout.Box(modifier.nestedScroll(toSearch)) {
-            if (target == WidgetScreenTarget.Widgets2 && !editMode) {
-                androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
-                    if (page == 0) widgetsPage() else de.mm20.launcher2.ui.launcher.widgets.school.AppsPage()
-                }
-                PageDots(
-                    pager.currentPage, 2,
-                    Modifier.align(Alignment.BottomCenter)
-                        .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
-                        .padding(bottom = 16.dp),
-                )
-            } else {
-                widgetsPage()
-            }
+            // Round 23 (user: "combine the two pages on the right into one, scrollable"): one page of blocks;
+            // the apps are an apps block among them, so apps and widgets mix like on a phone's home page.
+            widgetsPage()
         }
         if (editMode) {
             BackHandler {
@@ -235,28 +224,10 @@ internal class WidgetsComponent(
         }
     }
 
-    /** Panel pages; back on the widgets page whenever the panel is left. */
-    private val pager = androidx.compose.foundation.pager.PagerState { 2 }
-
     override suspend fun onDismiss(state: LauncherScaffoldState) {
         super.onDismiss(state)
-        // Leaving for search keeps the page and position, so coming back lands exactly where you were.
+        // Leaving for search keeps the position, so coming back lands exactly where you were.
         if (state.currentComponent is SearchComponent) return
-        pager.scrollToPage(0)
         scrollState.scrollTo(0)
-    }
-}
-
-/** Which panel page is showing: small dots on the wallpaper, the current one solid. */
-@Composable
-private fun PageDots(current: Int, count: Int, modifier: Modifier) {
-    val content = de.mm20.launcher2.ui.launcher.widgets.school.schoolContentColor()
-    androidx.compose.foundation.layout.Row(modifier, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-        repeat(count) { i ->
-            androidx.compose.foundation.layout.Box(
-                Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(content.copy(alpha = if (i == current) 1f else 0.4f))
-            )
-        }
     }
 }

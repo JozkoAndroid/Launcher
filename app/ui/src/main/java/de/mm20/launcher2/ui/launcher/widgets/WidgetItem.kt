@@ -89,7 +89,9 @@ fun WidgetItem(
     // (tinted surface, 24dp corners, no shadow) so the dashboard reads as one design.
     val schoolBlock = widget is LessonWidget || widget is BriefWidget || widget is TasksWidget ||
         widget is ContextWidget || widget is AssistantWidget || widget is FoldersWidget || widget is ChipWidget ||
-        widget is WeekWidget || widget is MyDayWidget || widget is TestPrepWidget
+        widget is WeekWidget || widget is MyDayWidget || widget is TestPrepWidget ||
+        // Round 23: the focus block drew Kvaesitso's card around its own (a different shade, device test).
+        widget is de.mm20.launcher2.widgets.FocusWidget || widget is de.mm20.launcher2.widgets.AppGridWidget
     val forkCard = !schoolBlock && !(widget is AppWidget && !widget.config.background)
     LauncherCard(
         modifier = modifier.zIndex(if (isDragged) 1f else 0f),
@@ -194,6 +196,7 @@ fun WidgetItem(
                     is MyDayWidget -> de.mm20.launcher2.ui.launcher.widgets.school.MyDayWidget(widget)
                     is TestPrepWidget -> de.mm20.launcher2.ui.launcher.widgets.school.TestPrepWidget(widget)
                     is de.mm20.launcher2.widgets.FocusWidget -> de.mm20.launcher2.ui.launcher.widgets.school.FocusWidget(widget)
+                    is de.mm20.launcher2.widgets.AppGridWidget -> de.mm20.launcher2.ui.launcher.widgets.school.AppGridWidget(widget, onWidgetUpdate)
 
                     is AppWidget -> {
                         AppWidget(

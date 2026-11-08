@@ -1116,6 +1116,10 @@
     <string name="widget_name_week">Týždeň</string>
     <string name="widget_name_myday">Môj deň (ráno a večer)</string>
     <string name="widget_name_focus">Sústredenie</string>
+    <string name="widget_name_appgrid">Aplikácie</string>
+    <string name="appgrid_pick">Vybrať aplikácie</string>
+    <string name="appgrid_edit">Upraviť aplikácie</string>
+    <string name="appgrid_remove">Odstrániť z bloku</string>
     <string name="widget_name_testprep">Príprava na test</string>
     <string name="myday_morning">Dobré ráno</string>
     <string name="myday_evening">Zajtra</string>

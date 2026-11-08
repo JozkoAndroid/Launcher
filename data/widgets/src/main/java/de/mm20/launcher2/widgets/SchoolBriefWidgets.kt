@@ -125,6 +125,25 @@ data class MyDayWidget(override val id: UUID) : Widget() {
     companion object { const val Type = "school_myday" }
 }
 
+@Serializable
+data class AppGridConfig(
+    /** App keys in the user's order. */
+    val apps: List<String> = emptyList(),
+)
+
+/**
+ * A block of chosen apps as big icons on the wallpaper (round 23, user: "a widget where I select four
+ * apps"; also replaces the panel's separate apps page). Several can sit between other blocks.
+ */
+data class AppGridWidget(
+    override val id: UUID,
+    val config: AppGridConfig = AppGridConfig(),
+) : Widget() {
+    override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = Json.encodeToString(AppGridConfig.serializer(), config))
+    override fun getLabel(context: Context): String = context.getString(R.string.widget_name_appgrid)
+    companion object { const val Type = "school_apps" }
+}
+
 /** Starts a focus session from home (round 22): 15/20/30 minutes, or the countdown and stop while one runs. */
 data class FocusWidget(override val id: UUID) : Widget() {
     override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = null)

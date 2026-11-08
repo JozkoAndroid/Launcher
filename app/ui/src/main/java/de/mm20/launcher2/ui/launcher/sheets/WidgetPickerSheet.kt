@@ -407,6 +407,7 @@ fun WidgetPickerSheet(
                                     MyDayWidget.Type -> MyDayWidget(id)
                                     TestPrepWidget.Type -> TestPrepWidget(id)
                                     de.mm20.launcher2.widgets.FocusWidget.Type -> de.mm20.launcher2.widgets.FocusWidget(id)
+                                    de.mm20.launcher2.widgets.AppGridWidget.Type -> de.mm20.launcher2.widgets.AppGridWidget(id)
                                     else -> if (it.type.startsWith(ChipWidget.TypePrefix)) {
                                         ChipWidget(id, it.type.removePrefix(ChipWidget.TypePrefix))
                                     } else return@clickable
@@ -437,6 +438,7 @@ fun WidgetPickerSheet(
                                         MyDayWidget.Type -> R.drawable.light_mode_24px
                                         TestPrepWidget.Type -> R.drawable.school_24px
                                         de.mm20.launcher2.widgets.FocusWidget.Type -> R.drawable.timer_24px
+                                        de.mm20.launcher2.widgets.AppGridWidget.Type -> R.drawable.apps_24px
                                         ChipWidget.TypePrefix + "test" -> R.drawable.history_edu_24px
                                         ChipWidget.TypePrefix + "chats" -> R.drawable.chat_24px
                                         ChipWidget.TypePrefix + "lunch" -> R.drawable.restaurant_24px

@@ -104,6 +104,7 @@ fun AppWidget(
                     is MyDayWidget -> it.copy(id = widget.id)
                     is TestPrepWidget -> it.copy(id = widget.id)
                     is de.mm20.launcher2.widgets.FocusWidget -> it.copy(id = widget.id)
+                    is de.mm20.launcher2.widgets.AppGridWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdate(updatedWidget)
                 replaceWidget = false

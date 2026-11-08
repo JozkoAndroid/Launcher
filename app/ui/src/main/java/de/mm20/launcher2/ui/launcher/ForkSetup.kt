@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 16
+    private const val Version = 17
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -123,6 +123,8 @@ object ForkSetup : KoinComponent {
             // v14 (round 15, user: "your suggested layout, no duplicates"): the recommended home and panel.
             // App widgets stay. Fresh installs get it just below.
             // v15: the fuller set (user: "way too few widgets"), on the home screen and the right screen.
+            // v17 (round 23): the panel's apps page becomes an apps block at the end of the panel.
+            if (from in 1..16) migrateAppsPage(context)
             // v16: once more, cleanly (v15 could run twice at once and duplicate blocks).
             if (from in 1..15) applyRecommendedLayout()
             // v4 (folders on home) is superseded by v8.
@@ -175,6 +177,12 @@ object ForkSetup : KoinComponent {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { applyRecommendedLayout() }
     }
 
+    private val favorites: de.mm20.launcher2.services.favorites.FavoritesService by inject()
+
+    private suspend fun mostUsedApps(skip: Int, count: Int): List<String> =
+        favorites.getFavorites(includeTypes = listOf("app"), minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned, limit = skip + count)
+            .first().drop(skip).map { it.key }
+
     private suspend fun applyRecommendedLayout() {
         suspend fun layout(parent: UUID, blocks: List<de.mm20.launcher2.widgets.Widget>) {
             val current = widgets.get(parent).first()
@@ -187,11 +195,28 @@ object ForkSetup : KoinComponent {
             // appointments; school dates are in the week), app folders, quick notes.
             WidgetScreenTarget.Widgets2.id, listOf(
                 de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
-                CalendarWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.FocusWidget(UUID.randomUUID()),
+                // Round 23: the apps block (most used apps after the dock's) and the folders, then the rest.
+                de.mm20.launcher2.widgets.AppGridWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.AppGridConfig(mostUsedApps(skip = 4, count = 8))),
                 de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()),
+                CalendarWidget(UUID.randomUUID()),
                 NotesWidget(UUID.randomUUID()),
             )
         )
+    }
+
+    /** The old apps page's apps (its saved order) as an apps block at the end of the panel; its folders are the folders block. */
+    private suspend fun migrateAppsPage(context: Context) {
+        val ids = context.getSharedPreferences("apps_page", Context.MODE_PRIVATE).getString("order", null)
+            ?.split('\n')?.filter { it.startsWith("app:") }?.map { it.removePrefix("app:") }.orEmpty()
+        val panel = WidgetScreenTarget.Widgets2.id
+        val current = widgets.get(panel).first()
+        if (current.none { it is de.mm20.launcher2.widgets.AppGridWidget }) {
+            widgets.create(de.mm20.launcher2.widgets.AppGridWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.AppGridConfig(ids)), current.size, panel)
+        }
+        if (current.none { it is de.mm20.launcher2.widgets.FoldersWidget }) {
+            widgets.create(de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()), current.size + 1, panel)
+        }
     }
 
     private suspend fun setupV1() {

@@ -78,6 +78,10 @@ sealed class Widget {
                 MyDayWidget.Type -> MyDayWidget(entity.id)
                 TestPrepWidget.Type -> TestPrepWidget(entity.id)
                 FocusWidget.Type -> FocusWidget(entity.id)
+                AppGridWidget.Type -> AppGridWidget(
+                    entity.id,
+                    Json.decodeFromStringOrNull(entity.config?.takeIf { it.isNotBlank() }) ?: AppGridConfig(),
+                )
                 in ChipWidget.Kinds.map { ChipWidget.TypePrefix + it } -> ChipWidget(
                     entity.id,
                     entity.type.removePrefix(ChipWidget.TypePrefix),

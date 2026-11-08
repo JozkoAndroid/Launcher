@@ -180,6 +180,14 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   app-grid block (chosen apps, drag reorder, big icons; also the "4 apps" widget); clearer widget
   settings (tile panel options).
 
+## 5a2. Round 23
+
+- Right panel is one scrolling page (no pager). Apps live in `AppGridWidget` blocks (type school_apps,
+  config = app keys in order; `AppGrid.kt`: big icons, hold+drag to move, hold for options, "+" adds;
+  settings: `ConfigureAppGrid`). ForkSetup v17 moved the old apps page's apps into one such block at the
+  end of the panel (old `AppsPage.kt` removed; prefs "apps_page" read once).
+- Focus and apps blocks are in WidgetItem's `schoolBlock` list (no Kvaesitso card behind them).
+
 ## 5b. Design language: "instrument panel" (round 21)
 
 Monochrome ink on the wallpaper or one surface; the accent means only "now / progress"; hairlines (1dp,

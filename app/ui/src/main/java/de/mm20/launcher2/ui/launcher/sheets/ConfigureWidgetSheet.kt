@@ -169,6 +169,7 @@ fun ConfigureWidgetSheet(
                 is ChipWidget -> ConfigureChipWidget(widget, onWidgetUpdated)
                 is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget, is WeekWidget, is MyDayWidget, is TestPrepWidget,
                 is de.mm20.launcher2.widgets.FocusWidget -> {}
+                is de.mm20.launcher2.widgets.AppGridWidget -> de.mm20.launcher2.ui.launcher.widgets.school.ConfigureAppGrid(widget, onWidgetUpdated)
             }
         }
 
@@ -716,6 +717,7 @@ fun ColumnScope.ConfigureAppWidget(
                     is MyDayWidget -> it.copy(id = widget.id)
                     is TestPrepWidget -> it.copy(id = widget.id)
                     is de.mm20.launcher2.widgets.FocusWidget -> it.copy(id = widget.id)
+                    is de.mm20.launcher2.widgets.AppGridWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdated(updatedWidget)
                 replaceWidget = false
