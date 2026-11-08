@@ -759,6 +759,11 @@ fun ChipWidget(widget: de.mm20.launcher2.widgets.ChipWidget) {
     val vm: ContextVM = viewModel(key = "school-context")
     val all by vm.allCards.collectAsState(emptyList())
     val usage by vm.usageAccess.collectAsState()
+    // Fresh values whenever home comes back (data, Instagram minutes, steps).
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        vm.refresh()
+        onPauseOrDispose {}
+    }
     val locale: Locale = LocalConfiguration.current.locales[0]
     val mine = all.filter { it.kind() == widget.kind }
         .filter { widget.kind != "nameday" || !widget.config.onlyContacts || (it as ContextCard.NameDay).contactName != null }

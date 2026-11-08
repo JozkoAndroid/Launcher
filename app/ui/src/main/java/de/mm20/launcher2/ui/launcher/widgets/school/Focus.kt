@@ -58,8 +58,8 @@ data class Focus(val step: Int?, val text: String, val minutes: Int, val endsAt:
  * Focus timer. Round 15 (device test: "it doesn't pop up anywhere"): it could only start from a
  * Schoolhelp plan step with minutes, and nothing showed outside the launcher. Now:
  * - start: a plan step's play button, or the "Sústredenie" mode of the "Môj deň" bar (15/20/30 min);
- * - while running, [BlockedApps] are sent back home (accessibility service in :services:global-actions,
- *   reading this class's preferences: "ends" and "block");
+ * - while running, [BlockedApps] are covered and sent home ([FocusGuardService]: usage access + display
+ *   over other apps; the accessibility route was refused by Play Protect on the device);
  * - while running: a silent notification with the live countdown (lock screen, status bar), "Hotovo"
  *   and "Zastaviť" on it;
  * - at the end: an exact alarm and a loud notification with "Hotovo" and "+5 min".
@@ -74,7 +74,7 @@ object FocusTimer : KoinComponent {
 
     private const val LiveChannel = "focus_live"
     private const val EndChannel = "focus"
-    private const val LiveId = 4711
+    internal const val LiveId = 4711
     private const val EndId = 4712
 
     internal const val ActionDone = "de.mm20.launcher2.school.FOCUS_DONE"
@@ -113,7 +113,8 @@ object FocusTimer : KoinComponent {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.endsAt, alarm(context))
         }
         nm(context).cancel(EndId)
-        notify(context, LiveId, live(context, f))
+        notify(context, LiveId, liveNotification(context, f))
+        FocusGuardService.start(context)
     }
 
     /** Ends the session early; [done] = tick the plan step in Schoolhelp. */
@@ -121,6 +122,7 @@ object FocusTimer : KoinComponent {
         val f = current(context).value ?: return
         if (done) f.step?.let { brief.setStepDone(it, true) }
         alarms(context).cancel(alarm(context))
+        FocusGuardService.stop(context)
         nm(context).cancel(LiveId)
         save(context, null)
     }
@@ -136,6 +138,7 @@ object FocusTimer : KoinComponent {
     internal fun finished(context: Context) {
         val f = current(context).value ?: return
         alarms(context).cancel(alarm(context))
+        FocusGuardService.stop(context)
         save(context, null)
         val nm = nm(context)
         nm.cancel(LiveId)
@@ -156,7 +159,7 @@ object FocusTimer : KoinComponent {
     /** True if the end of a session can be shown outside the launcher. */
     fun canNotify(context: Context) = NotificationManagerCompat.from(context).areNotificationsEnabled()
 
-    private fun live(context: Context, f: Focus) = NotificationCompat.Builder(context, LiveChannel)
+    internal fun liveNotification(context: Context, f: Focus): android.app.Notification = NotificationCompat.Builder(context, LiveChannel)
         .setSmallIcon(R.drawable.timer_24px)
         .setContentTitle(f.text)
         .setContentText(context.getString(R.string.focus_live_text, f.minutes))
@@ -188,7 +191,6 @@ object FocusTimer : KoinComponent {
         context.getSharedPreferences(Prefs, Context.MODE_PRIVATE).edit().apply {
             if (f == null) clear()
             else putInt("step", f.step ?: -1).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt)
-                .putStringSet("block", BlockedApps.map { it.first }.toSet())
         }.apply()
     }
 
@@ -297,14 +299,6 @@ internal val BlockedApps = listOf(
     "com.google.android.youtube" to "YouTube",
     "com.instagram.barcelona" to "Threads",
 )
-
-class FocusVM : androidx.lifecycle.ViewModel(), KoinComponent {
-    private val permissions: de.mm20.launcher2.permissions.PermissionsManager by inject()
-    /** Blocking works only with the launcher's accessibility service on. */
-    val canBlock = permissions.hasPermission(de.mm20.launcher2.permissions.PermissionGroup.Accessibility)
-    fun enableBlocking(activity: androidx.appcompat.app.AppCompatActivity) =
-        permissions.requestPermission(activity, de.mm20.launcher2.permissions.PermissionGroup.Accessibility)
-}
 
 /**
  * The "Sústredenie" mode of the "Môj deň" bar (round 15). The same pill and ink button as the task and

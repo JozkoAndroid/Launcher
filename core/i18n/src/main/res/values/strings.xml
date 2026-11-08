@@ -1196,8 +1196,12 @@
     <string name="context_pause">Pause</string>
     <string name="context_settings_title">Cards</string>
     <string name="context_settings_info">Each card appears only when it matters. Grant what you want to see; nothing leaves the phone.</string>
+    <string name="context_perm_location">Weather: location</string>
+    <string name="context_perm_mic">Dictation: microphone</string>
+    <string name="context_perm_notifications">Focus: notifications</string>
+    <string name="context_perm_overlay">Focus: display over other apps (blocking)</string>
     <string name="context_perm_music">Music: notification access</string>
-    <string name="context_perm_usage">Mobile data and Instagram: usage access</string>
+    <string name="context_perm_usage">Mobile data, Instagram and focus blocking: usage access</string>
     <string name="context_perm_contacts">Birthdays: contacts</string>
     <string name="context_perm_steps">Steps: Health Connect</string>
     <string name="context_perm_steps_missing">Steps: install Health Connect and turn on sync in Samsung Health.</string>
@@ -1254,6 +1258,7 @@
     <string name="chat_q_test">When is my next test?</string>
     <string name="chat_q_week">Sum up my week</string>
     <string name="chat_q_learn">What should I study today?</string>
+    <string name="week_nothing">Nothing due and no tests this week.</string>
     <string name="week_title">Week</string>
     <string name="context_lunch_menu_tomorrow">Lunch tomorrow: menu %1$s</string>
     <string name="context_lunch_tomorrow">Lunch tomorrow: %1$s</string>
@@ -1380,6 +1385,9 @@
     <string name="add_other_date">Other date</string>
     <string name="focus_channel">Focus timer</string>
     <string name="focus_done_title">Time is up</string>
+    <string name="dock_edit_title">Dock</string>
+    <string name="dock_pick_info">%1$d of %2$d chosen. With none, it shows the most used.</string>
+    <string name="dock_save">Save dock</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>
@@ -1391,9 +1399,9 @@
     <string name="focus_no_notifications">Notifications are off: the end shows only here.</string>
     <string name="focus_will_block">Blocks %1$s during focus</string>
     <string name="focus_blocking">Blocked: %1$s</string>
-    <string name="focus_block_setup">To block Instagram, YouTube and Threads, turn on the launcher\'s accessibility service</string>
+    <string name="focus_block_setup">To block Instagram, YouTube and Threads, allow usage access and display over other apps</string>
+    <string name="focus_go_home">Back home</string>
     <string name="focus_blocked">%1$s is blocked during focus. %2$d min left.</string>
-    <string name="accessibility_service_description">Launcher gestures and blocking distracting apps during focus. The launcher does not read screen content, only which app is open.</string>
     <string name="voice_listening">Listening…</string>
     <string name="voice_stop">Stop dictation</string>
     <string name="voice_nothing_heard">Nothing heard. Try again.</string>

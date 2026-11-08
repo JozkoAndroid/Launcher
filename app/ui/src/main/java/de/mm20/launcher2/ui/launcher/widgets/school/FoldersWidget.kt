@@ -37,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -230,6 +231,10 @@ internal fun AppPickerSheet(
     onSave: (String, List<Application>) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
+    title: String? = null,
+    saveLabel: String? = null,
+    limit: Int? = null,
+    allowEmpty: Boolean = false,
 ) {
     val apps by vm.allApps.collectAsState(emptyList())
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
@@ -239,6 +244,17 @@ internal fun AppPickerSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 24.dp)) {
+            if (title != null) {
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                if (limit != null) {
+                    Text(
+                        stringResource(R.string.dock_pick_info, picked.size, limit),
+                        style = MaterialTheme.typography.bodyMedium.merge(de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.Tabular),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+            }
             if (withName) {
                 OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.folders_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
@@ -252,8 +268,8 @@ internal fun AppPickerSheet(
                         onSave(name.trim(), apps.filter { it.key in picked })
                         onDismiss()
                     },
-                    enabled = (!withName || name.isNotBlank()) && picked.isNotEmpty(),
-                ) { Text(stringResource(if (withName) R.string.folders_save else R.string.apps_add)) }
+                    enabled = (!withName || name.isNotBlank()) && (allowEmpty || picked.isNotEmpty()),
+                ) { Text(saveLabel ?: stringResource(if (withName) R.string.folders_save else R.string.apps_add)) }
                 Spacer(Modifier.weight(1f))
                 if (onDelete != null) {
                     TextButton(onClick = { onDelete(); onDismiss() }) { Text(stringResource(R.string.folders_delete)) }
@@ -263,9 +279,12 @@ internal fun AppPickerSheet(
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
             items(shown, key = { it.key }) { app ->
                 val on = app.key in picked
+                // With a limit (the dock), a full selection only lets apps be taken off.
+                val full = limit != null && picked.size >= limit && !on
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                        .clickable { picked = if (on) picked - app.key else picked + app.key }
+                        .alpha(if (full) 0.4f else 1f)
+                        .clickable(enabled = !full) { picked = if (on) picked - app.key else picked + app.key }
                         .padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

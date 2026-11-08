@@ -96,10 +96,23 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   `FocusAlarmReceiver` handles the alarm and the notification buttons), `SchoolPages.kt` (chat VM, `ChatDock`, quick actions, DayCard),
   `context/` (Práve teraz: rules, sources, VM, settings), `Links.kt`, `AssistantWidget.kt` (Gemini overlay
   via `SearchManager.launchAssist` reflection).
-- Focus bar (round 15): third mode of the "Môj deň" bar (`DayBarMode`): 15/20/30 min, start; while running
-  Instagram, YouTube and Threads (`BlockedApps`) are sent home by `LauncherAccessibilityService`
-  (:services:global-actions), which reads the "focus" preferences (`ends`, `block`). Needs the launcher's
-  accessibility service on (sideloaded: Android may first require "Allow restricted settings").
+- Focus bar (round 15): third mode of the "Môj deň" bar (`DayBarMode`): 15/20/30 min, start. While a
+  session runs, `FocusGuardService` (foreground, specialUse, under the countdown notification) checks the
+  front app once a second via usage access and covers Instagram, YouTube and Threads (`BlockedApps`) with
+  a full-screen overlay, then sends the user home. Needs usage access + "display over other apps". The
+  accessibility route was dropped: Play Protect refused it for the sideloaded APK.
+- Dock (round 15): long press = app picker (`AppPickerSheet` with limit). Chosen apps = pinned favorites
+  (`DockVM.setDock`, other pinned non-app favorites kept); none chosen = most used.
+- Week (round 15): `WeekOverview` (panel block and week page): 7-day strip with due dots, then only the
+  days with something due. No timetable (user found it excessive).
+- Tiles (round 15): `ChipTiles` is a fixed grid (2 columns narrow, 3 from 450dp), empty tiles take no slot.
+- Recommended layout (ForkSetup v14, also applied on update): home = Lesson, Brief, Tasks, six tiles;
+  panel = Weather, Week, Test prep. No duplicates (weather is in the lesson header; no "Práve teraz").
+- Settings > Škola lists every permission (location, mic, notifications, overlay, usage, notification
+  access, contacts, steps).
+- Weather provider stays met.no (default); "not available" after the reinstall was missing location.
+- Code map: `graphify update .` on a copy of the fork code (scratchpad) gives graph.json /
+  GRAPH_REPORT.md; `graphify explain X`, `graphify path A B` to navigate (local, no LLM).
 - `ForkSetup.kt`: versioned one-time migrations (now `Version = 13`), recommended layout
   (`layoutHome`, `applyRecommendedLayout`, `resetLayout`). Add a new version for any default change.
 - Settings: `ui/settings/school/SchoolSettingsScreen.kt` (Settings > Škola: Schoolhelp, Gemini,

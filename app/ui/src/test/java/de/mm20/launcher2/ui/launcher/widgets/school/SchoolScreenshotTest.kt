@@ -111,12 +111,11 @@ class SchoolScreenshotTest {
     }
 
     @Test
-    fun weekPageDays() = paparazzi.snapshot {
+    fun weekOverview() = paparazzi.snapshot {
         MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90))) {
             Box(Modifier.fillMaxSize().background(Color(0xFF16181C))) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
-                    DayCard(feed, java.time.LocalDate.parse("2026-11-10"), java.time.LocalDate.parse("2026-11-10"))
-                    DayCard(feed, java.time.LocalDate.parse("2026-11-11"), java.time.LocalDate.parse("2026-11-10"))
+                    WeekOverview(feed, java.time.LocalDate.parse("2026-11-10"))
                 }
             }
         }

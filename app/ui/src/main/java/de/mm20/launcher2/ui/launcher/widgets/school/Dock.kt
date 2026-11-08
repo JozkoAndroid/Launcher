@@ -48,6 +48,8 @@ import de.mm20.launcher2.ui.R
 import de.mm20.launcher2.ui.component.ShapedLauncherIcon
 import de.mm20.launcher2.ui.launcher.sheets.LocalBottomSheetManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -55,15 +57,40 @@ class DockVM : ViewModel(), KoinComponent {
     private val favorites: FavoritesService by inject()
     val icons: IconService by inject()
 
-    /**
-     * The first [count] apps: pinned favorites in their order, then every app opened through the launcher
-     * by use (device test: with few favorites the unfolded dock showed fewer than 7).
-     */
-    fun apps(count: Int): Flow<List<SavableSearchable>> = favorites.getFavorites(
+    /** Apps the user put in the dock (pinned apps, in their order). */
+    private fun chosen(count: Int) = favorites.getFavorites(
         includeTypes = listOf("app"),
-        minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned,
+        minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.AutomaticallySorted,
         limit = count,
     )
+
+    /**
+     * Round 15 (user: "how can I manually add apps to the dock"): the apps chosen with a long press on the
+     * dock, exactly those. Until something is chosen: the most used apps (a new install starts filled).
+     */
+    fun apps(count: Int): Flow<List<SavableSearchable>> = kotlinx.coroutines.flow.combine(
+        chosen(count),
+        favorites.getFavorites(includeTypes = listOf("app"), minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned, limit = count),
+    ) { picked, used -> if (picked.isNotEmpty()) picked else used }
+
+    /**
+     * Makes [apps] the dock, in this order. Kvaesitso's favorites store re-pins everything at once, so
+     * pinned items that are not apps (contacts, files, ...) are passed through unchanged; other apps are
+     * unpinned (they stay in the app list and search).
+     */
+    fun setDock(apps: List<SavableSearchable>) {
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val manual = favorites.getFavorites(minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.ManuallySorted).first()
+            val auto = favorites.getFavorites(
+                minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.AutomaticallySorted,
+                maxPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.AutomaticallySorted,
+            ).first()
+            favorites.updateFavorites(
+                manuallySorted = apps + manual.filter { it.domain != "app" },
+                automaticallySorted = auto.filter { it.domain != "app" },
+            )
+        }
+    }
 
     fun launched(item: SavableSearchable) = favorites.reportLaunch(item)
 }
@@ -82,7 +109,7 @@ fun FloatingDock(modifier: Modifier = Modifier) {
     val count = dockCount()
     val apps by remember(count) { vm.apps(count) }.collectAsState(emptyList())
     val context = LocalContext.current
-    val sheets = LocalBottomSheetManager.current
+    var editing by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     DockContent(
         count = apps.size,
         modifier = modifier,
@@ -97,9 +124,29 @@ fun FloatingDock(modifier: Modifier = Modifier) {
             } else androidx.core.app.ActivityOptionsCompat.makeBasic()
             if (item.launch(context, options.toBundle())) vm.launched(item)
         },
-        onEdit = { sheets.showEditFavoritesSheet() },
+        onEdit = { editing = true },
         onAssistant = { AssistantLauncher.open(context) },
     )
+    if (editing) {
+        val folders: FoldersVM = viewModel(key = "school-folders")
+        AppPickerSheet(
+            vm = folders,
+            initialName = "",
+            withName = false,
+            initial = apps.map { it.key }.toSet(),
+            onSave = { _, picked ->
+                // Kept apps stay in their place, new ones follow.
+                val keep = apps.filter { a -> picked.any { it.key == a.key } }
+                vm.setDock(keep + picked.filter { p -> keep.none { it.key == p.key } })
+            },
+            onDelete = null,
+            onDismiss = { editing = false },
+            title = stringResource(R.string.dock_edit_title),
+            saveLabel = stringResource(R.string.dock_save),
+            limit = count,
+            allowEmpty = true,
+        )
+    }
 }
 
 @Composable

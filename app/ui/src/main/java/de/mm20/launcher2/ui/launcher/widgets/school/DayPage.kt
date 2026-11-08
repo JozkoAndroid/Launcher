@@ -109,13 +109,17 @@ fun DayPage(
     val today by vm.today.collectAsState()
     LaunchedEffect(now) { vm.refresh() }
     var mode by rememberSaveable { mutableStateOf(DayBarMode.Task) }
-    val focusVM: FocusVM = viewModel(key = "school-focus")
-    val canBlock by focusVM.canBlock.collectAsState(true)
-    val activity = androidx.compose.ui.platform.LocalContext.current as? androidx.appcompat.app.AppCompatActivity
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Rechecked on every return to the launcher (the user grants it in system settings).
+    var canBlock by androidx.compose.runtime.remember { mutableStateOf(FocusGuard.canBlock(context)) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        canBlock = FocusGuard.canBlock(context)
+        onPauseOrDispose {}
+    }
     DayContent(
         feed = feed, today = today, now = now, listState = listState,
         mode = mode, onMode = { mode = it },
-        canBlock = canBlock, onEnableBlocking = { activity?.let { focusVM.enableBlocking(it) } },
+        canBlock = canBlock, onEnableBlocking = { FocusGuard.requestMissing(context) },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { bottom -> ChatDock(Modifier, bottomInset = bottom) },
         barProgress = progress,
@@ -327,12 +331,13 @@ private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -
     }
 }
 
-/** Type or say a task; Enter or the ink button saves it (spoken tasks are saved at once). */
+/** Type or say a task; Enter or the ink button saves it. */
 @Composable
 private fun CaptureBar(onAdd: (String) -> Unit, modifier: Modifier) {
     var input by rememberSaveable { mutableStateOf("") }
-    // What is heard shows in the field while speaking; the final text is saved at once.
-    val speak = rememberSpeechInput(onText = { onAdd(it); input = "" }, onPartial = { input = it.take(200) })
+    // What is heard fills the field; the user checks or edits it and saves with the button (device test:
+    // "it may hear me wrong", saving at once left no chance to fix it).
+    val speak = rememberSpeechInput(onText = { input = it.take(200) }, onPartial = { input = it.take(200) })
     InputBar(
         value = input, onValue = { input = it.take(200) },
         hint = stringResource(R.string.day_capture_hint),

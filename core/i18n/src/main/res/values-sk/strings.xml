@@ -66,8 +66,12 @@
     <string name="context_pause">Pozastaviť</string>
     <string name="context_settings_title">Karty</string>
     <string name="context_settings_info">Každá karta sa ukáže, len keď je dôležitá. Povoľ, čo chceš vidieť; nič neopúšťa telefón.</string>
+    <string name="context_perm_location">Počasie: poloha</string>
+    <string name="context_perm_mic">Diktovanie: mikrofón</string>
+    <string name="context_perm_notifications">Sústredenie: upozornenia</string>
+    <string name="context_perm_overlay">Sústredenie: zobrazenie cez iné aplikácie (blokovanie)</string>
     <string name="context_perm_music">Hudba: prístup k upozorneniam</string>
-    <string name="context_perm_usage">Mobilné dáta a Instagram: prístup k používaniu</string>
+    <string name="context_perm_usage">Mobilné dáta, Instagram a blokovanie počas sústredenia: prístup k používaniu</string>
     <string name="context_perm_contacts">Narodeniny: kontakty</string>
     <string name="context_perm_steps">Kroky: Health Connect</string>
     <string name="context_perm_steps_missing">Kroky: nainštaluj Health Connect a zapni synchronizáciu v Samsung Health.</string>
@@ -1090,6 +1094,7 @@
     <string name="chat_q_test">Kedy mám najbližší test?</string>
     <string name="chat_q_week">Zhrň mi týždeň</string>
     <string name="chat_q_learn">Čo sa mám dnes učiť?</string>
+    <string name="week_nothing">Tento týždeň nič neodovzdávaš ani nepíšeš.</string>
     <string name="week_title">Týždeň</string>
     <string name="context_lunch_menu_tomorrow">Obed zajtra: menu %1$s</string>
     <string name="context_lunch_tomorrow">Obed zajtra: %1$s</string>
@@ -1224,6 +1229,9 @@
     <string name="add_other_date">Iný dátum</string>
     <string name="focus_channel">Časovač sústredenia</string>
     <string name="focus_done_title">Čas vypršal</string>
+    <string name="dock_edit_title">Dock</string>
+    <string name="dock_pick_info">Vybrané %1$d z %2$d. Bez výberu ukazuje najpoužívanejšie.</string>
+    <string name="dock_save">Uložiť dock</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>
@@ -1235,9 +1243,9 @@
     <string name="focus_no_notifications">Upozornenia sú vypnuté: koniec uvidíš len tu.</string>
     <string name="focus_will_block">Počas sústredenia zablokuje %1$s</string>
     <string name="focus_blocking">Zablokované: %1$s</string>
-    <string name="focus_block_setup">Na blokovanie Instagramu, YouTube a Threads zapni prístupnosť launchera</string>
+    <string name="focus_block_setup">Na blokovanie Instagramu, YouTube a Threads povoľ prístup k používaniu a zobrazenie cez iné aplikácie</string>
+    <string name="focus_go_home">Späť domov</string>
     <string name="focus_blocked">%1$s je počas sústredenia zablokovaný. Ešte %2$d min.</string>
-    <string name="accessibility_service_description">Gestá launchera a blokovanie rušivých aplikácií počas sústredenia. Launcher nečíta obsah obrazovky, len ktorá aplikácia je otvorená.</string>
     <string name="voice_listening">Počúvam…</string>
     <string name="voice_stop">Zastaviť diktovanie</string>
     <string name="voice_nothing_heard">Nič nebolo počuť. Skús znova.</string>

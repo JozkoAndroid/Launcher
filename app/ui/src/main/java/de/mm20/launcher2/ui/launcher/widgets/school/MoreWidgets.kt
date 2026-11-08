@@ -2,6 +2,10 @@ package de.mm20.launcher2.ui.launcher.widgets.school
 
 import android.content.Context
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,8 +55,92 @@ fun WeekWidget(widget: WeekWidget) {
     val feed by vm.feed.collectAsState(null)
     val now by vm.now.collectAsState(LocalDateTime.now())
     val f = feed ?: return
-    Column {
-        for (d in schoolDays(f, now.toLocalDate(), 3)) DayCard(f, d, now.toLocalDate())
+    WeekOverview(f, now.toLocalDate())
+}
+
+/**
+ * The week as what is due (round 15, user: "I don't need what lesson is every day"). A strip of the next
+ * seven days: today in ink, weekends and days off faded, a dot per thing due (the accent for tests).
+ * Under it only the days that have something, each item once, tests first. No timetable: the lesson
+ * block and "Môj deň" already show today's lessons.
+ */
+@Composable
+internal fun WeekOverview(f: Feed, today: LocalDate) {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val rows = BriefLogic.visibleTasks(f.tasks, today).filter { !it.overdue }
+    val days = (0L until 7L).map { today.plusDays(it) }
+    fun off(d: LocalDate) = d.dayOfWeek == DayOfWeek.SATURDAY || d.dayOfWeek == DayOfWeek.SUNDAY ||
+        f.daysOff.any { !d.isBefore(LocalDate.parse(it.start)) && !d.isAfter(LocalDate.parse(it.end)) }
+    SchoolCard {
+        Row(Modifier.fillMaxWidth()) {
+            for (d in days) {
+                val due = rows.filter { it.due == d }
+                Column(
+                    Modifier.weight(1f).alpha(if (off(d)) 0.4f else 1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        d.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, locale),
+                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    val isToday = d == today
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.size(34.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(if (isToday) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.Transparent),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            d.dayOfMonth.toString(),
+                            style = MaterialTheme.typography.bodyLarge.merge(SchoolTokens.Tabular),
+                            color = if (isToday) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(Modifier.height(6.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(3.dp)) {
+                        for (r in due.take(3)) {
+                            androidx.compose.foundation.layout.Box(
+                                Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(
+                                    if (r.task.kind == SchoolTask.Test) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        // A holiday that touches the week, in words (the strip only fades it).
+        f.daysOff.firstOrNull { o ->
+            !LocalDate.parse(o.end).isBefore(today) && !LocalDate.parse(o.start).isAfter(days.last())
+        }?.let { o ->
+            Spacer(Modifier.height(14.dp))
+            val fmt = java.time.format.DateTimeFormatter.ofPattern("d.\u00A0M.", locale)
+            Secondary(o.title + " · " + LocalDate.parse(o.start).format(fmt) + " – " + LocalDate.parse(o.end).format(fmt))
+        }
+        val withItems = days.filter { d -> rows.any { it.due == d } }
+        if (withItems.isEmpty()) {
+            Spacer(Modifier.height(14.dp))
+            Secondary(stringResource(R.string.week_nothing))
+        }
+        for (d in withItems) {
+            Spacer(Modifier.height(16.dp))
+            Text(
+                dueLabel(d, today, null).replaceFirstChar { it.titlecase(locale) },
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            for (r in rows.filter { it.due == d }.sortedBy { if (it.task.kind == SchoolTask.Test) 0 else 1 }) {
+                Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    KindBadge(r.task, r.task.kind)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(r.task.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        val meta = listOfNotNull(r.task.subject.takeIf { it.isNotBlank() }, r.task.time).joinToString(" · ")
+                        if (meta.isNotEmpty()) Secondary(meta)
+                    }
+                }
+            }
+        }
     }
 }
 

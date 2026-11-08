@@ -56,6 +56,15 @@ fun ColumnScope.ConfigureSchoolContext() {
     LaunchedEffect(resumes) { steps = vm.hasStepsPermission() }
     val hcAvailable = remember(resumes) { vm.healthConnectAvailable() }
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { resumes++ }
+    // Round 15: every permission the launcher uses is here, the focus timer's and dictation's too.
+    val location by vm.hasLocation.collectAsState(false)
+    fun granted(p: String) = androidx.core.content.ContextCompat.checkSelfPermission(context, p) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    val askRuntime = rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { resumes++ }
+    val mic = remember(resumes) { granted(android.Manifest.permission.RECORD_AUDIO) }
+    val notifications = remember(resumes) {
+        android.os.Build.VERSION.SDK_INT < 33 || granted(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+    val overlay = remember(resumes) { de.mm20.launcher2.ui.launcher.widgets.school.FocusGuard.canOverlay(context) }
 
     Text(stringResource(R.string.context_settings_title), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(4.dp))
@@ -65,6 +74,14 @@ fun ColumnScope.ConfigureSchoolContext() {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Spacer(Modifier.height(12.dp))
+    PermissionRow(stringResource(R.string.context_perm_location), location) { activity?.let { vm.requestLocation(it) } }
+    PermissionRow(stringResource(R.string.context_perm_mic), mic) { askRuntime.launch(android.Manifest.permission.RECORD_AUDIO) }
+    PermissionRow(stringResource(R.string.context_perm_notifications), notifications) {
+        if (android.os.Build.VERSION.SDK_INT >= 33) askRuntime.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+    }
+    PermissionRow(stringResource(R.string.context_perm_overlay), overlay) {
+        runCatching { context.startActivity(de.mm20.launcher2.ui.launcher.widgets.school.FocusGuard.overlayIntent(context).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    }
     PermissionRow(stringResource(R.string.context_perm_music), notif) { activity?.let { vm.requestNotificationAccess(it) } }
     PermissionRow(stringResource(R.string.context_perm_usage), usage) { vm.openUsageAccess() }
     PermissionRow(stringResource(R.string.context_perm_contacts), contacts) { activity?.let { vm.requestContacts(it) } }

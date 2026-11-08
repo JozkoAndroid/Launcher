@@ -25,6 +25,10 @@
     <!-- Fork, focus timer: the end on time (round 13's inexact alarm came minutes late) and the live countdown. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Fork, focus blocking (round 15): a cover over blocked apps while a session runs. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <uses-permission android:name="com.kieronquinn.app.smartspacer.permission.ACCESS_SMARTSPACER"/>
@@ -33,6 +37,15 @@
     <application>
         <!-- Fork: the focus timer's end and its notification buttons (Hotovo, Zastaviť, +5 min). -->
         <receiver android:name="de.mm20.launcher2.ui.launcher.widgets.school.FocusAlarmReceiver" android:exported="false" />
+        <!-- Fork: keeps blocked apps closed during a focus session; runs only while one does. -->
+        <service
+            android:name="de.mm20.launcher2.ui.launcher.widgets.school.FocusGuardService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Focus timer: keeps the apps the user chose to block closed until the session ends." />
+        </service>
 
         <activity
             android:name=".launcher.LauncherActivity"

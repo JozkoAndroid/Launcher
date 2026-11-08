@@ -172,7 +172,7 @@ private fun Bubble(m: ChatMessage) {
 
 // ---------------------------------------------------------------- Week ("Týždeň")
 
-/** The next five school days: lessons with subject badges, and what is due that day. */
+/** The week as what is due ([WeekOverview]); round 15 dropped the per-day timetable. */
 @Composable
 fun SchoolWeekPage(contentPadding: PaddingValues) {
     val vm: SchoolBriefVM = viewModel(key = "school-brief")
@@ -197,7 +197,7 @@ fun SchoolWeekPage(contentPadding: PaddingValues) {
             if (f == null) {
                 item { Text(stringResource(R.string.school_loading), modifier = Modifier.padding(8.dp)) }
             } else {
-                items(schoolDays(f, now.toLocalDate()), key = { it.toString() }) { d -> DayCard(f, d, now.toLocalDate()) }
+                item { WeekOverview(f, now.toLocalDate()) }
             }
         }
     }
@@ -214,57 +214,6 @@ internal fun schoolDays(f: Feed, from: LocalDate, count: Int = 5): List<LocalDat
         d = d.plusDays(1)
     }
     return out
-}
-
-@Composable
-internal fun DayCard(f: Feed, day: LocalDate, today: LocalDate) =
-    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        DayCardContent(f, day, today)
-    }
-
-@Composable
-private fun DayCardContent(f: Feed, day: LocalDate, today: LocalDate) {
-    RegisterSubjects(f)
-    val locale: Locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
-    val key = when (day.dayOfWeek) {
-        DayOfWeek.MONDAY -> "mon"; DayOfWeek.TUESDAY -> "tue"; DayOfWeek.WEDNESDAY -> "wed"
-        DayOfWeek.THURSDAY -> "thu"; else -> "fri"
-    }
-    val lessons = f.timetable[key].orEmpty().sortedBy { it.start }
-    val due = BriefLogic.visibleTasks(f.tasks, today).filter { it.due == day && !it.overdue }
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(SchoolTokens.CardRadius))
-            .background(MaterialTheme.colorScheme.surfaceContainer).padding(SchoolTokens.Inset),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                dueLabel(day, today, null).replaceFirstChar { it.titlecase() },
-                // Day names in the soft serif: the week reads like a planner.
-                style = SchoolFonts.serifDisplay(24), modifier = Modifier.weight(1f),
-            )
-            Secondary(day.format(DateTimeFormatter.ofPattern("d. M.", locale)))
-        }
-        Spacer(Modifier.height(10.dp))
-        for (l in lessons) {
-            Row(Modifier.heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
-                Secondary(l.start, Modifier.width(52.dp))
-                // Minimal (round 13): the subject's color as a small dot instead of a lettered badge.
-                Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(subjectColors(l.subject).container))
-                Spacer(Modifier.width(14.dp))
-                Text(l.subject, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-        if (due.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            for (r in due) {
-                Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    KindBadge(r.task, r.task.kind)
-                    Spacer(Modifier.width(12.dp))
-                    Text(r.task.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
-                }
-            }
-        }
-    }
 }
 
 // ---------------------------------------------------------------- Chat dock (side panel)

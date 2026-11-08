@@ -11,6 +11,7 @@ import de.mm20.launcher2.music.PlaybackState
 import de.mm20.launcher2.permissions.PermissionGroup
 import de.mm20.launcher2.permissions.PermissionsManager
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -50,10 +51,15 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
             else ContextCard.Music(title, artist, playing = state == PlaybackState.Playing)
         }
 
-    /** Polled cards: refreshed every 5 minutes while the block is on screen. */
-    private val polled: Flow<List<ContextCard>> = flow {
+    /** Asks for a fresh read now (round 15: the data tile showed 1,3 GB while Android's screen said 1,4). */
+    private val refreshes = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    fun refresh() { refreshes.tryEmit(Unit) }
+
+    /** Polled cards: every 5 minutes while a block is on screen, and at once on [refresh] (back to home). */
+    private val polled: Flow<List<ContextCard>> = kotlinx.coroutines.flow.channelFlow {
+        launch { refreshes.collect { send(readPolled()) } }
         while (true) {
-            emit(readPolled())
+            send(readPolled())
             delay(5 * 60_000L)
         }
     }
@@ -180,6 +186,10 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
 
     fun requestNotificationAccess(activity: androidx.appcompat.app.AppCompatActivity) =
         permissions.requestPermission(activity, PermissionGroup.Notifications)
+
+    val hasLocation: Flow<Boolean> = permissions.hasPermission(PermissionGroup.Location)
+    fun requestLocation(activity: androidx.appcompat.app.AppCompatActivity) =
+        permissions.requestPermission(activity, PermissionGroup.Location)
 
     fun requestContacts(activity: androidx.appcompat.app.AppCompatActivity) =
         permissions.requestPermission(activity, PermissionGroup.Contacts)

@@ -86,10 +86,12 @@ internal fun ChipBlock(items: List<ContextItem>, config: ChipWidgetConfig) {
 val LocalTileWidth = androidx.compose.runtime.staticCompositionLocalOf<Dp?> { null }
 
 /**
- * Consecutive single-value blocks (name day, data, steps, ...) as an even grid of equal tiles.
- * Blocks with nothing to show take no space.
+ * Consecutive single-value blocks (name day, data, steps, ...) as a fixed grid of equal tiles: the same
+ * width and the same 12dp gap in every row and column (the dashboard's column gap, so tile edges line up
+ * with the blocks above) (round 15, device test: a tile with nothing to show, like the
+ * test countdown without a test, still took a gap on both sides, so one row was spaced twice as wide).
+ * Blocks with nothing to show take no slot; the last row starts at the left.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChipTiles(
     widgets: List<de.mm20.launcher2.widgets.Widget>,
@@ -97,18 +99,32 @@ fun ChipTiles(
     item: @Composable (de.mm20.launcher2.widgets.Widget) -> Unit,
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
-        // As many 150dp tiles as fit (2 on the cover, 5 unfolded, 6 at most); fewer tiles share the width evenly.
-        val fit = (maxWidth / 150.dp).toInt().coerceIn(2, 6)
-        // Balanced rows (device test: uneven rows on the unfolded screen): 6 tiles where 5 fit become 3 + 3.
-        val rows = (widgets.size + fit - 1) / fit
-        val cols = if (rows == 0) fit else ((widgets.size + rows - 1) / rows).coerceAtLeast(2)
-        // 1dp slack: rounding to pixels must not push the last tile of a row onto the next line.
-        // Same 12dp gaps as the dashboard columns, so tile edges line up with the blocks above.
+        // 2 columns on narrow screens (cover), 3 from 450dp on (unfolded, tablet): the home set of six
+        // tiles then fills whole rows (3 + 3) instead of 4 + 2.
+        val cols = (maxWidth / 150.dp).toInt().coerceIn(2, 3)
         val gap = 12.dp
-        val w = (maxWidth - gap * (cols - 1)) / cols - 1.dp
+        val w = (maxWidth - gap * (cols - 1)) / cols
         CompositionLocalProvider(LocalTileWidth provides w) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (x in widgets) androidx.compose.runtime.key(x.id) { item(x) }
+            androidx.compose.ui.layout.Layout(
+                content = { for (x in widgets) androidx.compose.runtime.key(x.id) { item(x) } },
+            ) { measurables, constraints ->
+                val gapPx = gap.roundToPx()
+                val colPx = (constraints.maxWidth - gapPx * (cols - 1)) / cols
+                val shown = measurables
+                    .map { it.measure(androidx.compose.ui.unit.Constraints(minWidth = colPx, maxWidth = colPx)) }
+                    .filter { it.height > 0 }
+                val rows = shown.chunked(cols)
+                val rowHeights = rows.map { r -> r.maxOf { it.height } }
+                // Each tile carries an 8dp bottom gap itself; 4dp more between rows makes 12dp, like the columns.
+                val rowGapPx = 4.dp.roundToPx()
+                val height = rowHeights.sum() + rowGapPx * (rows.size - 1).coerceAtLeast(0)
+                layout(constraints.maxWidth, height) {
+                    var y = 0
+                    rows.forEachIndexed { ri, r ->
+                        r.forEachIndexed { ci, p -> p.placeRelative(ci * (colPx + gapPx), y) }
+                        y += rowHeights[ri] + rowGapPx
+                    }
+                }
             }
         }
     }

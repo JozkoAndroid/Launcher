@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 13
+    private const val Version = 14
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -115,6 +115,9 @@ object ForkSetup : KoinComponent {
                     }
                 }
             }
+            // v14 (round 15, user: "your suggested layout, no duplicates"): the recommended home and panel.
+            // App widgets stay. Fresh installs get it just below.
+            if (from in 1..13) applyRecommendedLayout()
             // v4 (folders on home) is superseded by v8.
             // Fresh install (round 15, reinstall after a signing key change): the steps above only upgrade
             // older layouts (layoutHome ran for v8 phones only), so a new install got round 1's blocks.
@@ -134,18 +137,19 @@ object ForkSetup : KoinComponent {
         widgets.get(parent).first().filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
         fun chip(kind: String, cfg: de.mm20.launcher2.widgets.ChipWidgetConfig) = de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), kind, cfg)
         val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain")
+        // Round 15 (user: "your suggested layout, no duplicates"): each thing once. The lesson block's
+        // header already carries the weather, so no weather card here (the full one is on the panel);
+        // no "Práve teraz", its values are the tiles. Tiles last, right above the dock, under the thumb.
         listOf(
             LessonWidget(UUID.randomUUID()),
             BriefWidget(UUID.randomUUID()),
             TasksWidget(UUID.randomUUID()),
-            WeatherWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.WeatherWidgetConfig(showForecast = false)),
             chip("add", tile),
             chip("test", tile),
             chip("nameday", tile.copy(font = "serif")),
             chip("data", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
             chip("steps", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
             chip("instagram", tile.copy(font = "condensed")),
-            ContextWidget(UUID.randomUUID()),
         ).forEachIndexed { i, w -> widgets.create(w, i, parent) }
     }
 
@@ -164,8 +168,8 @@ object ForkSetup : KoinComponent {
         layout(
             WidgetScreenTarget.Widgets2.id, listOf(
                 WeatherWidget(UUID.randomUUID()),
-                de.mm20.launcher2.widgets.TestPrepWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.TestPrepWidget(UUID.randomUUID()),
             )
         )
     }
