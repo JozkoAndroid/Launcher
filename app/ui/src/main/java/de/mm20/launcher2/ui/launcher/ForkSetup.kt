@@ -116,6 +116,10 @@ object ForkSetup : KoinComponent {
                 }
             }
             // v4 (folders on home) is superseded by v8.
+            // Fresh install (round 15, reinstall after a signing key change): the steps above only upgrade
+            // older layouts (layoutHome ran for v8 phones only), so a new install got round 1's blocks.
+            // Start from today's recommended home and panel instead.
+            if (from == 0) applyRecommendedLayout()
             prefs.edit().putInt("version", Version).apply()
         }
     }
