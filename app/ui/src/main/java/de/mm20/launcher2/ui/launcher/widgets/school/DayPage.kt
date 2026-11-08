@@ -94,7 +94,11 @@ class DayVM : ViewModel(), KoinComponent {
  * Aufgabe". The same bar switches to asking the assistant.
  */
 @Composable
-fun DayPage(listState: LazyListState = rememberLazyListState(), shown: androidx.compose.runtime.State<Boolean>? = null) {
+fun DayPage(
+    listState: LazyListState = rememberLazyListState(),
+    shown: androidx.compose.runtime.State<Boolean>? = null,
+    progress: () -> Float = { 1f },
+) {
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
     val leaving = shown?.value == false
     LaunchedEffect(leaving) { if (leaving) focus.clearFocus(force = true) }
@@ -110,6 +114,7 @@ fun DayPage(listState: LazyListState = rememberLazyListState(), shown: androidx.
         asking = asking, onAsking = { asking = it },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { bottom -> ChatDock(Modifier, bottomInset = bottom) },
+        barProgress = progress,
     )
 }
 
@@ -125,6 +130,7 @@ internal fun DayContent(
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
     chat: @Composable (androidx.compose.ui.unit.Dp) -> Unit,
+    barProgress: () -> Float = { 1f },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -190,9 +196,12 @@ internal fun DayContent(
                 }
             }
 
+            val travel = pillTravelPx()
             Column(
                 Modifier
                     .align(Alignment.BottomCenter)
+                    // The task bar arrives like the search pill (round 14).
+                    .pillArriving(travel, barProgress)
                     .fillMaxWidth()
                     .padding(top = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

@@ -28,7 +28,7 @@ internal object SchoolChatComponent : ScaffoldComponent() {
     override fun Component(modifier: Modifier, insets: PaddingValues, state: LauncherScaffoldState) {
         // The scaffold slides a page through [modifier]; without it the page sat in place over home (device test).
         androidx.compose.foundation.layout.Box(modifier) {
-            de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState, shown)
+            de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState, shown, progress = { state.currentProgress })
         }
     }
 }

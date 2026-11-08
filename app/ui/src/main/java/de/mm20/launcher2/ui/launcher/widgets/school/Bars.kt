@@ -25,6 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.luminance
@@ -161,3 +164,23 @@ internal fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onSelect
         }
     }
 }
+
+/*
+ * One motion for every bottom pill (round 14, device test: "make all pills consistent"), the same curve
+ * the search pill uses: a pill arriving with its page sits D·(1−p)² below its place, a pill leaving
+ * with its page D·p² (p = how far the page swipe has gone). D = 128dp plus the navigation bar.
+ */
+@Composable
+internal fun pillTravelPx(): Float {
+    val nav = androidx.compose.foundation.layout.WindowInsets.navigationBars
+        .asPaddingValues().calculateBottomPadding()
+    return with(androidx.compose.ui.platform.LocalDensity.current) { (128.dp + nav).toPx() }
+}
+
+/** For a pill on a page that comes in with progress [progress]. */
+internal fun Modifier.pillArriving(travel: Float, progress: () -> Float) =
+    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * (1 - p) * (1 - p) }
+
+/** For a pill on home, leaving as another page comes in with progress [progress]. */
+internal fun Modifier.pillLeaving(travel: Float, progress: () -> Float) =
+    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * p * p }

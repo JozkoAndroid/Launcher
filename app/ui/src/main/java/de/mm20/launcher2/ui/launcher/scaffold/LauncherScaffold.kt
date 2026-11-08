@@ -760,6 +760,9 @@ internal class LauncherScaffoldState(
     private val backInterpolation = PathInterpolator(0f, 0f, 0f, 1f)
     fun onPredictiveBack(progress: Float) {
         if (!isSettledOnSecondaryPage) return
+        // Search opened from a side page: the system back swipe must not drag it toward home (round 14);
+        // on release it slides straight back to that page.
+        if (returningFromSearch()) return
         val controller = getAnimationController(currentAnimation) ?: return
 
         val progress = backInterpolation.getInterpolation(progress)
@@ -923,6 +926,9 @@ internal class LauncherScaffoldState(
         switchTo(g, from)
         returnGesture = back
     }
+
+    /** Leaves search for the side page it came from; false if it was opened from home. */
+    suspend fun leaveSearch(): Boolean = currentComponent is SearchComponent && switchBack()
 
     /** Search was opened from a side page: slide back to that page instead of going home. */
     private suspend fun switchBack(): Boolean {
@@ -1221,7 +1227,8 @@ internal fun LauncherScaffold(
                 } finally {
                     if (!state.isLocked && state.currentComponent is SearchComponent && config.homeComponent !is SearchComponent) {
                         withContext(NonCancellable) {
-                            state.reset()
+                            // Back to the page search came from (round 14), else home.
+                            if (!state.leaveSearch()) state.reset()
                             searchVM.reset()
                         }
                     }

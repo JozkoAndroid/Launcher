@@ -129,8 +129,9 @@ fun SearchBar(
     }
 
     val opacity by transition.animateFloat(label = "opacity") {
-        if (style == SearchBarStyle.Hidden && it == SearchBarLevel.Resting) 0f
-        else 1f
+        // Fork (round 14): no fade for the hidden style. The pill slides with the page (offset), so going
+        // back mirrors coming in; the fade used to hide it halfway through the way back.
+        1f
     }
 
     // Fork (round 13): the same pill as the dock and the input bars: height, round ends, surface, shadow.

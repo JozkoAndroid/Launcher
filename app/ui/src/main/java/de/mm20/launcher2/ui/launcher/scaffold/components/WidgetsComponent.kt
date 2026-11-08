@@ -129,22 +129,23 @@ internal class WidgetsComponent(
         val toSearch = remember(state) {
             object : NestedScrollConnection {
                 var pulled = 0f
-                // Round 11: armed while the finger pulls past the end, opened when it lifts. Opening mid-drag let
+                // Round 11: armed while the finger pulls past an end, opened when it lifts. Opening mid-drag let
                 // the same drag scroll the search list, which drops the keyboard (device test: no keyboard).
+                // Round 14: past either end, up at the bottom or down at the top (device test: swipe down).
                 var armed = false
                 override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                     if (editNow || source != NestedScrollSource.UserInput) return Offset.Zero
-                    if (available.y < 0f) {
-                        pulled -= available.y
+                    if (available.y != 0f) {
+                        pulled += kotlin.math.abs(available.y)
                         if (pulled > pullPx) armed = true
-                    } else if (consumed.y != 0f || available.y > 0f) {
+                    } else if (consumed.y != 0f) {
                         pulled = 0f; armed = false
                     }
                     return Offset.Zero
                 }
                 override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
                     // A pull past the end already happened (pulled > 0): the content is at its end.
-                    val open = !editNow && (armed || (pulled > 0f && available.y < -2500f))
+                    val open = !editNow && (armed || (pulled > 0f && kotlin.math.abs(available.y) > 2500f))
                     pulled = 0f; armed = false
                     if (!open) return androidx.compose.ui.unit.Velocity.Zero
                     scope.launch {

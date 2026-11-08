@@ -1,5 +1,6 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import de.mm20.launcher2.ui.launcher.widgets.school.pillLeaving
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.navigationBars
@@ -189,8 +190,10 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                 modifier = Modifier.align(Alignment.BottomCenter),
                 enter = fadeIn(), exit = fadeOut(),
             ) {
+                val travel = de.mm20.launcher2.ui.launcher.widgets.school.pillTravelPx()
                 androidx.compose.foundation.layout.Column(
-                    Modifier
+                    // The dock leaves on the same curve the search pill arrives on (round 14).
+                    Modifier.pillLeaving(travel) { state.currentProgress }
                         .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
                         .padding(bottom = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
