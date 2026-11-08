@@ -32,7 +32,9 @@ object DashboardColumns {
         is de.mm20.launcher2.widgets.MyDayWidget, is de.mm20.launcher2.widgets.FoldersWidget -> 0
         is de.mm20.launcher2.widgets.WeatherWidget, is de.mm20.launcher2.widgets.BriefWidget,
         is de.mm20.launcher2.widgets.CalendarWidget, is de.mm20.launcher2.widgets.NotesWidget,
-        is de.mm20.launcher2.widgets.WeekWidget, is de.mm20.launcher2.widgets.TestPrepWidget -> 1
+        is de.mm20.launcher2.widgets.WeekWidget, is de.mm20.launcher2.widgets.TestPrepWidget,
+        // Tiles under the reading blocks: the right column is the shorter one by default.
+        is de.mm20.launcher2.widgets.ChipWidget -> 1
         // Stable per block, so the edit-mode label and the dashboard always agree.
         else -> (w.id.hashCode() and Int.MAX_VALUE) % cols
     }

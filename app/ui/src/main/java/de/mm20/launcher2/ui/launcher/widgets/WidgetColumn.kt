@@ -240,31 +240,52 @@ internal const val WideDashboardMinWidthDp = 600
 @Composable
 private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWidgetUpdate: (de.mm20.launcher2.widgets.Widget) -> Unit) {
     val full = widgets.filter { it is de.mm20.launcher2.widgets.AssistantWidget }
-    // Round 10 (device test: tiles had different shapes and sizes on the unfolded screen): all single-value
-    // tiles form one even grid across the full width, below the masonry.
-    val tiles = widgets.filter { it is de.mm20.launcher2.widgets.ChipWidget }
-    val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget || it is de.mm20.launcher2.widgets.ChipWidget }
+    val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget }
     val gap = 12.dp
     val context = androidx.compose.ui.platform.LocalContext.current
     // Read so a column change in edit mode lays the dashboard out again.
     val columnChanges = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.changes.intValue
+    val cols = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.count(
+        androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
+    )
+    // Round 19 (device test: "the tiles are separate from everything else, I can't choose where they go"):
+    // tiles stay where they are in the list, in their own column like any block. Tiles next to each other
+    // in the list and in the same column share one grid.
+    val slots = remember(rest, columnChanges, cols) {
+        val out = mutableListOf<Pair<Int, List<de.mm20.launcher2.widgets.Widget>>>()
+        for ((i, w) in rest.withIndex()) {
+            val col = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.column(context, w, i, cols)
+            val last = out.lastOrNull()
+            if (w is de.mm20.launcher2.widgets.ChipWidget && last != null && last.first == col &&
+                last.second.last() is de.mm20.launcher2.widgets.ChipWidget && rest.getOrNull(i - 1) === last.second.last()
+            ) {
+                out[out.lastIndex] = col to (last.second + w)
+            } else out += col to listOf(w)
+        }
+        out
+    }
     androidx.compose.ui.layout.Layout(
         content = {
-            for (w in rest) key(w.id) { WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth()) }
+            for ((_, group) in slots) {
+                val first = group.first()
+                if (first is de.mm20.launcher2.widgets.ChipWidget) key(first.id, "tiles") {
+                    de.mm20.launcher2.ui.launcher.widgets.school.ChipTiles(group) { w -> WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate) }
+                } else key(first.id) {
+                    WidgetItem(widget = first, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth())
+                }
+            }
         },
     ) { measurables, constraints ->
-        columnChanges
         val gapPx = gap.roundToPx()
-        val cols = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.count(constraints.maxWidth.toDp().value)
         val colWidth = (constraints.maxWidth - gapPx * (cols - 1)) / cols
         val heights = IntArray(cols)
-        // Round 16: each block in its own column (chosen in edit mode, else by kind), in list order. A block
-        // that grows pushes only the blocks under it, it never sends others to the other side.
+        // Each block in its own column (chosen in edit mode, else by kind), in list order. A block that
+        // grows pushes only the blocks under it, it never sends others to the other side.
         val placed = measurables.mapIndexed { i, m ->
             val p = m.measure(androidx.compose.ui.unit.Constraints.fixedWidth(colWidth))
             // Empty blocks (nothing to show right now) take no slot.
             if (p.height == 0) return@mapIndexed Triple(p, 0, -1)
-            val col = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.column(context, rest[i], i, cols)
+            val col = slots[i].first
             val y = heights[col]
             heights[col] += p.height + gapPx
             Triple(p, y, col)
@@ -272,11 +293,6 @@ private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWid
         val height = (heights.maxOrNull() ?: 0).coerceAtLeast(0)
         layout(constraints.maxWidth, height) {
             for ((p, y, col) in placed) if (col >= 0) p.placeRelative(col * (colWidth + gapPx), y)
-        }
-    }
-    if (tiles.isNotEmpty()) {
-        de.mm20.launcher2.ui.launcher.widgets.school.ChipTiles(tiles, Modifier.padding(top = 4.dp)) { w ->
-            WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate)
         }
     }
     for (w in full) {

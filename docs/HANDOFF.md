@@ -128,6 +128,11 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
 - Wide dashboard (round 16): `DashboardColumns` keeps each block in its column (edit mode on a wide
   screen: "Stĺpec N" button in the block header; default by kind). No masonry: a growing block pushes
   only the blocks under it.
+- Round 19: tiles on the wide dashboard sit in columns like blocks (consecutive tiles in one column share
+  a grid; default right column; "Stĺpec" button on tiles too). Widget picker lists only blocks that
+  always show something (no Môj deň, Gemini block, Práve teraz, Kvaesitso app grid); conditional tiles
+  carry a note. Chat quick action "Opakovací list" (revision sheet for the next test). On the open app
+  list, a tap catcher under the search bar (bar strip to the screen edge) focuses search.
 - `RecordingParser`: "alive" also lists Schoolhelp services ("browser"); only lesson-like entries count.
   Live shape of lessons.status is in `RecordingParserTest` (trimmed, no personal data).
 - Code map: `graphify update .` on a copy of the fork code (scratchpad) gives graph.json /

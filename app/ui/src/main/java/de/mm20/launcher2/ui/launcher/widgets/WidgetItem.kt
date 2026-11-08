@@ -132,7 +132,7 @@ fun WidgetItem(
                     )
                     // Fork (round 16): on the wide dashboard, the column this block sits in; tap for the next.
                     val widthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
-                    if (widthDp >= WideDashboardMinWidthDp && widget !is de.mm20.launcher2.widgets.ChipWidget && widget !is de.mm20.launcher2.widgets.AssistantWidget) {
+                    if (widthDp >= WideDashboardMinWidthDp && widget !is de.mm20.launcher2.widgets.AssistantWidget) {
                         val ctx = LocalContext.current
                         val cols = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.count(widthDp.toFloat())
                         // Read so the label follows a change.

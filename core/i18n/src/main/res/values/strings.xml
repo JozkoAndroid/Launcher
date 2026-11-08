@@ -1304,6 +1304,7 @@
     <string name="quick_plan">Plan my day</string>
     <string name="quick_bag">What to pack?</string>
     <string name="quick_quiz">Review: %1$s</string>
+    <string name="quick_sheet">Revision sheet: %1$s</string>
     <string name="quick_week">This week</string>
     <string name="task_undo">Undo</string>
     <string name="task_done_label">Done</string>
@@ -1408,6 +1409,7 @@
     <string name="revision_start">Study %1$d min</string>
     <string name="revision_focus_text">Studying: %1$s</string>
     <string name="dashboard_column">Column %1$d</string>
+    <string name="widget_tile_conditional">Shows only when there is something to show</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

@@ -1507,6 +1507,31 @@ internal fun LauncherScaffold(
                     .asPaddingValues(),
             )
 
+            // Fork (round 19, device test: tapping just below the search bar in the app list opened the app
+            // under it): on the open search page, the bar's whole strip down to the screen edge belongs to
+            // the bar. Taps there focus the search; drags still go to the page (swipe down closes it).
+            if (config.searchBarPosition == SearchBarPosition.Bottom && state.currentComponent is SearchComponent &&
+                state.isSettledOnSecondaryPage && !WindowInsets.isImeVisible
+            ) {
+                val nav = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(nav + de.mm20.launcher2.ui.launcher.widgets.school.barHeight() + 24.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures {
+                                // Off for a frame, then on: the flag can still read "focused" after the
+                                // keyboard was closed, and setting it again would change nothing.
+                                scope.launch {
+                                    state.isSearchBarFocused = false
+                                    androidx.compose.runtime.withFrameNanos { }
+                                    state.isSearchBarFocused = true
+                                }
+                            }
+                        }
+                )
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()

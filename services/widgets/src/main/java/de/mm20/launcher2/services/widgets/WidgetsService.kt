@@ -7,18 +7,14 @@ import android.content.pm.LauncherApps
 import android.os.Build
 import androidx.core.content.getSystemService
 import de.mm20.launcher2.widgets.CalendarWidget
-import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
 import de.mm20.launcher2.widgets.LessonWidget
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.TasksWidget
-import de.mm20.launcher2.widgets.ContextWidget
-import de.mm20.launcher2.widgets.AssistantWidget
 import de.mm20.launcher2.widgets.FoldersWidget
 import de.mm20.launcher2.widgets.ChipWidget
 import de.mm20.launcher2.widgets.WeekWidget
-import de.mm20.launcher2.widgets.MyDayWidget
 import de.mm20.launcher2.widgets.TestPrepWidget
 import de.mm20.launcher2.widgets.WeatherWidget
 import de.mm20.launcher2.widgets.Widget
@@ -59,54 +55,21 @@ class WidgetsService(
     }
 
     fun getBuiltInWidgets(): List<BuiltInWidgetInfo> {
+        // Fork (round 19, device test: "some widgets do nothing when added"): only blocks that always show
+        // something, school ones first. Left out: "Môj deň" (empty most of the day), the Gemini block (the
+        // dock's spark button), "Práve teraz" (repeats the tiles, often empty), Kvaesitso's app grid (the
+        // folders block replaces it). Existing ones keep working.
         return listOf(
-            BuiltInWidgetInfo(
-                type = WeatherWidget.Type,
-                label = context.getString(R.string.widget_name_weather),
-            ),
-            BuiltInWidgetInfo(
-                type = MusicWidget.Type,
-                label = context.getString(R.string.widget_name_music),
-            ),
-            BuiltInWidgetInfo(
-                type = CalendarWidget.Type,
-                label = context.getString(R.string.widget_name_calendar),
-            ),
-            BuiltInWidgetInfo(
-                type = AppsWidget.Type,
-                label = context.getString(R.string.widget_name_apps),
-            ),
-            BuiltInWidgetInfo(
-                type = NotesWidget.Type,
-                label = context.getString(R.string.widget_name_notes),
-            ),
-            BuiltInWidgetInfo(
-                type = LessonWidget.Type,
-                label = context.getString(R.string.widget_name_lesson),
-            ),
-            BuiltInWidgetInfo(
-                type = BriefWidget.Type,
-                label = context.getString(R.string.widget_name_brief),
-            ),
-            BuiltInWidgetInfo(
-                type = TasksWidget.Type,
-                label = context.getString(R.string.widget_name_school_tasks),
-            ),
-            BuiltInWidgetInfo(
-                type = ContextWidget.Type,
-                label = context.getString(R.string.widget_name_context),
-            ),
-            BuiltInWidgetInfo(
-                type = AssistantWidget.Type,
-                label = context.getString(R.string.widget_name_assistant),
-            ),
-            BuiltInWidgetInfo(
-                type = FoldersWidget.Type,
-                label = context.getString(R.string.widget_name_folders),
-            ),
-            BuiltInWidgetInfo(type = MyDayWidget.Type, label = context.getString(R.string.widget_name_myday)),
-            BuiltInWidgetInfo(type = TestPrepWidget.Type, label = context.getString(R.string.widget_name_testprep)),
+            BuiltInWidgetInfo(type = LessonWidget.Type, label = context.getString(R.string.widget_name_lesson)),
+            BuiltInWidgetInfo(type = BriefWidget.Type, label = context.getString(R.string.widget_name_brief)),
+            BuiltInWidgetInfo(type = TasksWidget.Type, label = context.getString(R.string.widget_name_school_tasks)),
             BuiltInWidgetInfo(type = WeekWidget.Type, label = context.getString(R.string.widget_name_week)),
+            BuiltInWidgetInfo(type = TestPrepWidget.Type, label = context.getString(R.string.widget_name_testprep)),
+            BuiltInWidgetInfo(type = FoldersWidget.Type, label = context.getString(R.string.widget_name_folders)),
+            BuiltInWidgetInfo(type = WeatherWidget.Type, label = context.getString(R.string.widget_name_weather)),
+            BuiltInWidgetInfo(type = CalendarWidget.Type, label = context.getString(R.string.widget_name_calendar)),
+            BuiltInWidgetInfo(type = NotesWidget.Type, label = context.getString(R.string.widget_name_notes)),
+            BuiltInWidgetInfo(type = MusicWidget.Type, label = context.getString(R.string.widget_name_music)),
         ) + ChipWidget.Kinds.map {
             BuiltInWidgetInfo(type = ChipWidget.TypePrefix + it, label = context.getString(ChipWidget.labelRes(it)))
         }

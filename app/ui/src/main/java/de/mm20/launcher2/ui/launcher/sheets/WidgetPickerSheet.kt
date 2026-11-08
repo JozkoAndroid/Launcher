@@ -450,10 +450,22 @@ fun WidgetPickerSheet(
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                         )
-                        Text(
-                            text = it.label,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Column {
+                            Text(
+                                text = it.label,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            // Fork (round 19): tiles that show only with something to show say so, so adding
+                            // one that stays hidden for now is not a surprise.
+                            val kind = it.type.removePrefix(ChipWidget.TypePrefix)
+                            if (it.type.startsWith(ChipWidget.TypePrefix) && kind in listOf("test", "lunch", "birthday", "chats", "music")) {
+                                Text(
+                                    stringResource(R.string.widget_tile_conditional),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }

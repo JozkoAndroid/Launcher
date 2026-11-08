@@ -134,6 +134,25 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         else "Z predmetu $folder nemám záznamy hodín. Povedz mi to otvorene a spýtaj sa, akú tému mám vysvetliť."
     }
 
+    /**
+     * A revision sheet for a test (round 19): from Schoolhelp's lesson topics and the test's note, what to
+     * know, compact enough to read in ten minutes, in the subject's language with Slovak explanations.
+     */
+    fun revisionSheet(t: de.mm20.launcher2.schoolbrief.SchoolTask, due: String, label: String) {
+        clear()
+        sendWithTopics(label, t.subject) { c ->
+            buildString {
+                append("Vytvor mi opakovací list na test „${t.title}“ z predmetu ${t.subject.ifBlank { "?" }} ($due). ")
+                if (c != null && c.describe().isNotBlank()) append("Učivo podľa záznamov hodín v Schoolhelp: ${c.describe()}. ")
+                t.note?.takeIf { it.isNotBlank() }?.let { append("Poznámka k testu: $it. ") }
+                append("Formát: nadpisy podľa tém; pod každou 3 až 5 bodov (pojmy, definície, vzorce, dátumy), ")
+                append("odborné pojmy v jazyku predmetu (${c?.lang ?: "de"}) s krátkym slovenským vysvetlením; ")
+                append("na konci 5 typických otázok na test bez odpovedí. Len to, čo naozaj pokrýva učivo; ")
+                append("ak záznamy hodín chýbajú, napíš to na začiatku jednou vetou a drž sa poznámky k testu.")
+            }
+        }
+    }
+
     /** A short quiz on the subject's latest lesson, one question at a time. */
     fun quizTopic(folder: String, label: String) = sendWithTopics(label, folder) { c ->
         if (c != null && c.describe().isNotBlank()) "Vyskúšaj ma z poslednej hodiny predmetu $folder: ${c.describe()}. " +
@@ -309,8 +328,11 @@ private fun QuickActions(vm: SchoolChatVM) {
     if (f != null) {
         val rows = BriefLogic.visibleTasks(f.tasks, today)
         rows.filter { it.task.kind == de.mm20.launcher2.schoolbrief.SchoolTask.Test && !it.due.isBefore(today) }.minByOrNull { it.due }?.let { r ->
-            val l = stringResource(R.string.quick_practise, r.task.subject.ifBlank { r.task.title })
+            // Round 19 (user): a revision sheet for the next test, first: the one most asked for.
             val due = dueLabel(r.due, today, null)
+            val sheet = stringResource(R.string.quick_sheet, r.task.subject.ifBlank { r.task.title })
+            actions.add(0, sheet to { vm.revisionSheet(r.task, due, sheet) })
+            val l = stringResource(R.string.quick_practise, r.task.subject.ifBlank { r.task.title })
             actions += l to { vm.practiseTest(r.task, due, l) }
         }
         // Current or next lesson today, else tomorrow's first: "explain the topic".

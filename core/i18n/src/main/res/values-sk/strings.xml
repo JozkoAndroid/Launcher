@@ -1140,6 +1140,7 @@
     <string name="quick_plan">Naplánuj mi deň</string>
     <string name="quick_bag">Čo si zbaliť?</string>
     <string name="quick_quiz">Zopakovať: %1$s</string>
+    <string name="quick_sheet">Opakovací list: %1$s</string>
     <string name="quick_week">Tento týždeň</string>
     <string name="task_undo">Späť</string>
     <string name="task_done_label">Hotové</string>
@@ -1254,6 +1255,7 @@
     <string name="revision_start">Učiť sa %1$d min</string>
     <string name="revision_focus_text">Učenie: %1$s</string>
     <string name="dashboard_column">Stĺpec %1$d</string>
+    <string name="widget_tile_conditional">Ukáže sa, len keď je čo ukázať</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>
