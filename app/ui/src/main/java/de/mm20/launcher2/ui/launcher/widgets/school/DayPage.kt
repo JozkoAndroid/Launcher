@@ -138,7 +138,9 @@ internal fun DayContent(
     val openSteps = today?.steps?.count { !it.done } ?: 0
 
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        Box(Modifier.fillMaxSize()) {
+        // The page has its own surface that slides with it (device test: mid-swipe the page's text lay over the
+        // home screen). The wallpaper still shows faintly through.
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))) {
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = listState,
@@ -156,6 +158,11 @@ internal fun DayContent(
                             (openTodos + openSteps).takeIf { it > 0 }?.let { pluralStringResource(R.plurals.day_open, it, it) },
                         ).joinToString(" · ")
                         Text(summary, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (today?.offline == true) {
+                            // Honest status: nothing is lost, it waits on the phone.
+                            Spacer(Modifier.height(8.dp))
+                            Secondary(stringResource(R.string.day_offline))
+                        }
                     }
                 }
                 if (showLessons) {
@@ -248,7 +255,7 @@ private fun StepLine(s: PlanStep, onStep: (Int, Boolean) -> Unit) {
 
 @Composable
 private fun TodoLine(t: Todo, onTodo: (String, Boolean) -> Unit) {
-    CheckLine(text = t.text, done = t.done, meta = null, onToggle = { onTodo(t.id, !t.done) })
+    CheckLine(text = t.text, done = t.done, meta = if (t.pending) stringResource(R.string.day_pending) else null, onToggle = { onTodo(t.id, !t.done) })
 }
 
 /** One checkable row: the whole row toggles; done = filled circle, struck-through text. */
@@ -312,61 +319,18 @@ private fun ModeSwitch(asking: Boolean, onAsking: (Boolean) -> Unit, modifier: M
     }
 }
 
-/** Type or say a task; Enter or the button saves it to Schoolhelp. */
+/** Type or say a task; Enter or the ink button saves it (spoken tasks are saved at once). */
 @Composable
 private fun CaptureBar(onAdd: (String) -> Unit, modifier: Modifier) {
     var input by rememberSaveable { mutableStateOf("") }
-    val voice = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { r ->
-        r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { said ->
-            // Spoken tasks are saved at once: saying it is the confirmation.
-            onAdd(said)
-        }
-    }
-    val save = { if (input.isNotBlank()) { onAdd(input); input = "" } }
-    Row(
-        modifier
-            .widthIn(max = 640.dp)
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(start = 20.dp, end = 6.dp)
-            .heightIn(min = 56.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.weight(1f)) {
-            if (input.isEmpty()) Text(stringResource(R.string.day_capture_hint), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            BasicTextField(
-                input, { input = it.take(200) },
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { save() }),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        if (input.isBlank()) {
-            IconButton(onClick = {
-                runCatching {
-                    voice.launch(
-                        android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
-                    )
-                }
-            }) { Icon(painterResource(R.drawable.mic_24px), contentDescription = stringResource(R.string.chat_voice)) }
-        } else {
-            // The page's one primary action: ink circle.
-            Box(
-                Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurface)
-                    .clickable(role = Role.Button) { save() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(painterResource(R.drawable.add_24px), contentDescription = stringResource(R.string.day_add), tint = MaterialTheme.colorScheme.surface)
-            }
-        }
-    }
+    val speak = rememberSpeechInput(onAdd)
+    InputBar(
+        value = input, onValue = { input = it.take(200) },
+        hint = stringResource(R.string.day_capture_hint),
+        submitIcon = R.drawable.add_24px, submitLabel = stringResource(R.string.day_add),
+        onSubmit = { if (input.isNotBlank()) { onAdd(input); input = "" } },
+        onVoice = speak,
+        imeAction = ImeAction.Done,
+        modifier = modifier.widthIn(max = 640.dp).padding(horizontal = 16.dp),
+    )
 }

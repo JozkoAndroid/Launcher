@@ -68,9 +68,9 @@ class DockVM : ViewModel(), KoinComponent {
     fun launched(item: SavableSearchable) = favorites.reportLaunch(item)
 }
 
-/** 4 apps on the cover screen, 7 when the screen is wide (unfolded Fold, tablet). */
+/** 4 apps on the cover screen, 7 unfolded, 9 on a tablet. */
 @Composable
-internal fun dockCount(): Int = if (LocalConfiguration.current.screenWidthDp >= 600) 7 else 4
+internal fun dockCount(): Int = LocalConfiguration.current.screenWidthDp.let { w -> if (w >= 1000) 9 else if (w >= 600) 7 else 4 }
 
 /**
  * The floating dock (round 7): favorite apps in one raised bar, and next to it the home screen's single
@@ -120,34 +120,19 @@ internal fun DockContent(
     onEdit: () -> Unit,
     onAssistant: () -> Unit,
 ) {
-    // Ink on the wallpaper: near-white on dark content, near-black on light (the primary-button rule).
-    val content = schoolContentColor()
-    val ink = if (content.luminance() > 0.5f) Color(0xFFF4F4F6) else Color(0xFF16181C)
-    val onInk = if (content.luminance() > 0.5f) Color(0xFF16181C) else Color(0xFFF4F4F6)
-    val shadowTint = Color(0xFF0A0C10)
-    // Unfolded / tablet: a bigger dock (round 9).
     val wide = LocalConfiguration.current.screenWidthDp >= 600
-    val height = if (wide) 76.dp else SchoolTokens.DockHeight
     val slot = if (wide) 62.dp else 52.dp
     val iconSize = if (wide) 52.dp else 44.dp
     Row(modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         if (count > 0) {
-            Row(
-                Modifier
-                    .height(height)
-                    .shadow(16.dp, RoundedCornerShape(32.dp), ambientColor = shadowTint, spotColor = shadowTint)
-                    .clip(RoundedCornerShape(32.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f))
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+            PillBar {
                 for (i in 0 until count) {
                     val name = label(i)
                     // Plain holder, not state: positions change during animations and must not recompose the dock.
-                    val bounds = androidx.compose.runtime.remember { android.graphics.Rect() }
+                    val bounds = remember { android.graphics.Rect() }
                     Box(
                         Modifier
+                            .padding(horizontal = 2.dp)
                             .size(slot)
                             .onGloballyPositioned { c ->
                                 val r = c.boundsInWindow()
@@ -162,18 +147,7 @@ internal fun DockContent(
             }
             Spacer(Modifier.width(10.dp))
         }
-        val askLabel = stringResource(R.string.assistant_button)
-        Box(
-            Modifier
-                .size(height)
-                .shadow(16.dp, CircleShape, ambientColor = shadowTint, spotColor = shadowTint)
-                .clip(CircleShape)
-                .background(ink)
-                .combinedClickable(role = Role.Button, onClick = onAssistant)
-                .semantics { contentDescription = askLabel },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(painterResource(R.drawable.mic_24px), contentDescription = null, tint = onInk, modifier = Modifier.size(26.dp))
-        }
+        // Ink on the wallpaper: the home screen's one primary action.
+        InkButton(R.drawable.mic_24px, stringResource(R.string.assistant_button), schoolContentColor(), onAssistant)
     }
 }

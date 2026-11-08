@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 9
+    private const val Version = 10
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -91,6 +91,10 @@ object ForkSetup : KoinComponent {
             }
             // v9 (device test: "add more of your widgets on the home screen"): richer home, panel unchanged.
             if (from == 8) layoutHome()
+            // v10: folders live on the apps page (the panel's second page), not as a block.
+            if (from < 10) {
+                widgets.get(WidgetScreenTarget.Widgets2.id).first().filterIsInstance<de.mm20.launcher2.widgets.FoldersWidget>().forEach { widgets.delete(it) }
+            }
             // v4 (folders on home) is superseded by v8.
             prefs.edit().putInt("version", Version).apply()
         }
@@ -132,7 +136,6 @@ object ForkSetup : KoinComponent {
                 WeatherWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.TestPrepWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
-                de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()),
             )
         )
     }

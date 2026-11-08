@@ -181,4 +181,18 @@ class LiveDataTest {
         assertEquals(25, t.steps[1].minutes)
         assertEquals(listOf(Todo("a1", "Venček info", false), Todo("a2", "Kniha", true)), t.todos)
     }
+
+    /** Offline tasks survive in the file, in order, until each one is sent. */
+    @Test
+    fun pendingQueueKeepsOrderOnDisk() {
+        val f = java.io.File.createTempFile("pending", ".json").apply { delete() }
+        val q = de.mm20.launcher2.schoolbrief.live.PendingQueue(f)
+        val a = de.mm20.launcher2.schoolbrief.live.PendingOp("today.add_todo", kotlinx.serialization.json.buildJsonObject { put("text", kotlinx.serialization.json.JsonPrimitive("Kniha")) }, "local-1")
+        val b = de.mm20.launcher2.schoolbrief.live.PendingOp("today.set_step", kotlinx.serialization.json.buildJsonObject { put("i", kotlinx.serialization.json.JsonPrimitive(1)) })
+        q.add(a); q.add(b)
+        assertEquals(listOf(a, b), de.mm20.launcher2.schoolbrief.live.PendingQueue(f).all())
+        q.remove(a)
+        assertEquals(listOf(b), de.mm20.launcher2.schoolbrief.live.PendingQueue(f).all())
+        f.delete()
+    }
 }

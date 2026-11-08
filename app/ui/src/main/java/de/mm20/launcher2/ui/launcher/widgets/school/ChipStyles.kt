@@ -86,8 +86,8 @@ internal fun ChipBlock(items: List<ContextItem>, config: ChipWidgetConfig) {
 val LocalTileWidth = androidx.compose.runtime.staticCompositionLocalOf<Dp?> { null }
 
 /**
- * Consecutive single-value blocks (name day, data, steps, ...) as a grid: 2 tiles per row on the cover
- * screen, 4 when unfolded. Blocks with nothing to show take no space.
+ * Consecutive single-value blocks (name day, data, steps, ...) as an even grid of equal tiles.
+ * Blocks with nothing to show take no space.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -97,7 +97,9 @@ fun ChipTiles(
     item: @Composable (de.mm20.launcher2.widgets.Widget) -> Unit,
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
-        val cols = if (maxWidth >= 560.dp) 4 else 2
+        // As many 150dp tiles as fit (2 on the cover, 5 unfolded, 6 at most); fewer tiles share the width evenly.
+        val fit = (maxWidth / 150.dp).toInt().coerceIn(2, 6)
+        val cols = if (widgets.size in 2 until fit) widgets.size else fit
         // 1dp slack: rounding to pixels must not push the last tile of a row onto the next line.
         val w = (maxWidth - 8.dp * (cols - 1)) / cols - 1.dp
         CompositionLocalProvider(LocalTileWidth provides w) {
@@ -145,7 +147,12 @@ private fun TileChip(item: ContextItem, config: ChipWidgetConfig) {
     else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = SchoolTokens.CardAlpha)
     val fg = if (config.accent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     val family = chipFont(config.font) ?: SchoolFonts.Display
-    val size = if (config.font == "serif") 30 else 26
+    // Narrow grid tiles (5 across when unfolded) get a smaller value so names like "Bohumír" fit.
+    val narrow = (LocalTileWidth.current ?: 200.dp) < 180.dp
+    val size = when {
+        config.font == "serif" -> if (narrow) 26 else 30
+        else -> if (narrow) 24 else 26
+    }
     CompositionLocalProvider(LocalContentColor provides fg) {
         Column(
             Modifier

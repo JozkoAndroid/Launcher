@@ -240,7 +240,10 @@ internal const val WideDashboardMinWidthDp = 600
 @Composable
 private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWidgetUpdate: (de.mm20.launcher2.widgets.Widget) -> Unit) {
     val full = widgets.filter { it is de.mm20.launcher2.widgets.AssistantWidget }
-    val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget }
+    // Round 10 (device test: tiles had different shapes and sizes on the unfolded screen): all single-value
+    // tiles form one even grid across the full width, below the masonry.
+    val tiles = widgets.filter { it is de.mm20.launcher2.widgets.ChipWidget }
+    val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget || it is de.mm20.launcher2.widgets.ChipWidget }
     val gap = 12.dp
     androidx.compose.ui.layout.Layout(
         content = {
@@ -248,13 +251,15 @@ private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWid
         },
     ) { measurables, constraints ->
         val gapPx = gap.roundToPx()
-        val colWidth = (constraints.maxWidth - gapPx) / 2
-        val heights = intArrayOf(0, 0)
+        // Two columns on the unfolded Fold, three on a tablet.
+        val cols = if (constraints.maxWidth.toDp() >= 1000.dp) 3 else 2
+        val colWidth = (constraints.maxWidth - gapPx * (cols - 1)) / cols
+        val heights = IntArray(cols)
         val placed = measurables.map { m ->
             val p = m.measure(androidx.compose.ui.unit.Constraints.fixedWidth(colWidth))
-            // Empty blocks (a chip with nothing to show) take no slot.
+            // Empty blocks (nothing to show right now) take no slot.
             if (p.height == 0) return@map Triple(p, 0, -1)
-            val col = if (heights[0] <= heights[1]) 0 else 1
+            val col = heights.indices.minBy { heights[it] }
             val y = heights[col]
             heights[col] += p.height + gapPx
             Triple(p, y, col)
@@ -262,6 +267,11 @@ private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWid
         val height = (heights.maxOrNull() ?: 0).coerceAtLeast(0)
         layout(constraints.maxWidth, height) {
             for ((p, y, col) in placed) if (col >= 0) p.placeRelative(col * (colWidth + gapPx), y)
+        }
+    }
+    if (tiles.isNotEmpty()) {
+        de.mm20.launcher2.ui.launcher.widgets.school.ChipTiles(tiles, Modifier.padding(top = 4.dp)) { w ->
+            WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate)
         }
     }
     for (w in full) {

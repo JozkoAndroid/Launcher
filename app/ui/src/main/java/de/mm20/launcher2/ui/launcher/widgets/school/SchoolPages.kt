@@ -155,81 +155,6 @@ class SchoolChatVM : ViewModel(), KoinComponent {
     fun clear() = messages.clear()
 }
 
-/** The chat page: school-aware Gemini, suggestion chips, keyboard only after tapping the field. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun SchoolChatPage(contentPadding: PaddingValues, listState: LazyListState = rememberLazyListState()) =
-    androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        ChatPageContent(contentPadding, listState)
-    }
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ChatPageContent(contentPadding: PaddingValues, listState: LazyListState) {
-    val vm: SchoolChatVM = viewModel(key = "school-chat")
-    var input by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(vm.messages.size) { if (vm.messages.isNotEmpty()) listState.animateScrollToItem(vm.messages.size) }
-
-    Column(Modifier.fillMaxSize().padding(contentPadding).imePadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(Modifier.widthIn(max = 640.dp).fillMaxWidth().weight(1f)) {
-            Text(
-                stringResource(R.string.chat_title),
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            )
-            LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState, contentPadding = PaddingValues(horizontal = 16.dp)) {
-                item {
-                    if (vm.messages.isEmpty()) {
-                        Text(
-                            stringResource(if (vm.hasKey) R.string.chat_intro else R.string.chat_no_key),
-                            style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                        )
-                        if (vm.hasKey) {
-                            FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                for (q in listOf(R.string.chat_q_tomorrow, R.string.chat_q_test, R.string.chat_q_week, R.string.chat_q_learn)) {
-                                    val text = stringResource(q)
-                                    Box(
-                                        Modifier.heightIn(min = 44.dp).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
-                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                            .clickable(role = Role.Button) { vm.send(text) }
-                                            .padding(horizontal = 14.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) { Text(text, style = MaterialTheme.typography.bodyLarge) }
-                                }
-                            }
-                        }
-                    }
-                }
-                items(vm.messages) { m -> Bubble(m) }
-                if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
-            }
-        }
-        // Input row; the keyboard opens only when the field is tapped.
-        Row(
-            Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(start = 18.dp, end = 4.dp).heightIn(min = 52.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(Modifier.weight(1f)) {
-                if (input.isEmpty()) Text(stringResource(R.string.chat_hint), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                BasicTextField(
-                    input, { input = it },
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { vm.send(input); input = "" }),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            IconButton(onClick = { vm.send(input); input = "" }, enabled = input.isNotBlank() && vm.hasKey) {
-                Icon(painterResource(R.drawable.arrow_forward_20px), contentDescription = stringResource(R.string.chat_send))
-            }
-        }
-    }
-}
-
 @Composable
 private fun Bubble(m: ChatMessage) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = if (m.fromUser) Arrangement.End else Arrangement.Start) {
@@ -382,46 +307,14 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
                 KeyRow(onSave = { vm.saveKey(it) })
             } else {
                 if (vm.messages.isEmpty()) QuickActions(vm)
-                val voice = androidx.activity.compose.rememberLauncherForActivityResult(
-                    androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-                ) { r ->
-                    r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { input = it }
-                }
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(surface)
-                        .padding(start = 18.dp, end = 4.dp).heightIn(min = 52.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.weight(1f)) {
-                        if (input.isEmpty()) Text(stringResource(R.string.chat_hint), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        BasicTextField(
-                            input, { input = it },
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { vm.send(input); input = "" }),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (input.isBlank()) {
-                        // Dictation: Android's speech input, then edit or send.
-                        IconButton(onClick = {
-                            runCatching {
-                                voice.launch(
-                                    android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                                        .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                        .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "sk-SK")
-                                )
-                            }
-                        }) {
-                            Icon(painterResource(R.drawable.mic_24px), contentDescription = stringResource(R.string.chat_voice))
-                        }
-                    } else {
-                        IconButton(onClick = { vm.send(input); input = "" }) {
-                            Icon(painterResource(R.drawable.arrow_forward_20px), contentDescription = stringResource(R.string.chat_send))
-                        }
-                    }
-                }
+                // Same bar as the dock and the task bar; dictation fills the field to edit or send.
+                InputBar(
+                    value = input, onValue = { input = it },
+                    hint = stringResource(R.string.chat_hint),
+                    submitIcon = R.drawable.arrow_forward_20px, submitLabel = stringResource(R.string.chat_send),
+                    onSubmit = { vm.send(input); input = "" },
+                    onVoice = rememberSpeechInput { input = it },
+                )
             }
         }
     }

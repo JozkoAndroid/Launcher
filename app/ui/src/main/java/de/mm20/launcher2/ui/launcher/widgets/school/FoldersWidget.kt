@@ -152,7 +152,7 @@ private fun FolderTile(label: String, onClick: () -> Unit, content: @Composable 
 }
 
 @Composable
-private fun MiniGrid(items: List<SavableSearchable>, icons: IconService) {
+internal fun MiniGrid(items: List<SavableSearchable>, icons: IconService) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         for (r in 0..1) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -166,7 +166,7 @@ private fun MiniGrid(items: List<SavableSearchable>, icons: IconService) {
 }
 
 @Composable
-private fun AppIcon(item: SavableSearchable, icons: IconService, size: Dp) {
+internal fun AppIcon(item: SavableSearchable, icons: IconService, size: Dp) {
     val px = with(LocalDensity.current) { size.roundToPx() }
     val icon by remember(item.key, px) { icons.getIcon(item, px) }.collectAsState(null)
     ShapedLauncherIcon(size = size, icon = { icon })
@@ -174,7 +174,7 @@ private fun AppIcon(item: SavableSearchable, icons: IconService, size: Dp) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FolderAppsSheet(tag: String, vm: FoldersVM, onEdit: () -> Unit, onDismiss: () -> Unit) {
+internal fun FolderAppsSheet(tag: String, vm: FoldersVM, onEdit: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val items by remember(tag) { vm.items(tag) }.collectAsState(emptyList())
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -205,34 +205,58 @@ private fun FolderAppsSheet(tag: String, vm: FoldersVM, onEdit: () -> Unit, onDi
 }
 
 /** Create ([oldName] = null) or edit a folder: name plus a searchable list of apps to tick. */
+@Composable
+internal fun FolderEditor(oldName: String?, vm: FoldersVM, onDismiss: () -> Unit, onSaved: (String) -> Unit = {}) {
+    val current by remember(oldName) { oldName?.let { vm.items(it) } ?: kotlinx.coroutines.flow.flowOf(emptyList()) }.collectAsState(emptyList())
+    AppPickerSheet(
+        vm = vm, initialName = oldName ?: "", withName = true, initial = current.map { it.key }.toSet(),
+        onSave = { name, apps -> vm.save(oldName, name, apps); onSaved(name) },
+        onDelete = oldName?.let { { vm.delete(it) } },
+        onDismiss = onDismiss,
+    )
+}
+
+/**
+ * A searchable list of apps to tick: for a folder (with a name field) or to add apps to the apps page.
+ * One primary action (save); delete stays a quiet text button.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FolderEditor(oldName: String?, vm: FoldersVM, onDismiss: () -> Unit) {
+internal fun AppPickerSheet(
+    vm: FoldersVM,
+    initialName: String,
+    withName: Boolean,
+    initial: Set<String>,
+    onSave: (String, List<Application>) -> Unit,
+    onDelete: (() -> Unit)?,
+    onDismiss: () -> Unit,
+) {
     val apps by vm.allApps.collectAsState(emptyList())
-    val current by remember(oldName) { oldName?.let { vm.items(it) } ?: kotlinx.coroutines.flow.flowOf(emptyList()) }.collectAsState(emptyList())
-    var name by rememberSaveable(oldName) { mutableStateOf(oldName ?: "") }
+    var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     var query by rememberSaveable { mutableStateOf("") }
-    var picked by remember(current) { mutableStateOf(current.map { it.key }.toSet()) }
+    var picked by remember(initial) { mutableStateOf(initial) }
     val shown = apps.filter { query.isBlank() || (it.labelOverride ?: it.label).contains(query, ignoreCase = true) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 24.dp)) {
-            OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.folders_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            if (withName) {
+                OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.folders_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+            }
             OutlinedTextField(query, { query = it }, placeholder = { Text(stringResource(R.string.folders_search)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // One primary action; delete stays a quiet text button (design rules).
                 Button(
                     onClick = {
-                        vm.save(oldName, name.trim(), apps.filter { it.key in picked })
+                        onSave(name.trim(), apps.filter { it.key in picked })
                         onDismiss()
                     },
-                    enabled = name.isNotBlank() && picked.isNotEmpty(),
-                ) { Text(stringResource(R.string.folders_save)) }
+                    enabled = (!withName || name.isNotBlank()) && picked.isNotEmpty(),
+                ) { Text(stringResource(if (withName) R.string.folders_save else R.string.apps_add)) }
                 Spacer(Modifier.weight(1f))
-                if (oldName != null) {
-                    TextButton(onClick = { vm.delete(oldName); onDismiss() }) { Text(stringResource(R.string.folders_delete)) }
+                if (onDelete != null) {
+                    TextButton(onClick = { onDelete(); onDismiss() }) { Text(stringResource(R.string.folders_delete)) }
                 }
             }
         }

@@ -1191,4 +1191,9 @@
     </plurals>
     <string name="glance_test_of">Test: %1$s</string>
     <string name="glance_until_test">do testu: %1$s</string>
+    <string name="day_pending">Čaká na Schoolhelp</string>
+    <string name="day_offline">Schoolhelp je nedostupný. Nové úlohy sa uložia v telefóne a odošlú neskôr.</string>
+    <string name="apps_add">Pridať aplikácie</string>
+    <string name="apps_to_folder">Presunúť do priečinka %1$s</string>
+    <string name="apps_remove">Odstrániť zo stránky</string>
 </resources>

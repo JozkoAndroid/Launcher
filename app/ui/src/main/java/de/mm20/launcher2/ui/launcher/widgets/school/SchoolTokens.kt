@@ -35,7 +35,6 @@ internal object SchoolTokens {
     val JoinRadius = 8.dp
     val Seam = 3.dp
     val GroupGap = 16.dp
-    val DockHeight = 64.dp
     val ItemRadius = 14.dp
     val BadgeRadius = 12.dp
     val PressRadius = 14.dp

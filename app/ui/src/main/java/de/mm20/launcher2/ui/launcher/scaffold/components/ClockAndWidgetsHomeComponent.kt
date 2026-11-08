@@ -154,7 +154,7 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                     parentId = WidgetScreenTarget.Default.id.toString(),
                 )
                 // Room for the floating dock, so the last block can scroll above it.
-                if (!editMode) androidx.compose.foundation.layout.Spacer(Modifier.height(if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600) 120.dp else de.mm20.launcher2.ui.launcher.widgets.school.SchoolTokens.DockHeight + 40.dp))
+                if (!editMode) androidx.compose.foundation.layout.Spacer(Modifier.height(de.mm20.launcher2.ui.launcher.widgets.school.barHeight() + 44.dp))
             }
         }
 

@@ -1349,4 +1349,9 @@
     </plurals>
     <string name="glance_test_of">Test: %1$s</string>
     <string name="glance_until_test">until the test: %1$s</string>
+    <string name="day_pending">Waiting for Schoolhelp</string>
+    <string name="day_offline">Schoolhelp is unreachable. New tasks are saved on the phone and sent later.</string>
+    <string name="apps_add">Add apps</string>
+    <string name="apps_to_folder">Move to folder %1$s</string>
+    <string name="apps_remove">Remove from page</string>
 </resources>

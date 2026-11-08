@@ -20,14 +20,20 @@ data class StudyContext(val folder: String, val lang: String?, val current: Stri
     }.trim()
 }
 
-/** A personal task ("eigene Aufgabe") in Schoolhelp's Heute page. */
-data class Todo(val id: String, val text: String, val done: Boolean)
+/** A personal task ("eigene Aufgabe") in Schoolhelp's Heute page; [pending] = saved on the phone, not uploaded yet. */
+@kotlinx.serialization.Serializable
+data class Todo(val id: String, val text: String, val done: Boolean, val pending: Boolean = false)
 
 /** One step of Schoolhelp's AI day plan; [index] is what today.set_step expects. Text as Schoolhelp wrote it. */
+@kotlinx.serialization.Serializable
 data class PlanStep(val index: Int, val text: String, val minutes: Int?, val subject: String, val done: Boolean)
 
-/** Schoolhelp's Heute: today's plan (empty on days without one) and the personal tasks. */
-data class TodayData(val day: String, val steps: List<PlanStep>, val todos: List<Todo>)
+/**
+ * Schoolhelp's Heute: today's plan (empty on days without one) and the personal tasks.
+ * [offline] = Schoolhelp could not be reached; this is the copy saved on the phone.
+ */
+@kotlinx.serialization.Serializable
+data class TodayData(val day: String, val steps: List<PlanStep>, val todos: List<Todo>, val offline: Boolean = false)
 
 sealed interface BriefStatus {
     data object NeedsLogin : BriefStatus

@@ -1,5 +1,9 @@
 package de.mm20.launcher2.ui.launcher.scaffold.components
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import de.mm20.launcher2.ui.launcher.helper.detectLongPressPassive
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -125,9 +129,13 @@ internal class WidgetsComponent(
         val toSearch = remember(state) {
             object : NestedScrollConnection {
                 var pulled = 0f
+                // Round 10: straight into search with the keyboard open (the search bar sits at the top here).
                 fun open() {
                     pulled = Float.NEGATIVE_INFINITY
-                    scope.launch { state.onSearchBarTap() }
+                    scope.launch {
+                        state.onSearchBarTap()
+                        state.isSearchBarFocused = true
+                    }
                 }
                 override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
                     if (editNow || source != NestedScrollSource.UserInput) return Offset.Zero
@@ -142,18 +150,19 @@ internal class WidgetsComponent(
                 override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
                     val wasPulled = pulled
                     pulled = 0f
-                    if (!editNow && wasPulled >= 0f && available.y < -2500f && !scrollState.canScrollForward) open()
+                    // A pull past the end already happened (wasPulled > 0): the content is at its end.
+                    if (!editNow && wasPulled > 0f && available.y < -2500f) open()
                     return androidx.compose.ui.unit.Velocity.Zero
                 }
             }
         }
 
-        // Fork: the second widget screen is the side panel (swipe left): widgets only; the chat lives on "Môj deň".
-        androidx.compose.foundation.layout.Box(modifier) {
+        // Fork: the second widget screen is the side panel (swipe left). Round 10: it has two pages, the
+        // widgets and the apps page, swiped like a phone's home pages; the chat lives on "Môj deň".
+        val widgetsPage: @Composable () -> Unit = {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(toSearch)
                     .nestedScroll(scrollConnection)
                     // Fork: long press edits the panel, like the home screen.
                     .pointerInput(editMode) {
@@ -178,6 +187,21 @@ internal class WidgetsComponent(
                     },
                     parentId = target.id.toString(),
                 )
+            }
+        }
+        androidx.compose.foundation.layout.Box(modifier.nestedScroll(toSearch)) {
+            if (target == WidgetScreenTarget.Widgets2 && !editMode) {
+                androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
+                    if (page == 0) widgetsPage() else de.mm20.launcher2.ui.launcher.widgets.school.AppsPage()
+                }
+                PageDots(
+                    pager.currentPage, 2,
+                    Modifier.align(Alignment.BottomCenter)
+                        .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
+                        .padding(bottom = 16.dp),
+                )
+            } else {
+                widgetsPage()
             }
         }
         if (editMode) {
@@ -211,8 +235,26 @@ internal class WidgetsComponent(
         }
     }
 
+    /** Panel pages; back on the widgets page whenever the panel is left. */
+    private val pager = androidx.compose.foundation.pager.PagerState { 2 }
+
     override suspend fun onDismiss(state: LauncherScaffoldState) {
+        pager.scrollToPage(0)
         super.onDismiss(state)
         scrollState.scrollTo(0)
+    }
+}
+
+/** Which panel page is showing: small dots on the wallpaper, the current one solid. */
+@Composable
+private fun PageDots(current: Int, count: Int, modifier: Modifier) {
+    val content = de.mm20.launcher2.ui.launcher.widgets.school.schoolContentColor()
+    androidx.compose.foundation.layout.Row(modifier, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+        repeat(count) { i ->
+            androidx.compose.foundation.layout.Box(
+                Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(content.copy(alpha = if (i == current) 1f else 0.4f))
+            )
+        }
     }
 }

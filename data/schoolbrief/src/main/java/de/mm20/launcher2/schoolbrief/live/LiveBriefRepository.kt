@@ -14,6 +14,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -120,51 +121,91 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         }
     }
 
-    // --- Schoolhelp Heute: plan steps and personal tasks ---
+    // --- Schoolhelp Heute: plan steps and personal tasks, saved on the phone until Schoolhelp has them ---
 
-    override val today = MutableStateFlow<de.mm20.launcher2.schoolbrief.TodayData?>(null)
-    private var todayJob: Job? = null
+    private val todayFile = File(context.filesDir, "schoolbrief/today.json")
+    private val pending = PendingQueue(File(context.filesDir, "schoolbrief/pending.json"))
+    private val syncLock = kotlinx.coroutines.sync.Mutex()
+
+    override val today = MutableStateFlow(
+        runCatching { json.decodeFromString(de.mm20.launcher2.schoolbrief.TodayData.serializer(), todayFile.readText()) }.getOrNull()
+    )
     private var todayAt = 0L
 
-    /** Every 3 minutes at most while the Day page is visible, and right after a change. */
+    /** While the Day page is visible: every 3 minutes, or every minute while changes are waiting. */
     override fun refreshToday() {
-        if (!auth.isLoggedIn || todayJob?.isActive == true || System.currentTimeMillis() - todayAt < 3 * 60_000L) return
-        todayJob = scope.launch { loadToday() }
+        val wait = if (pending.isEmpty()) 3 * 60_000L else 60_000L
+        if (!auth.isLoggedIn || syncLock.isLocked || System.currentTimeMillis() - todayAt < wait) return
+        scope.launch { sync() }
     }
 
-    private suspend fun loadToday() {
+    /** Sends waiting changes in order, then reads today.read; on failure the phone's copy stays (offline). */
+    private suspend fun sync() = syncLock.withLock {
+        todayAt = System.currentTimeMillis()
+        val sent = flush()
         runCatching { mcp.appCallAll("today.read") }
-            .onSuccess { today.value = TodayParser.parse(it, LocalDate.now()); todayAt = System.currentTimeMillis() }
-            .onFailure { Log.w(Tag, "today.read failed", it) }
+            .onSuccess { r -> setToday(withPending(TodayParser.parse(r, LocalDate.now())).copy(offline = !sent)) }
+            .onFailure { e -> Log.w(Tag, "today.read failed", e); today.value?.let { setToday(it.copy(offline = true)) } }
     }
 
-    private fun changeToday(action: String, args: JsonObject, local: (de.mm20.launcher2.schoolbrief.TodayData) -> de.mm20.launcher2.schoolbrief.TodayData) {
-        today.value?.let { today.value = local(it) }
-        scope.launch {
-            runCatching { mcp.appCall(action, args) }.onFailure { Log.w(Tag, "$action failed", it) }
-            todayJob?.join(); loadToday()
+    /** True when the queue is empty afterwards. Stops at the first failure so the order is kept. */
+    private suspend fun flush(): Boolean {
+        for (op in pending.all()) {
+            // A task added and ticked off before it was ever uploaded needs no upload.
+            if (op.localId != null && today.value?.todos?.any { it.id == op.localId && it.done } == true) {
+                pending.remove(op); continue
+            }
+            val ok = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }.isSuccess
+            if (!ok) return false
+            pending.remove(op)
         }
+        return true
+    }
+
+    /** Tasks still waiting in the queue, shown after the ones Schoolhelp returned. */
+    private fun withPending(d: de.mm20.launcher2.schoolbrief.TodayData): de.mm20.launcher2.schoolbrief.TodayData {
+        val local = pending.all().filter { it.localId != null && it.action == "today.add_todo" }.mapNotNull { op ->
+            val text = op.args["text"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+            val old = today.value?.todos?.firstOrNull { it.id == op.localId }
+            de.mm20.launcher2.schoolbrief.Todo(op.localId!!, text, old?.done ?: false, pending = true)
+        }
+        return d.copy(todos = d.todos + local)
+    }
+
+    private fun setToday(d: de.mm20.launcher2.schoolbrief.TodayData) {
+        today.value = d
+        runCatching {
+            todayFile.parentFile?.mkdirs()
+            todayFile.writeText(json.encodeToString(de.mm20.launcher2.schoolbrief.TodayData.serializer(), d))
+        }
+    }
+
+    /** Applies a change on the phone at once, queues it for Schoolhelp and tries to send it. */
+    private fun change(op: PendingOp?, local: (de.mm20.launcher2.schoolbrief.TodayData) -> de.mm20.launcher2.schoolbrief.TodayData) {
+        val base = today.value ?: de.mm20.launcher2.schoolbrief.TodayData(LocalDate.now().toString(), emptyList(), emptyList())
+        setToday(local(base))
+        op?.let { pending.add(it) }
+        scope.launch { sync() }
     }
 
     override fun addTodo(text: String) {
         val t = text.trim().take(200)
         if (t.isEmpty()) return
-        val day = LocalDate.now().toString()
-        if (today.value == null) today.value = de.mm20.launcher2.schoolbrief.TodayData(day, emptyList(), emptyList())
-        changeToday("today.add_todo", buildJsonObject { put("text", t) }) {
-            it.copy(todos = it.todos + de.mm20.launcher2.schoolbrief.Todo("local-${System.nanoTime()}", t, false))
+        val id = "local-${System.currentTimeMillis()}"
+        change(PendingOp("today.add_todo", buildJsonObject { put("text", t) }, localId = id)) {
+            it.copy(todos = it.todos + de.mm20.launcher2.schoolbrief.Todo(id, t, false, pending = true))
         }
     }
 
     override fun setTodoDone(id: String, done: Boolean) {
-        if (id.startsWith("local-")) return
-        changeToday("today.update_todo", buildJsonObject { put("todo_id", id); put("done", done) }) {
-            it.copy(todos = it.todos.map { t -> if (t.id == id) t.copy(done = done) else t })
-        }
+        // A task that is not uploaded yet only changes on the phone (sent as a new task if it is open again).
+        val op = if (id.startsWith("local-")) null
+        else PendingOp("today.update_todo", buildJsonObject { put("todo_id", id); put("done", done) })
+        change(op) { it.copy(todos = it.todos.map { t -> if (t.id == id) t.copy(done = done) else t }) }
     }
 
     override fun setStepDone(index: Int, done: Boolean) {
-        changeToday("today.set_step", buildJsonObject { put("i", index); put("done", done) }) {
+        change(PendingOp("today.set_step", buildJsonObject { put("i", index); put("done", done) })) {
             it.copy(steps = it.steps.map { s -> if (s.index == index) s.copy(done = done) else s })
         }
     }
@@ -185,6 +226,8 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     override fun refreshIfDue() {
         if (auth.isLoggedIn) checkRecordingIfDue()
+        // Tasks saved offline go up as soon as Schoolhelp answers, also from the home screen.
+        if (auth.isLoggedIn && !pending.isEmpty()) refreshToday()
         if (job?.isActive == true) return
         if (!auth.isLoggedIn) {
             if (status.value !is BriefStatus.LoggingIn) status.value = BriefStatus.NeedsLogin
