@@ -75,4 +75,6 @@ data class ContextItem(
     val value: String = text,
     val label: String? = null,
     val progress: Float? = null,
+    /** Countdown in days (test tile): drawn as a row of dots, one per day left. */
+    val days: Int? = null,
 )

@@ -138,8 +138,8 @@ internal fun LessonContent(
                     HeroTitle(s.current.subject)
                     val left = runCatching { ChronoUnit.MINUTES.between(now.toLocalTime(), java.time.LocalTime.parse(s.current.end)).coerceAtLeast(0) }.getOrDefault(0L)
                     HeroLine(stringResource(R.string.lesson_until_left, s.current.end, left.toInt()), content)
-                    Spacer(Modifier.height(12.dp))
-                    HeroProgress(s.progress, content)
+                    Spacer(Modifier.height(14.dp))
+                    DayRuler(lessonsOn(f, today), now.toLocalTime(), content)
                     s.next?.let {
                         Spacer(Modifier.height(10.dp))
                         HeroLine(stringResource(R.string.lesson_next_at, it.subject, it.start), dim)
@@ -148,6 +148,11 @@ internal fun LessonContent(
                 is LessonState.Upcoming -> {
                     HeroTitle(s.next.subject)
                     HeroLine(stringResource(R.string.lesson_starts_at, s.next.start), content)
+                    // In a break the ruler shows where the day stands; before school it shows the day ahead.
+                    lessonsOn(f, today).takeIf { it.isNotEmpty() }?.let {
+                        Spacer(Modifier.height(14.dp))
+                        DayRuler(it, now.toLocalTime(), content)
+                    }
                 }
                 is LessonState.DayOver -> FreeHero(stringResource(R.string.lesson_day_over), s.next, today, dim)
                 is LessonState.DayOff -> FreeHero(s.title, s.next, today, dim)
@@ -196,6 +201,46 @@ private fun FreeHero(title: String, next: NextSchoolDay?, today: LocalDate, dim:
             stringResource(R.string.lesson_next_day, dueLabel(it.date, today, null).replaceFirstChar { c -> c.titlecase() }, it.first.subject, it.first.start),
             dim,
         )
+    }
+}
+
+/**
+ * The day ruler (round 21, the design language's signature): today's lessons as segments on one line,
+ * each as long as the lesson, breaks as gaps. Done lessons in ink, the running one filling with the accent
+ * (the accent's one use on the home screen), the rest as a faint track. First start and last end under it.
+ */
+@Composable
+private fun DayRuler(lessons: List<de.mm20.launcher2.schoolbrief.Lesson>, now: java.time.LocalTime, content: androidx.compose.ui.graphics.Color) {
+    fun min(t: String) = runCatching { java.time.LocalTime.parse(t).toSecondOfDay() / 60f }.getOrNull()
+    val spans = lessons.mapNotNull { l -> val a = min(l.start); val b = min(l.end); if (a != null && b != null && b > a) a to b else null }
+    if (spans.isEmpty()) return
+    val from = spans.first().first
+    val to = spans.last().second
+    val nowMin = now.toSecondOfDay() / 60f
+    val accent = schoolAccent(content)
+    val label = stringResource(R.string.lesson_ruler, lessons.first().start, lessons.last().end)
+    Column(Modifier.fillMaxWidth().semantics { contentDescription = label }) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().height(6.dp)) {
+            val h = size.height
+            val gap = 2.dp.toPx()
+            fun x(m: Float) = (m - from) / (to - from) * size.width
+            for ((a, b) in spans) {
+                val l = x(a); val r = (x(b) - gap).coerceAtLeast(l + 1f)
+                val radius = androidx.compose.ui.geometry.CornerRadius(h / 2, h / 2)
+                drawRoundRect(content.copy(alpha = 0.22f), androidx.compose.ui.geometry.Offset(l, 0f), androidx.compose.ui.geometry.Size(r - l, h), radius)
+                when {
+                    nowMin >= b -> drawRoundRect(content.copy(alpha = 0.7f), androidx.compose.ui.geometry.Offset(l, 0f), androidx.compose.ui.geometry.Size(r - l, h), radius)
+                    nowMin > a -> drawRoundRect(accent, androidx.compose.ui.geometry.Offset(l, 0f), androidx.compose.ui.geometry.Size((x(nowMin) - l).coerceAtMost(r - l), h), radius)
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth()) {
+            val small = MaterialTheme.typography.labelMedium.merge(SchoolTokens.Tabular).copy(shadow = wallpaperShadow(content))
+            Text(lessons.first().start, style = small, color = content.copy(alpha = 0.7f))
+            Spacer(Modifier.weight(1f))
+            Text(lessons.last().end, style = small, color = content.copy(alpha = 0.7f))
+        }
     }
 }
 
@@ -541,6 +586,7 @@ internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): Contex
                 else -> pluralStringResource(R.plurals.glance_days_in, c.days.toInt(), c.days.toInt())
             },
             label = stringResource(if (c.days >= 2) R.string.glance_until_test else R.string.glance_test_of, c.subject.ifBlank { c.title }),
+            days = c.days.toInt(),
         )
         is ContextCard.Chats -> ContextItem(
             "chats", pluralStringResource(R.plurals.context_chats, c.unread, c.unread), R.drawable.chat_24px, onClick = open,

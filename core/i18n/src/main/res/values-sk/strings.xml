@@ -1256,6 +1256,7 @@
     <string name="revision_focus_text">Učenie: %1$s</string>
     <string name="dashboard_column">Stĺpec %1$d</string>
     <string name="widget_tile_conditional">Ukáže sa, len keď je čo ukázať</string>
+    <string name="lesson_ruler">Dnešné hodiny od %1$s do %2$s</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>

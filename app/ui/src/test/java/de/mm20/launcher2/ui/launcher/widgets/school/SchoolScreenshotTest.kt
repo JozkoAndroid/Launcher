@@ -158,7 +158,7 @@ class SchoolScreenshotTest {
                 androidx.compose.ui.platform.LocalInspectionMode provides true,
             ) {
                 val items = listOf(
-                    ContextItem("test", "", de.mm20.launcher2.ui.R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Bio") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain"),
+                    ContextItem("test", "", de.mm20.launcher2.ui.R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Bio", days = 3) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain"),
                     ContextItem("nameday", "", de.mm20.launcher2.ui.R.drawable.celebration_24px, value = "René", label = "Meniny") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain", font = "serif"),
                     ContextItem("data", "", de.mm20.launcher2.ui.R.drawable.data_usage_24px, value = "2,9 GB", label = "z 3,5 GB", progress = 0.83f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),
                     ContextItem("steps", "", de.mm20.launcher2.ui.R.drawable.directions_walk_24px, value = "3 120", label = "Kroky · cieľ 8 000", progress = 0.39f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),

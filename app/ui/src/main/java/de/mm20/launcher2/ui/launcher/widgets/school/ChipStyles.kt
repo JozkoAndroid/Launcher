@@ -31,6 +31,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -85,12 +87,22 @@ internal fun ChipBlock(items: List<ContextItem>, config: ChipWidgetConfig) {
 /** Width of one tile when single-value blocks share rows (set by [ChipTiles]); null = block on its own. */
 val LocalTileWidth = androidx.compose.runtime.staticCompositionLocalOf<Dp?> { null }
 
+/** True inside the instrument panel ([ChipTiles]): tiles draw no box of their own. */
+val LocalInPanel = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+/** Where the panel's hairlines go, filled during layout and read when drawing (same frame). */
+private class PanelLines {
+    var cols = 0
+    var colPx = 0
+    var rows: List<Pair<Int, Int>> = emptyList() // (y, cells in the row)
+    var rowHeights: List<Int> = emptyList()
+}
+
 /**
- * Consecutive single-value blocks (name day, data, steps, ...) as a fixed grid of equal tiles: the same
- * width and the same 12dp gap in every row and column (the dashboard's column gap, so tile edges line up
- * with the blocks above) (round 15, device test: a tile with nothing to show, like the
- * test countdown without a test, still took a gap on both sides, so one row was spaced twice as wide).
- * Blocks with nothing to show take no slot; the last row starts at the left.
+ * Consecutive single-value blocks (name day, data, steps, ...) as one instrument panel (round 21, design
+ * language "instrument panel"): a single surface instead of a box per value, the cells parted by hairlines,
+ * the numbers as the heroes. Equal cells, the same in every row (round 15: a hidden tile no longer leaves a
+ * gap; it takes no cell). Empty values take no cell; the last row starts at the left.
  */
 @Composable
 fun ChipTiles(
@@ -98,34 +110,69 @@ fun ChipTiles(
     modifier: Modifier = Modifier,
     item: @Composable (de.mm20.launcher2.widgets.Widget) -> Unit,
 ) {
-    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
-        // 2 columns on narrow screens (cover), 3 from 450dp on (unfolded, tablet): the home set of six
-        // tiles then fills whole rows (3 + 3) instead of 4 + 2.
+    val lines = remember { PanelLines() }
+    val hairline = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    val surface = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = SchoolTokens.CardAlpha)
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        // 2 cells across on narrow screens (cover), 3 from 450dp (phone, unfolded, tablet column).
         val cols = (maxWidth / 150.dp).toInt().coerceIn(2, 3)
-        val gap = 12.dp
-        val w = (maxWidth - gap * (cols - 1)) / cols
-        CompositionLocalProvider(LocalTileWidth provides w) {
+        val w = maxWidth / cols
+        CompositionLocalProvider(LocalTileWidth provides w, LocalInPanel provides true) {
             androidx.compose.ui.layout.Layout(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(SchoolTokens.CardRadius))
+                    .background(surface)
+                    .drawWithContent {
+                        drawContent()
+                        val stroke = 1.dp.toPx()
+                        val inset = 18.dp.toPx()
+                        lines.rows.forEachIndexed { ri, (y, n) ->
+                            val h = lines.rowHeights[ri]
+                            // Between cells of a row: short vertical hairlines, inset from top and bottom.
+                            for (c in 1 until n) {
+                                val x = (c * lines.colPx).toFloat()
+                                drawLine(hairline, androidx.compose.ui.geometry.Offset(x, y + inset), androidx.compose.ui.geometry.Offset(x, y + h - inset), stroke)
+                            }
+                            // Between rows: one hairline, inset from the panel's sides.
+                            if (ri > 0) drawLine(hairline, androidx.compose.ui.geometry.Offset(inset, y.toFloat()), androidx.compose.ui.geometry.Offset(size.width - inset, y.toFloat()), stroke)
+                        }
+                    },
                 content = { for (x in widgets) androidx.compose.runtime.key(x.id) { item(x) } },
             ) { measurables, constraints ->
-                val gapPx = gap.roundToPx()
-                val colPx = (constraints.maxWidth - gapPx * (cols - 1)) / cols
+                val colPx = constraints.maxWidth / cols
                 val shown = measurables
                     .map { it.measure(androidx.compose.ui.unit.Constraints(minWidth = colPx, maxWidth = colPx)) }
                     .filter { it.height > 0 }
                 val rows = shown.chunked(cols)
                 val rowHeights = rows.map { r -> r.maxOf { it.height } }
-                // Each tile carries an 8dp bottom gap itself; 4dp more between rows makes 12dp, like the columns.
-                val rowGapPx = 4.dp.roundToPx()
-                val height = rowHeights.sum() + rowGapPx * (rows.size - 1).coerceAtLeast(0)
+                val height = rowHeights.sum()
+                var y = 0
+                lines.cols = cols
+                lines.colPx = colPx
+                lines.rowHeights = rowHeights
+                lines.rows = rows.mapIndexed { ri, r -> (y to r.size).also { y += rowHeights[ri] } }
                 layout(constraints.maxWidth, height) {
-                    var y = 0
+                    var top = 0
                     rows.forEachIndexed { ri, r ->
-                        r.forEachIndexed { ci, p -> p.placeRelative(ci * (colPx + gapPx), y) }
-                        y += rowHeights[ri] + rowGapPx
+                        r.forEachIndexed { ci, p -> p.placeRelative(ci * colPx, top) }
+                        top += rowHeights[ri]
                     }
                 }
             }
+        }
+    }
+}
+
+/** The test countdown as dots: one per day left (up to 14), today's in the accent. */
+@Composable
+private fun CountdownDots(days: Int, ink: Color) {
+    val shown = (days + 1).coerceIn(1, 14)
+    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+        for (i in 0 until shown) {
+            Box(
+                Modifier.size(6.dp).clip(CircleShape)
+                    .background(if (i == shown - 1) MaterialTheme.colorScheme.primary else ink.copy(alpha = 0.28f))
+            )
         }
     }
 }
@@ -171,18 +218,18 @@ private fun TileChip(item: ContextItem, config: ChipWidgetConfig) {
     val narrow = (LocalTileWidth.current ?: 200.dp) < 180.dp
     val size = when {
         config.font == "serif" -> if (narrow) 26 else 30
-        else -> if (narrow) 24 else 26
+        else -> if (narrow) 26 else 30
     }
+    val panel = LocalInPanel.current
     CompositionLocalProvider(LocalContentColor provides fg) {
         Column(
             Modifier
                 .width(LocalTileWidth.current ?: 168.dp)
-                .height(160.dp)
-                .padding(bottom = 8.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(bg)
-                .tap(item)
-                .padding(16.dp),
+                .then(
+                    // In the panel: no box of its own, the panel is the surface; the press shows in the cell.
+                    if (panel) Modifier.height(136.dp).tap(item).padding(horizontal = 18.dp, vertical = 16.dp)
+                    else Modifier.height(160.dp).padding(bottom = 8.dp).clip(RoundedCornerShape(24.dp)).background(bg).tap(item).padding(16.dp)
+                ),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -201,10 +248,14 @@ private fun TileChip(item: ContextItem, config: ChipWidgetConfig) {
                 item.label?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = SchoolTokens.SecondaryAlpha), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                item.days?.let { d ->
+                    Spacer(Modifier.height(10.dp))
+                    CountdownDots(d, fg)
+                }
                 item.progress?.let { p ->
                     Spacer(Modifier.height(10.dp))
                     LinearProgressIndicator(
-                        progress = { p }, modifier = Modifier.fillMaxWidth().height(SchoolTokens.ProgressHeight).clip(CircleShape),
+                        progress = { p }, modifier = Modifier.fillMaxWidth().height(if (panel) 2.dp else SchoolTokens.ProgressHeight).clip(CircleShape),
                         color = if (config.accent) fg else MaterialTheme.colorScheme.primary,
                         trackColor = fg.copy(alpha = 0.14f), drawStopIndicator = {},
                     )
@@ -255,12 +306,14 @@ private fun RingChip(item: ContextItem, config: ChipWidgetConfig) {
     val tileWidth = LocalTileWidth.current
     val ring = @Composable {
         Box(contentAlignment = Alignment.Center) {
+            // Instrument ring: thin, the same weight as the hairlines' family.
+            val panel = LocalInPanel.current
             CircularProgressIndicator(
-                progress = { p }, modifier = Modifier.size(56.dp), strokeWidth = 6.dp, strokeCap = StrokeCap.Round,
+                progress = { p }, modifier = Modifier.size(if (panel) 44.dp else 56.dp), strokeWidth = if (panel) 3.dp else 6.dp, strokeCap = StrokeCap.Round,
                 color = if (config.accent) fg else MaterialTheme.colorScheme.primary, trackColor = fg.copy(alpha = 0.14f),
                 gapSize = 0.dp,
             )
-            if (config.icon != "none") item.icon?.let { Icon(painterResource(it), null, Modifier.size(22.dp)) }
+            if (config.icon != "none") item.icon?.let { Icon(painterResource(it), null, Modifier.size(if (LocalInPanel.current) 18.dp else 22.dp)) }
             else Text("${(p * 100).toInt()} %", style = MaterialTheme.typography.labelMedium)
         }
     }
@@ -269,9 +322,12 @@ private fun RingChip(item: ContextItem, config: ChipWidgetConfig) {
     CompositionLocalProvider(LocalContentColor provides fg) {
         if (tileWidth != null) {
             // In the grid: ring on top, the value and its label under it, same height as the other tiles.
+            val panel = LocalInPanel.current
             Column(
-                Modifier.width(tileWidth).height(160.dp).padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(24.dp)).background(bg).tap(item).padding(16.dp),
+                Modifier.width(tileWidth).then(
+                    if (panel) Modifier.height(136.dp).tap(item).padding(horizontal = 18.dp, vertical = 16.dp)
+                    else Modifier.height(160.dp).padding(bottom = 8.dp).clip(RoundedCornerShape(24.dp)).background(bg).tap(item).padding(16.dp)
+                ),
                 verticalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

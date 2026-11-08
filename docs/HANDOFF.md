@@ -165,6 +165,18 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   (`GestureAction.SchoolChat` id kept), swipe up = search, swipe down = notifications (the user may have
   changed it on the device).
 
+## 5b. Design language: "instrument panel" (round 21)
+
+Monochrome ink on the wallpaper or one surface; the accent means only "now / progress"; hairlines (1dp,
+onSurface 10%) part things instead of boxes; numbers are the heroes (Display, tabular). One motif: the
+**dot / segment** for time. Keep new UI inside these rules:
+- Tiles: `ChipTiles` is one panel (one surface, cells parted by hairlines, `LocalInPanel`), not a box
+  per value. Rings are thin (3dp); progress is a 2dp line.
+- Time: `DayRuler` in the lesson block (lessons as segments, breaks as gaps, the running one filling with
+  the accent); `CountdownDots` on the test tile (one dot per day, the test day in the accent); the week
+  strip's due dots. New time displays should use the same dot or segment, not new shapes.
+- Bars and pills: `pillSurface` everywhere (Bars.kt). Sheets for detail (revision sheet), not new pages.
+
 ## 6. Schoolhelp MCP notes
 
 Endpoint `https://lessons.labeltranslator.com/mcp`, tool `app_call {name, arguments}`.
