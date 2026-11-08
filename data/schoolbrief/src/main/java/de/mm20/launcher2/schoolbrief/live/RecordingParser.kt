@@ -21,8 +21,17 @@ internal object RecordingParser {
     fun parse(status: JsonObject, now: LocalDateTime): Recording? {
         val root = (status["result"] as? JsonObject) ?: status
         val codes = (root["subjects"] as? JsonObject).orEmpty()
+        // "alive" also lists Schoolhelp's own services (seen live, Nov 2026: ["browser"] next to a running
+        // lesson). Only an entry that names a lesson counts: a "Folder/date" id, a subject code or folder.
+        val folders = codes.values.mapNotNull { (it as? JsonObject)?.let { o -> str(o, "folder") } }.toSet()
+        fun isLesson(e: JsonElement): Boolean {
+            val o = e as? JsonObject
+            val id = o?.let { str(it, "id") ?: str(it, "folder") ?: str(it, "subject") } ?: (e as? JsonPrimitive)?.contentOrNull ?: return false
+            val head = id.substringBefore('/')
+            return '/' in id || head in codes || head in folders || (o != null && (o["audio_seconds"] != null || o["paused"] != null))
+        }
         val entry: JsonElement = root["lesson"].takeUnless { it == null || it is JsonNull }
-            ?: (root["alive"] as? JsonArray)?.firstOrNull()
+            ?: (root["alive"] as? JsonArray)?.firstOrNull { isLesson(it) }
             ?: return null
         val o = entry as? JsonObject
         val raw = o?.let { str(it, "folder") ?: str(it, "subject") ?: str(it, "fach") ?: str(it, "name") ?: str(it, "id") }

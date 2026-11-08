@@ -232,8 +232,9 @@ internal fun isSheet(w: de.mm20.launcher2.widgets.Widget): Boolean = when (w) {
 internal const val WideDashboardMinWidthDp = 600
 
 /**
- * Fork: two-column dashboard for wide screens. Masonry: each block goes into the column that is
- * shorter so far (device test: alternating left/right left one column half empty after reordering).
+ * Fork: two-column dashboard for wide screens. Each block keeps the column chosen for it
+ * ([de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns]); round 10-15 used a masonry that moved
+ * blocks between columns whenever one grew.
  * The Gemini button spans the full width below.
  */
 @Composable
@@ -244,21 +245,26 @@ private fun WideDashboard(widgets: List<de.mm20.launcher2.widgets.Widget>, onWid
     val tiles = widgets.filter { it is de.mm20.launcher2.widgets.ChipWidget }
     val rest = widgets.filterNot { it is de.mm20.launcher2.widgets.AssistantWidget || it is de.mm20.launcher2.widgets.ChipWidget }
     val gap = 12.dp
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Read so a column change in edit mode lays the dashboard out again.
+    val columnChanges = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.changes.intValue
     androidx.compose.ui.layout.Layout(
         content = {
             for (w in rest) key(w.id) { WidgetItem(widget = w, onWidgetUpdate = onWidgetUpdate, modifier = Modifier.fillMaxWidth()) }
         },
     ) { measurables, constraints ->
+        columnChanges
         val gapPx = gap.roundToPx()
-        // Two columns on the unfolded Fold, three on a tablet.
-        val cols = if (constraints.maxWidth.toDp() >= 1000.dp) 3 else 2
+        val cols = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.count(constraints.maxWidth.toDp().value)
         val colWidth = (constraints.maxWidth - gapPx * (cols - 1)) / cols
         val heights = IntArray(cols)
-        val placed = measurables.map { m ->
+        // Round 16: each block in its own column (chosen in edit mode, else by kind), in list order. A block
+        // that grows pushes only the blocks under it, it never sends others to the other side.
+        val placed = measurables.mapIndexed { i, m ->
             val p = m.measure(androidx.compose.ui.unit.Constraints.fixedWidth(colWidth))
             // Empty blocks (nothing to show right now) take no slot.
-            if (p.height == 0) return@map Triple(p, 0, -1)
-            val col = heights.indices.minBy { heights[it] }
+            if (p.height == 0) return@mapIndexed Triple(p, 0, -1)
+            val col = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.column(context, rest[i], i, cols)
             val y = heights[col]
             heights[col] += p.height + gapPx
             Triple(p, y, col)

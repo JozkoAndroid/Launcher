@@ -1407,6 +1407,7 @@
     <string name="revision_no_topics">No topics in Schoolhelp. Ask the teacher or check your notes.</string>
     <string name="revision_start">Study %1$d min</string>
     <string name="revision_focus_text">Studying: %1$s</string>
+    <string name="dashboard_column">Column %1$d</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

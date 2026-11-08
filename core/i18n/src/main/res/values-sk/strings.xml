@@ -1253,6 +1253,7 @@
     <string name="revision_no_topics">Témy v Schoolhelpe nie sú. Spýtaj sa učiteľa alebo pozri zošit.</string>
     <string name="revision_start">Učiť sa %1$d min</string>
     <string name="revision_focus_text">Učenie: %1$s</string>
+    <string name="dashboard_column">Stĺpec %1$d</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>

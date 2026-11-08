@@ -130,6 +130,18 @@ fun WidgetItem(
                         overflow = TextOverflow.Ellipsis,
                         maxLines = 1
                     )
+                    // Fork (round 16): on the wide dashboard, the column this block sits in; tap for the next.
+                    val widthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+                    if (widthDp >= WideDashboardMinWidthDp && widget !is de.mm20.launcher2.widgets.ChipWidget && widget !is de.mm20.launcher2.widgets.AssistantWidget) {
+                        val ctx = LocalContext.current
+                        val cols = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.count(widthDp.toFloat())
+                        // Read so the label follows a change.
+                        de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.changes.intValue
+                        val col = de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.column(ctx, widget, 0, cols)
+                        androidx.compose.material3.TextButton(onClick = {
+                            de.mm20.launcher2.ui.launcher.widgets.school.DashboardColumns.set(ctx, widget, (col + 1) % cols)
+                        }) { Text(stringResource(R.string.dashboard_column, col + 1)) }
+                    }
                     IconButton(onClick = {
                         configure = true
                     }) {

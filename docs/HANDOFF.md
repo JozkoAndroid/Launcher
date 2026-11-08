@@ -123,6 +123,11 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   sets it in its gitignored config.xml), so no request was ever sent. Now in
   `data/weather/src/main/res/values/metno_contact.xml` (project URL, kept from shrinking).
   `DevicePoseProvider` also reads the fused provider and listens on the main looper.
+- Wide dashboard (round 16): `DashboardColumns` keeps each block in its column (edit mode on a wide
+  screen: "Stĺpec N" button in the block header; default by kind). No masonry: a growing block pushes
+  only the blocks under it.
+- `RecordingParser`: "alive" also lists Schoolhelp services ("browser"); only lesson-like entries count.
+  Live shape of lessons.status is in `RecordingParserTest` (trimmed, no personal data).
 - Code map: `graphify update .` on a copy of the fork code (scratchpad) gives graph.json /
   GRAPH_REPORT.md; `graphify explain X`, `graphify path A B` to navigate (local, no LLM).
 - `ForkSetup.kt`: versioned one-time migrations (now `Version = 13`), recommended layout
