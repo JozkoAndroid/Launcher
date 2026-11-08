@@ -89,7 +89,11 @@ internal class PushScaffoldAnimationController(
         } else {
             lowerPage + size.width
         }
-        val threshold = (upperPage + lowerPage) / 2f
+        // Fork: a third of the way switches the page, from home and back alike (was half the screen).
+        val secondary = if (lowerPage == 0f) upperPage else lowerPage
+        val from = if (currentPage == ScaffoldPage.Home) 0f else secondary
+        val to = if (currentPage == ScaffoldPage.Home) secondary else 0f
+        val threshold = from + (to - from) * 0.33f
 
         val target = if (direction.orientation == Orientation.Vertical) {
             if (offset.y > threshold && velocity.y > -velocityThreshold || velocity.y > velocityThreshold) {

@@ -94,9 +94,10 @@ data class ChipWidget(
 
     companion object {
         const val TypePrefix = "school_chip_"
-        val Kinds = listOf("test", "chats", "lunch", "nameday", "birthday", "music", "steps", "data", "instagram")
+        val Kinds = listOf("add", "test", "chats", "lunch", "nameday", "birthday", "music", "steps", "data", "instagram")
 
         fun labelRes(kind: String): Int = when (kind) {
+            "add" -> R.string.chip_name_add
             "test" -> R.string.chip_name_test
             "chats" -> R.string.chip_name_chats
             "lunch" -> R.string.chip_name_lunch

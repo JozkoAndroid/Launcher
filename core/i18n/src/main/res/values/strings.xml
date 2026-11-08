@@ -1267,7 +1267,7 @@
     <string name="chip_name_data">Mobile data</string>
     <string name="chip_name_instagram">Instagram time</string>
     <string name="chip_only_contacts">Only when one of my contacts celebrates</string>
-    <string name="chip_hidden_hint">Shows only when it applies; the settings for all cards are in “Right now”.</string>
+    <string name="chip_hidden_hint">Shows only when it has something to show.</string>
     <string name="chat_close">Close</string>
     <string name="chat_key_title">Gemini key</string>
     <string name="widget_name_week">Week</string>
@@ -1354,4 +1354,27 @@
     <string name="apps_add">Add apps</string>
     <string name="apps_to_folder">Move to folder %1$s</string>
     <string name="apps_remove">Remove from page</string>
+    <string name="chip_name_add">Add to Schoolhelp</string>
+    <string name="add_title">Add to Schoolhelp</string>
+    <string name="add_value">Add</string>
+    <string name="add_label">homework, test, event</string>
+    <string name="add_name">Title</string>
+    <string name="add_when">When</string>
+    <string name="add_subject">Subject</string>
+    <string name="add_save">Save</string>
+    <string name="add_open_schoolhelp">Open Schoolhelp</string>
+    <string name="add_hint">Only you see it. If Schoolhelp is down, it waits on the phone.</string>
+    <string name="school_settings">School</string>
+    <string name="school_settings_summary">Schoolhelp, Gemini, permissions, layout</string>
+    <string name="school_settings_open">Open school settings</string>
+    <string name="school_settings_where">Accounts, keys and permissions are in Settings, School.</string>
+    <string name="school_settings_layout">Layout</string>
+    <string name="layout_reset">Restore recommended layout</string>
+    <string name="layout_reset_info">The blocks on the home screen and the panel as recommended.</string>
+    <string name="layout_reset_confirm">This replaces the blocks on the home screen and the panel. App widgets stay.</string>
+    <string name="layout_reset_ok">Restore</string>
+    <plurals name="pending_changes">
+        <item quantity="one">%d change waits to be sent</item>
+        <item quantity="other">%d changes wait to be sent</item>
+    </plurals>
 </resources>

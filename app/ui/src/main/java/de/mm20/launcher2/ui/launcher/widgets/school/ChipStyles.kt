@@ -99,7 +99,9 @@ fun ChipTiles(
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
         // As many 150dp tiles as fit (2 on the cover, 5 unfolded, 6 at most); fewer tiles share the width evenly.
         val fit = (maxWidth / 150.dp).toInt().coerceIn(2, 6)
-        val cols = if (widgets.size in 2 until fit) widgets.size else fit
+        // Balanced rows (device test: uneven rows on the unfolded screen): 6 tiles where 5 fit become 3 + 3.
+        val rows = (widgets.size + fit - 1) / fit
+        val cols = if (rows == 0) fit else ((widgets.size + rows - 1) / rows).coerceAtLeast(2)
         // 1dp slack: rounding to pixels must not push the last tile of a row onto the next line.
         val w = (maxWidth - 8.dp * (cols - 1)) / cols - 1.dp
         CompositionLocalProvider(LocalTileWidth provides w) {
@@ -370,4 +372,13 @@ fun ColumnScope.ConfigureChipWidget(
     }
     Spacer(Modifier.height(8.dp))
     Text(stringResource(R.string.chip_hidden_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    SchoolSettingsLink()
+}
+
+/** Accounts, keys and permissions live in one place; block settings point there. */
+@Composable
+fun SchoolSettingsLink() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Text(stringResource(R.string.school_settings_where), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    androidx.compose.material3.TextButton(onClick = { Links.openSchoolSettings(context) }) { Text(stringResource(R.string.school_settings_open)) }
 }

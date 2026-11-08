@@ -21,6 +21,7 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     val feed: Flow<Feed?> = repository.feed
     val status: StateFlow<BriefStatus> = repository.status
     val hasGeminiKey: StateFlow<Boolean> = repository.hasGeminiKey
+    val pendingChanges: StateFlow<Int> = repository.pendingChanges
 
     /**
      * Ticks on every full minute while a school block is on screen. Each tick asks the repository
@@ -42,6 +43,8 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     fun logout() = repository.logout()
     fun setGeminiKey(key: String?) = repository.setGeminiKey(key)
     fun retry() = repository.refreshIfDue()
+
+    fun addEvent(kind: String, title: String, date: java.time.LocalDate, subject: String?) = repository.addEvent(kind, title, date, subject)
 
     fun markDone(taskId: String, done: Boolean = true) = repository.markDone(taskId, done)
 

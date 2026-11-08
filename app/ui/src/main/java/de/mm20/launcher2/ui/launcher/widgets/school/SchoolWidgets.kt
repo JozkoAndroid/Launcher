@@ -751,6 +751,7 @@ private fun updatedTime(feed: Feed): String =
 /** One chip as its own block: its card's value in the block's style (birthdays: one per person). */
 @Composable
 fun ChipWidget(widget: de.mm20.launcher2.widgets.ChipWidget) {
+    if (widget.kind == "add") { AddTile(widget.config); return }
     val vm: ContextVM = viewModel(key = "school-context")
     val all by vm.allCards.collectAsState(emptyList())
     val usage by vm.usageAccess.collectAsState()

@@ -40,4 +40,13 @@ internal object Links {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }
     }
+
+    /** The school settings screen (Schoolhelp, Gemini, permissions, layout). */
+    fun openSchoolSettings(context: android.content.Context) {
+        context.startActivity(
+            android.content.Intent(context, de.mm20.launcher2.ui.settings.SettingsActivity::class.java)
+                .putExtra(de.mm20.launcher2.ui.settings.SettingsActivity.EXTRA_ROUTE, de.mm20.launcher2.ui.settings.SettingsActivity.ROUTE_SCHOOL)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
 }

@@ -49,6 +49,13 @@ fun ColumnScope.ConfigureSchoolBrief() {
         is BriefStatus.LoggingIn -> Text(stringResource(R.string.school_login_in_browser), style = MaterialTheme.typography.bodyLarge)
         else -> {
             Text(stringResource(R.string.brief_settings_logged_in), style = MaterialTheme.typography.bodyLarge)
+            val waiting by vm.pendingChanges.collectAsState()
+            if (waiting > 0) {
+                Text(
+                    androidx.compose.ui.res.pluralStringResource(R.plurals.pending_changes, waiting, waiting),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             (status as? BriefStatus.Error)?.let {
                 Spacer(Modifier.height(4.dp))
                 Text(

@@ -1243,6 +1243,12 @@ internal fun LauncherScaffold(
                 }
 
                 override suspend fun onPreFling(available: Velocity): Velocity {
+                    // Fork: while a page transition is moving, the flick belongs to it, not to a child (the
+                    // panel's pager used to swallow it, so going back needed half the screen).
+                    if (state.currentProgress != 0f && state.currentProgress != 1f) {
+                        state.onDragStopped(available)
+                        return available
+                    }
                     return super.onPreFling(available)
                 }
 

@@ -31,6 +31,17 @@ fun MainSettingsScreen() {
         title = stringResource(R.string.settings),
     ) {
         item {
+            // Fork: the school launcher's settings first, all in one place.
+            PreferenceCategory {
+                Preference(
+                    icon = R.drawable.school_24px,
+                    title = stringResource(id = R.string.school_settings),
+                    summary = stringResource(id = R.string.school_settings_summary),
+                    onClick = { backStack.add(de.mm20.launcher2.ui.settings.school.SchoolSettingsRoute) }
+                )
+            }
+        }
+        item {
             PreferenceCategory {
                 Preference(
                     icon = R.drawable.palette_24px,

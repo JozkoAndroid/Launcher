@@ -117,9 +117,7 @@ import de.mm20.launcher2.widgets.AppsWidget
 import de.mm20.launcher2.widgets.CalendarWidget
 import de.mm20.launcher2.widgets.MusicWidget
 import de.mm20.launcher2.widgets.NotesWidget
-import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureSchoolBrief
 import de.mm20.launcher2.ui.launcher.widgets.school.ConfigureChipWidget
-import de.mm20.launcher2.ui.launcher.widgets.school.context.ConfigureSchoolContext
 import de.mm20.launcher2.widgets.BriefWidget
 import de.mm20.launcher2.widgets.ContextWidget
 import de.mm20.launcher2.widgets.AssistantWidget
@@ -165,9 +163,9 @@ fun ConfigureWidgetSheet(
                 is AppsWidget -> ConfigureFavoritesWidget(widget, onWidgetUpdated)
                 is MusicWidget -> ConfigureMusicWidget(widget, onWidgetUpdated)
                 is NotesWidget -> ConfigureNotesWidget(widget, onWidgetUpdated)
-                is BriefWidget -> ConfigureSchoolBrief()
+                is BriefWidget -> de.mm20.launcher2.ui.launcher.widgets.school.SchoolSettingsLink()
                 // The other school widgets have no options in version 1.
-                is ContextWidget -> ConfigureSchoolContext()
+                is ContextWidget -> de.mm20.launcher2.ui.launcher.widgets.school.SchoolSettingsLink()
                 is ChipWidget -> ConfigureChipWidget(widget, onWidgetUpdated)
                 is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget, is WeekWidget, is MyDayWidget, is TestPrepWidget -> {}
             }

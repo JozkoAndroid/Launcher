@@ -202,7 +202,12 @@ internal fun DayContent(
                     .padding(top = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                ModeSwitch(asking, onAsking, Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp))
+                Row(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+                    Segmented(
+                        listOf(false to stringResource(R.string.day_mode_task), true to stringResource(R.string.day_mode_ask)),
+                        selected = asking, onSelect = onAsking,
+                    )
+                }
                 if (asking) chat(bottom) else CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
             }
         }
@@ -290,31 +295,6 @@ private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -
                 maxLines = 3, overflow = TextOverflow.Ellipsis,
             )
             if (!meta.isNullOrBlank()) Secondary(meta)
-        }
-    }
-}
-
-/** "Úloha | Opýtaj sa": two connected segments, the selected one filled; one decision, one bar. */
-@Composable
-private fun ModeSwitch(asking: Boolean, onAsking: (Boolean) -> Unit, modifier: Modifier) {
-    Row(modifier) {
-        Row(
-            Modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp),
-        ) {
-            for ((value, label) in listOf(false to R.string.day_mode_task, true to R.string.day_mode_ask)) {
-                val selected = asking == value
-                Text(
-                    stringResource(label),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(if (selected) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.Transparent)
-                        .clickable(role = Role.Tab) { onAsking(value) }
-                        .heightIn(min = 36.dp)
-                        .padding(horizontal = 16.dp, vertical = 9.dp),
-                )
-            }
         }
     }
 }

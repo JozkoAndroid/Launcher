@@ -1103,7 +1103,7 @@
     <string name="chip_name_data">Mobilné dáta</string>
     <string name="chip_name_instagram">Čas na Instagrame</string>
     <string name="chip_only_contacts">Len keď má meniny niekto z mojich kontaktov</string>
-    <string name="chip_hidden_hint">Zobrazí sa, len keď platí; povolenia a nastavenia všetkých kariet sú v bloku „Práve teraz“.</string>
+    <string name="chip_hidden_hint">Zobrazí sa, len keď má čo ukázať.</string>
     <string name="chat_close">Zavrieť</string>
     <string name="chat_key_title">Kľúč Gemini</string>
     <string name="widget_name_week">Týždeň</string>
@@ -1196,4 +1196,29 @@
     <string name="apps_add">Pridať aplikácie</string>
     <string name="apps_to_folder">Presunúť do priečinka %1$s</string>
     <string name="apps_remove">Odstrániť zo stránky</string>
+    <string name="chip_name_add">Pridať do Schoolhelp</string>
+    <string name="add_title">Pridať do Schoolhelp</string>
+    <string name="add_value">Pridať</string>
+    <string name="add_label">úlohu, test, termín</string>
+    <string name="add_name">Názov</string>
+    <string name="add_when">Kedy</string>
+    <string name="add_subject">Predmet</string>
+    <string name="add_save">Uložiť</string>
+    <string name="add_open_schoolhelp">Otvoriť Schoolhelp</string>
+    <string name="add_hint">Vidíš to len ty. Keď je Schoolhelp nedostupný, počká v telefóne.</string>
+    <string name="school_settings">Škola</string>
+    <string name="school_settings_summary">Schoolhelp, Gemini, povolenia, rozloženie</string>
+    <string name="school_settings_open">Otvoriť nastavenia školy</string>
+    <string name="school_settings_where">Účty, kľúče a povolenia sú v Nastaveniach, časť Škola.</string>
+    <string name="school_settings_layout">Rozloženie</string>
+    <string name="layout_reset">Obnoviť odporúčané rozloženie</string>
+    <string name="layout_reset_info">Bloky na domovskej obrazovke a na paneli tak, ako ich odporúčam.</string>
+    <string name="layout_reset_confirm">Nahradí bloky na domovskej obrazovke a na paneli. Widgety aplikácií zostanú.</string>
+    <string name="layout_reset_ok">Obnoviť</string>
+    <plurals name="pending_changes">
+        <item quantity="one">%d zmena čaká na odoslanie</item>
+        <item quantity="few">%d zmeny čakajú na odoslanie</item>
+        <item quantity="many">%d zmeny čaká na odoslanie</item>
+        <item quantity="other">%d zmien čaká na odoslanie</item>
+    </plurals>
 </resources>

@@ -26,7 +26,10 @@ internal object SchoolChatComponent : ScaffoldComponent() {
 
     @Composable
     override fun Component(modifier: Modifier, insets: PaddingValues, state: LauncherScaffoldState) {
-        de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState, shown)
+        // The scaffold slides a page through [modifier]; without it the page sat in place over home (device test).
+        androidx.compose.foundation.layout.Box(modifier) {
+            de.mm20.launcher2.ui.launcher.widgets.school.DayPage(listState, shown)
+        }
     }
 }
 
@@ -36,6 +39,6 @@ internal object SchoolWeekComponent : ScaffoldComponent() {
 
     @Composable
     override fun Component(modifier: Modifier, insets: PaddingValues, state: LauncherScaffoldState) {
-        SchoolWeekPage(insets)
+        androidx.compose.foundation.layout.Box(modifier) { SchoolWeekPage(insets) }
     }
 }

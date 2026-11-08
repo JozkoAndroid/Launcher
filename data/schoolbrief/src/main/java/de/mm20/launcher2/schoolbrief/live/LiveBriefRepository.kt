@@ -126,6 +126,7 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     private val todayFile = File(context.filesDir, "schoolbrief/today.json")
     private val pending = PendingQueue(File(context.filesDir, "schoolbrief/pending.json"))
     private val syncLock = kotlinx.coroutines.sync.Mutex()
+    override val pendingChanges = MutableStateFlow(pending.all().size)
 
     override val today = MutableStateFlow(
         runCatching { json.decodeFromString(de.mm20.launcher2.schoolbrief.TodayData.serializer(), todayFile.readText()) }.getOrNull()
@@ -145,7 +146,10 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         val sent = flush()
         runCatching { mcp.appCallAll("today.read") }
             .onSuccess { r -> setToday(withPending(TodayParser.parse(r, LocalDate.now())).copy(offline = !sent)) }
-            .onFailure { e -> Log.w(Tag, "today.read failed", e); today.value?.let { setToday(it.copy(offline = true)) } }
+            .onFailure { e ->
+                Log.w(Tag, "today.read failed", e)
+                setToday((today.value ?: de.mm20.launcher2.schoolbrief.TodayData(LocalDate.now().toString(), emptyList(), emptyList())).copy(offline = true))
+            }
     }
 
     /** True when the queue is empty afterwards. Stops at the first failure so the order is kept. */
@@ -155,9 +159,13 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
             if (op.localId != null && today.value?.todos?.any { it.id == op.localId && it.done } == true) {
                 pending.remove(op); continue
             }
-            val ok = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }.isSuccess
-            if (!ok) return false
+            val result = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }
+            // Schoolhelp answered but refused the change: drop it, or it would block every later change.
+            val refused = (result.exceptionOrNull() as? IllegalStateException)?.message?.startsWith("Schoolhelp:") == true
+            if (result.isFailure && !refused) return false
             pending.remove(op)
+            pendingChanges.value = pending.all().size
+            if (op.action == "calendar.add_private") { lastAttempt = 0; prefs.edit().putLong(KeyDataAt, 0).apply() }
         }
         return true
     }
@@ -184,7 +192,26 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     private fun change(op: PendingOp?, local: (de.mm20.launcher2.schoolbrief.TodayData) -> de.mm20.launcher2.schoolbrief.TodayData) {
         val base = today.value ?: de.mm20.launcher2.schoolbrief.TodayData(LocalDate.now().toString(), emptyList(), emptyList())
         setToday(local(base))
-        op?.let { pending.add(it) }
+        op?.let { pending.add(it); pendingChanges.value = pending.all().size }
+        scope.launch { sync() }
+    }
+
+    override fun addEvent(kind: String, title: String, date: LocalDate, subject: String?) {
+        val t = title.trim().take(200)
+        if (t.isEmpty()) return
+        val id = "local-${System.currentTimeMillis()}"
+        pending.add(PendingOp("calendar.add_private", buildJsonObject {
+            put("title", t); put("start", date.toString()); put("kind", kind)
+            subject?.takeIf { it.isNotBlank() }?.let { put("folder", it) }
+        }, localId = id))
+        pendingChanges.value = pending.all().size
+        // In the task list at once (and in the saved copy), until the next Schoolhelp refresh replaces it.
+        feed.value?.let { f ->
+            val task = de.mm20.launcher2.schoolbrief.SchoolTask(id = id, kind = kind, title = t, subject = subject.orEmpty(), due = date.toString())
+            val next = f.copy(tasks = f.tasks + task)
+            feed.value = next
+            writeCache(next)
+        }
         scope.launch { sync() }
     }
 
@@ -289,6 +316,8 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     private suspend fun refresh(forceBrief: Boolean) {
         status.value = BriefStatus.Refreshing
+        // Changes saved on the phone go first, so the list read next already has them.
+        if (!pending.isEmpty()) runCatching { syncLock.withLock { flush() } }
         try {
             val nowZ = OffsetDateTime.now(ZoneId.systemDefault())
             val today = nowZ.toLocalDate()

@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 10
+    private const val Version = 11
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -95,6 +95,17 @@ object ForkSetup : KoinComponent {
             if (from < 10) {
                 widgets.get(WidgetScreenTarget.Widgets2.id).first().filterIsInstance<de.mm20.launcher2.widgets.FoldersWidget>().forEach { widgets.delete(it) }
             }
+            // v11: the "+" tile (add to Schoolhelp) joins the home tiles, first in their row.
+            if (from in 8..10) {
+                val home = widgets.get(WidgetScreenTarget.Default.id).first()
+                if (home.none { it is de.mm20.launcher2.widgets.ChipWidget && it.kind == "add" }) {
+                    val at = home.indexOfFirst { it is de.mm20.launcher2.widgets.ChipWidget }.let { if (it < 0) home.size else it }
+                    widgets.create(
+                        de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), "add", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle")),
+                        at, WidgetScreenTarget.Default.id,
+                    )
+                }
+            }
             // v4 (folders on home) is superseded by v8.
             prefs.edit().putInt("version", Version).apply()
         }
@@ -115,6 +126,7 @@ object ForkSetup : KoinComponent {
             BriefWidget(UUID.randomUUID()),
             TasksWidget(UUID.randomUUID()),
             WeatherWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.WeatherWidgetConfig(showForecast = false)),
+            chip("add", tile),
             chip("test", tile.copy(accent = true)),
             chip("nameday", tile.copy(font = "serif")),
             chip("data", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
@@ -122,6 +134,11 @@ object ForkSetup : KoinComponent {
             chip("instagram", tile.copy(font = "condensed")),
             ContextWidget(UUID.randomUUID()),
         ).forEachIndexed { i, w -> widgets.create(w, i, parent) }
+    }
+
+    /** From the school settings: put the recommended blocks back (app widgets stay). */
+    fun resetLayout(context: Context) {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch { applyRecommendedLayout() }
     }
 
     private suspend fun applyRecommendedLayout() {

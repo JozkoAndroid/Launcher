@@ -86,6 +86,15 @@ interface BriefRepository {
     fun setTodoDone(id: String, done: Boolean) {}
     fun setStepDone(index: Int, done: Boolean) {}
 
+    /**
+     * Adds a homework, test or appointment only the student sees (calendar.add_private); shown in the
+     * task list at once and kept on the phone until Schoolhelp has it. [kind] = SchoolTask kind.
+     */
+    fun addEvent(kind: String, title: String, date: java.time.LocalDate, subject: String?) {}
+
+    /** Changes saved on the phone that Schoolhelp does not have yet. */
+    val pendingChanges: StateFlow<Int> get() = MutableStateFlow(0)
+
     /** Pause/continue or stop: Schoolhelp asks for a tap to confirm, so the caller opens Schoolhelp. */
     fun pauseRecording(pause: Boolean)
     fun stopRecording()
