@@ -1222,4 +1222,10 @@
         <item quantity="other">%d zmien čaká na odoslanie</item>
     </plurals>
     <string name="add_other_date">Iný dátum</string>
+    <string name="focus_channel">Časovač sústredenia</string>
+    <string name="focus_done_title">Čas vypršal. Krok je odškrtnutý.</string>
+    <string name="focus_label">Sústredenie</string>
+    <string name="focus_finish">Hotovo</string>
+    <string name="focus_cancel">Zastaviť</string>
+    <string name="focus_start">Spustiť %1$d min sústredenia</string>
 </resources>

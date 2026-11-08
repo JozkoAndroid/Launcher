@@ -1378,4 +1378,10 @@
         <item quantity="other">%d changes wait to be sent</item>
     </plurals>
     <string name="add_other_date">Other date</string>
+    <string name="focus_channel">Focus timer</string>
+    <string name="focus_done_title">Time is up. Step ticked off.</string>
+    <string name="focus_label">Focus</string>
+    <string name="focus_finish">Done</string>
+    <string name="focus_cancel">Stop</string>
+    <string name="focus_start">Start %1$d min focus</string>
 </resources>

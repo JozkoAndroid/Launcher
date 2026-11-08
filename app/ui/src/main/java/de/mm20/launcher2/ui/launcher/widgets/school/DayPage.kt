@@ -138,9 +138,8 @@ internal fun DayContent(
     val openSteps = today?.steps?.count { !it.done } ?: 0
 
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        // The page has its own surface that slides with it (device test: mid-swipe the page's text lay over the
-        // home screen). The wallpaper still shows faintly through.
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))) {
+        // Transparent like the widget panel (round 13): the scaffold's page scrim slides with the page.
+        Box(Modifier.fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = listState,
@@ -166,6 +165,7 @@ internal fun DayContent(
                         }
                     }
                 }
+                item { FocusPanel() }
                 if (showLessons) {
                     item { DaySection(stringResource(R.string.day_section_lessons)) }
                     items(lessons, key = { "l" + it.start }) { l -> LessonLine(l, time) }
@@ -194,12 +194,6 @@ internal fun DayContent(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            0f to MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-                            0.25f to MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                        )
-                    )
                     .padding(top = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -252,10 +246,24 @@ private fun LessonLine(l: Lesson, now: String) {
 
 @Composable
 private fun StepLine(s: PlanStep, onStep: (Int, Boolean) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // The end of a session is a notification: ask for that permission when the first one starts.
+    val askNotify = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { FocusTimer.start(context, s) }
     CheckLine(
         text = s.text, done = s.done,
         meta = listOfNotNull(s.minutes?.let { stringResource(R.string.day_minutes, it) }, s.subject.takeIf { it.isNotBlank() }).joinToString(" · "),
         onToggle = { onStep(s.index, !s.done) },
+        trailing = if (s.done || s.minutes == null) null else ({
+            IconButton(onClick = {
+                val granted = android.os.Build.VERSION.SDK_INT < 33 ||
+                    context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (granted) FocusTimer.start(context, s) else askNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }) {
+                Icon(painterResource(R.drawable.play_arrow_24px), contentDescription = stringResource(R.string.focus_start, s.minutes ?: 0))
+            }
+        }),
     )
 }
 
@@ -266,7 +274,7 @@ private fun TodoLine(t: Todo, onTodo: (String, Boolean) -> Unit) {
 
 /** One checkable row: the whole row toggles; done = filled circle, struck-through text. */
 @Composable
-private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -> Unit) {
+private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
     val ring by animateColorAsState(if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface, label = "ring")
     val label = stringResource(if (done) R.string.day_mark_open else R.string.task_done)
     Row(
@@ -297,6 +305,7 @@ private fun CheckLine(text: String, done: Boolean, meta: String?, onToggle: () -
             )
             if (!meta.isNullOrBlank()) Secondary(meta)
         }
+        trailing?.invoke()
     }
 }
 

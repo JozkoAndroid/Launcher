@@ -133,11 +133,15 @@ fun SearchBar(
         else 1f
     }
 
+    // Fork (round 13): the same pill as the dock and the input bars: height, round ends, surface, shadow.
+    val barH = de.mm20.launcher2.ui.launcher.widgets.school.barHeight()
     LauncherCard(
         modifier = modifier
             .alpha(opacity),
         backgroundOpacity = backgroundOpacity,
-        elevation = elevation
+        elevation = if (style == SearchBarStyle.Transparent) elevation else maxOf(elevation, 6.dp),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(barH / 2),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = (backgroundOpacity * 0.94f).coerceIn(0f, 1f)),
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor
@@ -146,7 +150,7 @@ fun SearchBar(
                 verticalArrangement = if (reverse) Arrangement.BottomReversed else Arrangement.Top
             ) {
                 Row(
-                    modifier = Modifier.height(48.dp),
+                    modifier = Modifier.height(barH).padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(

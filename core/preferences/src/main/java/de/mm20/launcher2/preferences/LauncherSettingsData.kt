@@ -121,7 +121,8 @@ data class LauncherSettingsData internal constructor(
     // Fork default: the keyboard opens only when the search field is tapped.
     val searchBarKeyboard: Boolean = false,
     val searchLaunchOnEnter: Boolean = true,
-    val searchBarBottom: Boolean = false,
+    // Fork: the search pill sits at the bottom of every page, like the dock and the input bars.
+    val searchBarBottom: Boolean = true,
     val searchBarFixed: Boolean = false,
 
     val searchResultsReversed: Boolean = false,

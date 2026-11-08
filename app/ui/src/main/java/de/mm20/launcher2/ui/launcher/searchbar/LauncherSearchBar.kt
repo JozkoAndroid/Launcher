@@ -70,7 +70,8 @@ fun LauncherSearchBar(
         SearchBar(
             modifier = Modifier
                 .align(if (bottomSearchBar) Alignment.BottomCenter else Alignment.TopCenter)
-                .padding(8.dp)
+                // Fork: same side and bottom margins as the dock.
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .offset { IntOffset(0, searchBarOffset()) },
             style = style, level = level(), value = value, onValueChange = {
                 searchVM.search(it)

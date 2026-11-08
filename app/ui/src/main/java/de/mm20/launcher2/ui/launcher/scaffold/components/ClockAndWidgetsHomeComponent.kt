@@ -189,11 +189,15 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                 modifier = Modifier.align(Alignment.BottomCenter),
                 enter = fadeIn(), exit = fadeOut(),
             ) {
-                de.mm20.launcher2.ui.launcher.widgets.school.FloatingDock(
+                androidx.compose.foundation.layout.Column(
                     Modifier
                         .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars)
-                        .padding(bottom = 12.dp)
-                )
+                        .padding(bottom = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    de.mm20.launcher2.ui.launcher.widgets.school.FocusLine()
+                    de.mm20.launcher2.ui.launcher.widgets.school.FloatingDock()
+                }
             }
         }
         if (editMode) {
@@ -221,6 +225,15 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                             painterResource(R.drawable.arrow_back_24px),
                             stringResource(R.string.action_done)
                         )
+                    }
+                },
+                // Settings from the home screen too (the search pill with its menu is not shown on home).
+                actions = {
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
+                    IconButton(onClick = {
+                        ctx.startActivity(android.content.Intent(ctx, de.mm20.launcher2.ui.settings.SettingsActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                    }) {
+                        Icon(painterResource(R.drawable.settings_24px), stringResource(R.string.settings))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

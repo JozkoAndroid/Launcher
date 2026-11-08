@@ -248,8 +248,9 @@ private fun DayCardContent(f: Feed, day: LocalDate, today: LocalDate) {
         for (l in lessons) {
             Row(Modifier.heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
                 Secondary(l.start, Modifier.width(52.dp))
-                SubjectBadge(l.subject, 28.dp, fontSize = 12)
-                Spacer(Modifier.width(10.dp))
+                // Minimal (round 13): the subject's color as a small dot instead of a lettered badge.
+                Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(subjectColors(l.subject).container))
+                Spacer(Modifier.width(14.dp))
                 Text(l.subject, style = MaterialTheme.typography.bodyLarge)
             }
         }

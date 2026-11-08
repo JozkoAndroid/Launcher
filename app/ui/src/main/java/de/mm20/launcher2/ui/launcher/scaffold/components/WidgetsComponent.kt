@@ -238,8 +238,10 @@ internal class WidgetsComponent(
     private val pager = androidx.compose.foundation.pager.PagerState { 2 }
 
     override suspend fun onDismiss(state: LauncherScaffoldState) {
-        pager.scrollToPage(0)
         super.onDismiss(state)
+        // Leaving for search keeps the page and position, so coming back lands exactly where you were.
+        if (state.currentComponent is SearchComponent) return
+        pager.scrollToPage(0)
         scrollState.scrollTo(0)
     }
 }

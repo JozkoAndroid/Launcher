@@ -462,10 +462,9 @@ private fun TaskRowItem(row: TaskRow, onDone: () -> Unit = {}, onClick: () -> Un
 /** Subject-colored circle with the task's kind icon (homework, test, project, appointment). */
 @Composable
 internal fun KindBadge(t: SchoolTask, kindLabel: String) {
-    val c = subjectColors(t.subject)
+    // Minimal (round 13): a plain monochrome icon, no colored disc.
     Box(
-        Modifier.size(SchoolTokens.BadgeSmall).clip(CircleShape).background(c.container)
-            .semantics { contentDescription = kindLabel },
+        Modifier.size(SchoolTokens.BadgeSmall).semantics { contentDescription = kindLabel },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -477,7 +476,7 @@ internal fun KindBadge(t: SchoolTask, kindLabel: String) {
                     else -> R.drawable.event_24px
                 }
             ),
-            contentDescription = null, tint = c.onContainer, modifier = Modifier.size(20.dp),
+            contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp),
         )
     }
 }

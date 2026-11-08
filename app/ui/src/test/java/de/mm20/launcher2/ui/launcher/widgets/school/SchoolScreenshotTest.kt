@@ -140,7 +140,7 @@ class SchoolScreenshotTest {
                         ChipBlock(listOf(name), cfg.copy(style = "glance", font = "serif", icon = "none"))
                         ChipBlock(listOf(insta), cfg.copy(style = "glance", font = "condensed", accent = true))
                         ChipBlock(listOf(data), cfg.copy(style = "tile", font = "rounded", icon = "circle"))
-                        ChipBlock(listOf(lunch), cfg.copy(style = "tile", icon = "circle", accent = true))
+                        ChipBlock(listOf(lunch), cfg.copy(style = "tile", icon = "plain"))
                         ChipBlock(listOf(steps), cfg.copy(style = "ring", font = "wide"))
                         ChipBlock(listOf(data), cfg.copy(style = "ring", accent = true, font = "mono"))
                         ChipBlock(listOf(name), cfg.copy(style = "pill"))
@@ -159,11 +159,11 @@ class SchoolScreenshotTest {
                 androidx.compose.ui.platform.LocalInspectionMode provides true,
             ) {
                 val items = listOf(
-                    ContextItem("test", "", de.mm20.launcher2.ui.R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Bio") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", accent = true),
-                    ContextItem("nameday", "", de.mm20.launcher2.ui.R.drawable.celebration_24px, value = "René", label = "Meniny") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", font = "serif"),
+                    ContextItem("test", "", de.mm20.launcher2.ui.R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Bio") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain"),
+                    ContextItem("nameday", "", de.mm20.launcher2.ui.R.drawable.celebration_24px, value = "René", label = "Meniny") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain", font = "serif"),
                     ContextItem("data", "", de.mm20.launcher2.ui.R.drawable.data_usage_24px, value = "2,9 GB", label = "z 3,5 GB", progress = 0.83f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),
                     ContextItem("steps", "", de.mm20.launcher2.ui.R.drawable.directions_walk_24px, value = "3 120", label = "Kroky · cieľ 8 000", progress = 0.39f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),
-                    ContextItem("instagram", "", de.mm20.launcher2.ui.R.drawable.timer_24px, value = "47 min", label = "Instagram dnes") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", font = "condensed"),
+                    ContextItem("instagram", "", de.mm20.launcher2.ui.R.drawable.timer_24px, value = "47 min", label = "Instagram dnes") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain", font = "condensed"),
                 )
                 Box(Modifier.fillMaxSize().background(darkWallpaper)) {
                     Column(Modifier.padding(horizontal = 8.dp, vertical = 24.dp)) {

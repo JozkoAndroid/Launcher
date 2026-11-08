@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 11
+    private const val Version = 13
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -101,9 +101,18 @@ object ForkSetup : KoinComponent {
                 if (home.none { it is de.mm20.launcher2.widgets.ChipWidget && it.kind == "add" }) {
                     val at = home.indexOfFirst { it is de.mm20.launcher2.widgets.ChipWidget }.let { if (it < 0) home.size else it }
                     widgets.create(
-                        de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), "add", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle")),
+                        de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), "add", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain")),
                         at, WidgetScreenTarget.Default.id,
                     )
+                }
+            }
+            // v13 (minimal design): the search pill at the bottom; tiles monochrome with plain icons.
+            if (from < 13) {
+                uiSettings.setBottomSearchBar(true)
+                for (parent in listOf(WidgetScreenTarget.Default.id, WidgetScreenTarget.Widgets2.id)) {
+                    widgets.get(parent).first().filterIsInstance<de.mm20.launcher2.widgets.ChipWidget>().forEach { w ->
+                        widgets.update(w.copy(config = w.config.copy(icon = if (w.config.icon == "circle") "plain" else w.config.icon, accent = false)))
+                    }
                 }
             }
             // v4 (folders on home) is superseded by v8.
@@ -120,14 +129,14 @@ object ForkSetup : KoinComponent {
         val parent = WidgetScreenTarget.Default.id
         widgets.get(parent).first().filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
         fun chip(kind: String, cfg: de.mm20.launcher2.widgets.ChipWidgetConfig) = de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), kind, cfg)
-        val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle")
+        val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain")
         listOf(
             LessonWidget(UUID.randomUUID()),
             BriefWidget(UUID.randomUUID()),
             TasksWidget(UUID.randomUUID()),
             WeatherWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.WeatherWidgetConfig(showForecast = false)),
             chip("add", tile),
-            chip("test", tile.copy(accent = true)),
+            chip("test", tile),
             chip("nameday", tile.copy(font = "serif")),
             chip("data", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
             chip("steps", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),

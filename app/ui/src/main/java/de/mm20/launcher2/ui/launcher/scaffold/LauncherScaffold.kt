@@ -493,8 +493,25 @@ internal class LauncherScaffoldState(
     }
 
 
+    /** Distance dragged back toward the page search came from (round 13). */
+    private var backPull = 0f
+
+    /** Search opened from a side page: dragging it away does not move it; on release it slides back. */
+    private fun returningFromSearch() = returnGesture != null && currentComponent is SearchComponent && isSettledOnSecondaryPage
+
+    /** How far [d] goes against the search page's opening direction (positive = toward closing). */
+    private fun againstOpening(d: Offset): Float {
+        val g = currentGesture ?: return 0f
+        val t = getAnimationController(g)?.calculateTargetOffset(g, ScaffoldPage.Secondary, size) ?: return 0f
+        return if (g.orientation == Orientation.Vertical) -d.y * kotlin.math.sign(t.y) else -d.x * kotlin.math.sign(t.x)
+    }
+
     fun onDrag(offset: Offset) {
         if (isLocked || currentZOffset > 0f) return
+        if (returningFromSearch()) {
+            backPull = (backPull + againstOpening(offset)).coerceAtLeast(0f)
+            return
+        }
         if (currentGesture == null || (!isSettledOnSecondaryPage && currentOffset.x.absoluteValue <= touchSlop && currentOffset.y.absoluteValue <= touchSlop)) {
             currentGesture = getSwipeDirection(config, offset)
         }
@@ -576,6 +593,13 @@ internal class LauncherScaffoldState(
     suspend fun onDragStopped(velocity: Velocity, disallowPageChange: Boolean = false) {
         isDragged = false
         if (isLocked || currentZOffset > 0f) return
+        if (returningFromSearch()) {
+            // One clean slide straight back to that page; home never shows in between (device test).
+            val go = backPull > size.minDimension * 0.12f || againstOpening(Offset(velocity.x, velocity.y)) > velocityThreshold
+            backPull = 0f
+            if (go) switchBack()
+            return
+        }
         val velocity = when {
             !isAtTop && !isAtBottom -> velocity.copy(y = 0f)
             !isAtTop -> velocity.copy(y = velocity.y.coerceAtMost(0f))
@@ -1125,10 +1149,12 @@ internal fun LauncherScaffold(
             }
         }
 
+        val barH = de.mm20.launcher2.ui.launcher.widgets.school.barHeight()
         val searchBarHeight by animateDpAsState(
             if (state.isSearchBarHidden) 0.dp
-            else if (searchActions.isEmpty()) 56.dp
-            else 104.dp
+            // Fork: the pill (64/76dp) plus its 12dp margin; search actions add a row below.
+            else if (searchActions.isEmpty()) barH + 12.dp
+            else barH + 60.dp
         )
 
         // Fork: progress read through derivedStateOf so a swipe does not recompose the scaffold every frame.

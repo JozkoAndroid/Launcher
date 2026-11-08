@@ -80,12 +80,12 @@ class DashboardScreenshotTest {
                     }
                     // Tiles: one even row across the full width (as WideDashboard draws them).
                     val tiles = listOf(
-                        ContextItem("add", "", R.drawable.add_24px, value = "Pridať", label = "úlohu, test, termín") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle"),
-                        ContextItem("test", "", R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Ethik") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", accent = true),
-                        ContextItem("nameday", "", R.drawable.celebration_24px, value = "Bohumír", label = "Meniny") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", font = "serif"),
+                        ContextItem("add", "", R.drawable.add_24px, value = "Pridať", label = "úlohu, test, termín") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain"),
+                        ContextItem("test", "", R.drawable.history_edu_24px, value = "3 dni", label = "do testu: Ethik") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain"),
+                        ContextItem("nameday", "", R.drawable.celebration_24px, value = "Bohumír", label = "Meniny") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain", font = "serif"),
                         ContextItem("data", "", R.drawable.data_usage_24px, value = "1,3 GB", label = "z 3,5 GB", progress = 0.37f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),
                         ContextItem("steps", "", R.drawable.directions_walk_24px, value = "7", label = "Kroky · cieľ 8 000", progress = 0.01f) to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring"),
-                        ContextItem("instagram", "", R.drawable.timer_24px, value = "0 min", label = "Instagram dnes") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "circle", font = "condensed"),
+                        ContextItem("instagram", "", R.drawable.timer_24px, value = "0 min", label = "Instagram dnes") to de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain", font = "condensed"),
                     )
                     val fake = tiles.map { de.mm20.launcher2.widgets.MyDayWidget(java.util.UUID.randomUUID()) }
                     Box(Modifier.align(Alignment.BottomCenter).padding(start = 8.dp, end = 8.dp, bottom = 112.dp)) {
