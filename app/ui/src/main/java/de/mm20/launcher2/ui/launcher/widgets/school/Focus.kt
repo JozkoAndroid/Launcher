@@ -19,6 +19,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,7 +57,9 @@ data class Focus(val step: Int?, val text: String, val minutes: Int, val endsAt:
 /**
  * Focus timer. Round 15 (device test: "it doesn't pop up anywhere"): it could only start from a
  * Schoolhelp plan step with minutes, and nothing showed outside the launcher. Now:
- * - start: a plan step's play button, or a free session (15/25/45 min) on "Môj deň";
+ * - start: a plan step's play button, or the "Sústredenie" mode of the "Môj deň" bar (15/20/30 min);
+ * - while running, [BlockedApps] are sent back home (accessibility service in :services:global-actions,
+ *   reading this class's preferences: "ends" and "block");
  * - while running: a silent notification with the live countdown (lock screen, status bar), "Hotovo"
  *   and "Zastaviť" on it;
  * - at the end: an exact alarm and a loud notification with "Hotovo" and "+5 min".
@@ -182,6 +188,7 @@ object FocusTimer : KoinComponent {
         context.getSharedPreferences(Prefs, Context.MODE_PRIVATE).edit().apply {
             if (f == null) clear()
             else putInt("step", f.step ?: -1).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt)
+                .putStringSet("block", BlockedApps.map { it.first }.toSet())
         }.apply()
     }
 
@@ -258,22 +265,12 @@ internal fun rememberFocusLeft(f: Focus): Long {
 
 internal fun clock(ms: Long): String = "%d:%02d".format(ms / 60_000, ms / 1000 % 60)
 
-/** Free sessions on "Môj deň", without a Schoolhelp plan step. */
-internal val FreeFocusMinutes = listOf(15, 25, 45)
-
-/**
- * On "Môj deň", under the date. Running: the countdown large, the step under it, done or stop as quiet
- * text buttons. Otherwise one quiet line to start a free session.
- */
+/** On "Môj deň", under the date, while a session runs: the countdown large, the step, done or stop. */
 @Composable
 internal fun FocusPanel(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val f by FocusTimer.current(context).collectAsState()
-    val focus = f
-    if (focus == null) {
-        FocusStartLine(modifier)
-        return
-    }
+    val focus = f ?: return
     val left = rememberFocusLeft(focus)
     Column(modifier.widthIn(max = 640.dp).fillMaxWidth().padding(top = 24.dp)) {
         Text(stringResource(R.string.focus_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -291,23 +288,99 @@ internal fun FocusPanel(modifier: Modifier = Modifier) {
     }
 }
 
-/** "Sústredenie   15 min  25 min  45 min": one tap starts a free session. */
+/** Session lengths offered in the bar (the user's choice: 15, 20 or 30 minutes). */
+internal val FocusMinutes = listOf(15, 20, 30)
+
+/** Sent back home while a session runs (the user's list). */
+internal val BlockedApps = listOf(
+    "com.instagram.android" to "Instagram",
+    "com.google.android.youtube" to "YouTube",
+    "com.instagram.barcelona" to "Threads",
+)
+
+class FocusVM : androidx.lifecycle.ViewModel(), KoinComponent {
+    private val permissions: de.mm20.launcher2.permissions.PermissionsManager by inject()
+    /** Blocking works only with the launcher's accessibility service on. */
+    val canBlock = permissions.hasPermission(de.mm20.launcher2.permissions.PermissionGroup.Accessibility)
+    fun enableBlocking(activity: androidx.appcompat.app.AppCompatActivity) =
+        permissions.requestPermission(activity, de.mm20.launcher2.permissions.PermissionGroup.Accessibility)
+}
+
+/**
+ * The "Sústredenie" mode of the "Môj deň" bar (round 15). The same pill and ink button as the task and
+ * chat bars: pick 15, 20 or 30 minutes, start. While it runs: the countdown in the pill, stop beside it.
+ * One line above says what gets blocked, or how to turn blocking on.
+ */
 @Composable
-private fun FocusStartLine(modifier: Modifier) {
+internal fun FocusBar(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val f by FocusTimer.current(context).collectAsState()
+    val focus = f
     val start = rememberFocusStarter()
-    val text = stringResource(R.string.focus_free)
-    Row(
-        modifier.widthIn(max = 640.dp).fillMaxWidth().padding(top = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    var minutes by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(20) }
+    val ink = MaterialTheme.colorScheme.onSurface
+    val freeText = stringResource(R.string.focus_free)
+    val names = BlockedApps.joinToString(", ") { it.second }
+
+    Column(modifier.fillMaxWidth()) {
+        // On its own small pill: the bar floats over the page's list, bare text collided with it.
+        val noteShape = androidx.compose.foundation.shape.RoundedCornerShape(50)
         Text(
-            stringResource(R.string.focus_label), style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+            if (canBlock) stringResource(if (focus == null) R.string.focus_will_block else R.string.focus_blocking, names)
+            else stringResource(R.string.focus_block_setup),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (canBlock) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            textDecoration = if (canBlock) null else androidx.compose.ui.text.style.TextDecoration.Underline,
+            modifier = Modifier
+                .padding(bottom = 10.dp)
+                .pillSurface(noteShape)
+                .then(
+                    if (canBlock) Modifier
+                    else Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onEnableBlocking)
+                )
+                .padding(horizontal = 14.dp, vertical = 8.dp),
         )
-        for (m in FreeFocusMinutes) {
-            // Ink, not the accent: the accent is kept for progress and "now".
-            TextButton(onClick = { start(null, text, m) }) {
-                Text(stringResource(R.string.day_minutes, m), style = MaterialTheme.typography.labelLarge.merge(SchoolTokens.Tabular), color = MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PillBar(Modifier.weight(1f)) {
+                if (focus == null) {
+                    for (m in FocusMinutes) {
+                        val on = m == minutes
+                        androidx.compose.foundation.layout.Box(
+                            Modifier
+                                .weight(1f)
+                                .padding(horizontal = 2.dp)
+                                .height(barHeight() - 16.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(if (on) ink else androidx.compose.ui.graphics.Color.Transparent)
+                                .clickable(role = androidx.compose.ui.semantics.Role.RadioButton) { minutes = m },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                stringResource(R.string.day_minutes, m),
+                                style = MaterialTheme.typography.labelLarge.merge(SchoolTokens.Tabular),
+                                color = if (on) MaterialTheme.colorScheme.surface else ink,
+                            )
+                        }
+                    }
+                } else {
+                    val left = rememberFocusLeft(focus)
+                    Text(
+                        clock(left),
+                        style = MaterialTheme.typography.titleLarge.merge(SchoolTokens.Tabular),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 14.dp, end = 10.dp),
+                    )
+                    Text(
+                        focus.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(end = 10.dp),
+                    )
+                }
+            }
+            androidx.compose.foundation.layout.Spacer(Modifier.width(10.dp))
+            if (focus == null) {
+                InkButton(R.drawable.play_arrow_24px, stringResource(R.string.focus_start, minutes), ink) { start(null, freeText, minutes) }
+            } else {
+                InkButton(R.drawable.stop_24px, stringResource(R.string.focus_cancel), ink) { FocusTimer.stop(context, done = false) }
             }
         }
     }

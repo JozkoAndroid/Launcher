@@ -303,7 +303,42 @@ class SchoolScreenshotTest {
                             ),
                         ),
                         now = this@SchoolScreenshotTest.now,
-                        asking = false, onAsking = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
+                        mode = DayBarMode.Task, onMode = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
+                        chat = {},
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun dayPageFocus() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90), surface = Color(0xFF15171B), surfaceContainerHigh = Color(0xFF262A31))) {
+            CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+                androidx.activity.compose.LocalActivityResultRegistryOwner provides object : androidx.activity.result.ActivityResultRegistryOwner {
+                    override val activityResultRegistry = object : androidx.activity.result.ActivityResultRegistry() {
+                        override fun <I, O> onLaunch(requestCode: Int, contract: androidx.activity.result.contract.ActivityResultContract<I, O>, input: I, options: androidx.core.app.ActivityOptionsCompat?) {}
+                    }
+                },
+            ) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF15171B))) {
+                    DayContent(
+                        feed = feed,
+                        today = de.mm20.launcher2.schoolbrief.TodayData(
+                            "2026-11-10",
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.PlanStep(0, "Nach Hause kommen und kurz entspannen", 15, "", true),
+                                de.mm20.launcher2.schoolbrief.PlanStep(1, "Für den Ethik-Leistungsnachweis lernen", 25, "Ethik", false),
+                                de.mm20.launcher2.schoolbrief.PlanStep(2, "Zwei Werbeplakate als Dummy entwerfen", 35, "Wirtschaft", false),
+                            ),
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.Todo("a", "Venček info", false),
+                                de.mm20.launcher2.schoolbrief.Todo("b", "Vrátiť knihu do knižnice", true),
+                            ),
+                        ),
+                        now = this@SchoolScreenshotTest.now,
+                        mode = DayBarMode.Focus, onMode = {}, canBlock = false, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
                         chat = {},
                     )
                 }

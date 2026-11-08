@@ -2,6 +2,10 @@ package de.mm20.launcher2.ui.launcher.widgets.school
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -54,6 +58,28 @@ private val ShadowTint = Color(0xFF0A0C10)
 @Composable
 internal fun barHeight(): Dp = if (LocalConfiguration.current.screenWidthDp >= 600) 76.dp else 64.dp
 
+/**
+ * The pill's surface, shared by the dock, every input bar and the search bar (round 15, device test: "the
+ * search bar is not a pill, the chat bar on the left looks different from the search bar on the right"):
+ * the raised surface a step off the page behind it, a soft tinted shadow and a hairline outline, so the
+ * pill reads as one object on any wallpaper or page.
+ */
+@Composable
+internal fun Modifier.pillSurface(shape: androidx.compose.ui.graphics.Shape): Modifier {
+    val surface = MaterialTheme.colorScheme.surfaceContainerHigh
+    return this
+        .shadow(16.dp, shape, ambientColor = ShadowTint, spotColor = ShadowTint)
+        .clip(shape)
+        .background(surface.copy(alpha = 0.94f))
+        .border(1.dp, pillOutline(), shape)
+}
+
+/** Hairline on the pill: white at 12% on dark surfaces, black at 8% on light ones. */
+@Composable
+internal fun pillOutline(): Color =
+    if (MaterialTheme.colorScheme.surfaceContainerHigh.luminance() < 0.5f) Color.White.copy(alpha = 0.12f)
+    else Color.Black.copy(alpha = 0.08f)
+
 @Composable
 internal fun PillBar(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
     val h = barHeight()
@@ -61,9 +87,7 @@ internal fun PillBar(modifier: Modifier = Modifier, content: @Composable RowScop
     Row(
         modifier
             .height(h)
-            .shadow(16.dp, shape, ambientColor = ShadowTint, spotColor = ShadowTint)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f))
+            .pillSurface(shape)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
@@ -76,13 +100,22 @@ internal fun InkButton(@DrawableRes icon: Int, label: String, base: Color, onCli
     val light = base.luminance() > 0.5f
     val ink = if (light) Color(0xFFF4F4F6) else Color(0xFF16181C)
     val onInk = if (light) Color(0xFF16181C) else Color(0xFFF4F4F6)
+    // Pressed: a small squeeze, the same answer to a tap everywhere.
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        if (pressed) 0.94f else 1f,
+        androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 900f), label = "press",
+    )
     Box(
         Modifier
             .size(barHeight())
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .shadow(16.dp, CircleShape, ambientColor = ShadowTint, spotColor = ShadowTint)
             .clip(CircleShape)
             .background(ink)
-            .clickable(role = Role.Button, onClick = onClick)
+            .border(1.dp, if (light) Color.Black.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.12f), CircleShape)
+            .clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
@@ -164,10 +197,26 @@ internal fun pillTravelPx(): Float {
     return with(androidx.compose.ui.platform.LocalDensity.current) { (128.dp + nav).toPx() }
 }
 
+/**
+ * The pill at [shown] (0 = away, 1 = in place): it rises along the curve above and grows from 92% to full
+ * size, landing softly (round 15, device test: "a bit better animation"). It is fully opaque from the
+ * first third of the way on, so going back still mirrors coming in (round 14).
+ */
+internal fun androidx.compose.ui.graphics.GraphicsLayerScope.pillAt(travel: Float, shown: Float) {
+    val p = shown.coerceIn(0f, 1f)
+    val away = 1 - p
+    translationY = travel * away * away
+    val s = 0.92f + 0.08f * (1 - away * away * away)
+    scaleX = s
+    scaleY = s
+    alpha = (p * 3f).coerceAtMost(1f)
+    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+}
+
 /** For a pill on a page that comes in with progress [progress]. */
 internal fun Modifier.pillArriving(travel: Float, progress: () -> Float) =
-    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * (1 - p) * (1 - p) }
+    graphicsLayer { pillAt(travel, progress()) }
 
 /** For a pill on home, leaving as another page comes in with progress [progress]. */
 internal fun Modifier.pillLeaving(travel: Float, progress: () -> Float) =
-    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * p * p }
+    graphicsLayer { pillAt(travel, 1 - progress()) }

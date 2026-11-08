@@ -37,6 +37,11 @@ Must stay free: no paid cloud jobs. The phone talks to Schoolhelp (MCP) and Gemi
   }
   ```
 - Gradle 9.6, AGP 9.4.1, compileSdk 37.1, minSdk 26, JDK 21.
+- **Signing (round 15 lesson):** `fork` is signed with `~/.android/debug.keystore`, which a fresh container
+  creates anew. A new key means the phone refuses the update ("App not installed") and the user has to
+  uninstall, losing logins, keys, permissions and layout. The key used since round 15 is NOT stored
+  anywhere persistent yet (storing it in the private `Launcher-feed` repo was blocked in that session).
+  Before building, put that key back in place; if it is lost, warn the user before sending an APK.
 
 ## 4. Build, test, ship
 
@@ -91,6 +96,10 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   `FocusAlarmReceiver` handles the alarm and the notification buttons), `SchoolPages.kt` (chat VM, `ChatDock`, quick actions, DayCard),
   `context/` (Práve teraz: rules, sources, VM, settings), `Links.kt`, `AssistantWidget.kt` (Gemini overlay
   via `SearchManager.launchAssist` reflection).
+- Focus bar (round 15): third mode of the "Môj deň" bar (`DayBarMode`): 15/20/30 min, start; while running
+  Instagram, YouTube and Threads (`BlockedApps`) are sent home by `LauncherAccessibilityService`
+  (:services:global-actions), which reads the "focus" preferences (`ends`, `block`). Needs the launcher's
+  accessibility service on (sideloaded: Android may first require "Allow restricted settings").
 - `ForkSetup.kt`: versioned one-time migrations (now `Version = 13`), recommended layout
   (`layoutHome`, `applyRecommendedLayout`, `resetLayout`). Add a new version for any default change.
 - Settings: `ui/settings/school/SchoolSettingsScreen.kt` (Settings > Škola: Schoolhelp, Gemini,
@@ -110,6 +119,11 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
 - `WidgetsComponent` for `Widgets2` = side panel with a 2-page `HorizontalPager` (widgets, apps page),
   pull past either end opens search with keyboard (opens on finger lift).
 - Search bar = shared pill, bottom position, hidden on home (dock there), no fade (slides with page).
+  On pages without it (`showSearchBar = false`) it is moved off screen, not only made invisible: until
+  round 15 the invisible pill took the taps on the "Môj deň" bar (chat field opened search, its mic the
+  search bar's voice action).
+- All pills (dock, input bars, focus bar, search bar) share `pillSurface` (surface 94%, tinted shadow,
+  hairline outline) and `pillAt` motion (rise, 92 to 100% scale, soft landing) in `Bars.kt`.
 - Gestures (defaults + ForkSetup): swipe left = panel (`Widgets(Widgets2)`), swipe right = "Môj deň"
   (`GestureAction.SchoolChat` id kept), swipe up = search, swipe down = notifications (the user may have
   changed it on the device).

@@ -1389,6 +1389,11 @@
     <string name="focus_live_channel">Running focus session</string>
     <string name="focus_free">Focus without a task</string>
     <string name="focus_no_notifications">Notifications are off: the end shows only here.</string>
+    <string name="focus_will_block">Blocks %1$s during focus</string>
+    <string name="focus_blocking">Blocked: %1$s</string>
+    <string name="focus_block_setup">To block Instagram, YouTube and Threads, turn on the launcher\'s accessibility service</string>
+    <string name="focus_blocked">%1$s is blocked during focus. %2$d min left.</string>
+    <string name="accessibility_service_description">Launcher gestures and blocking distracting apps during focus. The launcher does not read screen content, only which app is open.</string>
     <string name="voice_listening">Listening…</string>
     <string name="voice_stop">Stop dictation</string>
     <string name="voice_nothing_heard">Nothing heard. Try again.</string>

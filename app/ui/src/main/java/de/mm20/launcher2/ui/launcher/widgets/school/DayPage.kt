@@ -91,7 +91,7 @@ class DayVM : ViewModel(), KoinComponent {
 /**
  * "Môj deň" (round 7, the page to the left of home): today's timeline (lessons, Schoolhelp's plan, my own
  * tasks) and one primary action at the bottom: write or say a task, saved to Schoolhelp as an "eigene
- * Aufgabe". The same bar switches to asking the assistant.
+ * Aufgabe". The same bar switches to asking the assistant and to a focus session (round 15).
  */
 @Composable
 fun DayPage(
@@ -108,10 +108,14 @@ fun DayPage(
     val now by brief.now.collectAsState(LocalDateTime.now())
     val today by vm.today.collectAsState()
     LaunchedEffect(now) { vm.refresh() }
-    var asking by rememberSaveable { mutableStateOf(false) }
+    var mode by rememberSaveable { mutableStateOf(DayBarMode.Task) }
+    val focusVM: FocusVM = viewModel(key = "school-focus")
+    val canBlock by focusVM.canBlock.collectAsState(true)
+    val activity = androidx.compose.ui.platform.LocalContext.current as? androidx.appcompat.app.AppCompatActivity
     DayContent(
         feed = feed, today = today, now = now, listState = listState,
-        asking = asking, onAsking = { asking = it },
+        mode = mode, onMode = { mode = it },
+        canBlock = canBlock, onEnableBlocking = { activity?.let { focusVM.enableBlocking(it) } },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { bottom -> ChatDock(Modifier, bottomInset = bottom) },
         barProgress = progress,
@@ -124,8 +128,10 @@ internal fun DayContent(
     today: TodayData?,
     now: LocalDateTime,
     listState: LazyListState = rememberLazyListState(),
-    asking: Boolean,
-    onAsking: (Boolean) -> Unit,
+    mode: DayBarMode,
+    onMode: (DayBarMode) -> Unit,
+    canBlock: Boolean = true,
+    onEnableBlocking: () -> Unit = {},
     onAdd: (String) -> Unit,
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
@@ -208,15 +214,26 @@ internal fun DayContent(
             ) {
                 Row(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
                     Segmented(
-                        listOf(false to stringResource(R.string.day_mode_task), true to stringResource(R.string.day_mode_ask)),
-                        selected = asking, onSelect = onAsking,
+                        listOf(
+                            DayBarMode.Task to stringResource(R.string.day_mode_task),
+                            DayBarMode.Ask to stringResource(R.string.day_mode_ask),
+                            DayBarMode.Focus to stringResource(R.string.focus_label),
+                        ),
+                        selected = mode, onSelect = onMode,
                     )
                 }
-                if (asking) chat(bottom) else CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
+                when (mode) {
+                    DayBarMode.Task -> CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
+                    DayBarMode.Ask -> chat(bottom)
+                    DayBarMode.Focus -> FocusBar(canBlock, onEnableBlocking, Modifier.widthIn(max = 640.dp).padding(horizontal = 16.dp).padding(bottom = bottom + 12.dp))
+                }
             }
         }
     }
 }
+
+/** What the bottom bar of "Môj deň" does: add a task, ask the assistant, or focus. */
+enum class DayBarMode { Task, Ask, Focus }
 
 @Composable
 private fun DaySection(title: String, trailing: String? = null) {

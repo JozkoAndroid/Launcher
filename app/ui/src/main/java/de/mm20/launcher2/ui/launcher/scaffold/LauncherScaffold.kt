@@ -77,6 +77,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import de.mm20.launcher2.ui.launcher.widgets.school.pillAt
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -1829,17 +1830,24 @@ private fun Modifier.searchBarAnimation(
     // Fork: progress read in the offset lambda (layout phase), not in composition.
     val modifier =
         if (component?.showSearchBar == false && hidden) {
-            Modifier.alpha(0f)
+            // Fork (round 15, device test): invisible was not enough. The pill still took taps on pages
+            // without it, right over their own bottom bar: tapping the "Môj deň" chat field opened search,
+            // its mic opened the search bar's voice action (a settings prompt). Off screen it gets none.
+            Modifier
+                .alpha(0f)
+                .offset { IntOffset(0, state.size.height.toInt()) }
         } else if (!hidden) {
             Modifier
         } else {
-            Modifier.offset {
+            // Fork (round 15): the shared pill motion (rise, grow, soft landing), like the dock and the bars.
+            Modifier.graphicsLayer {
                 val progress = if (state.currentAnimation == ScaffoldAnimation.Rubberband) {
                     (state.currentProgress * 2f).coerceAtMost(1f)
                 } else {
                     state.currentProgress
                 }
-                IntOffset(0, (offsetFactor * (1 - progress).pow(2) * (128.dp + systemBarInset).toPx()).toInt())
+                pillAt((128.dp + systemBarInset).toPx(), progress)
+                translationY *= offsetFactor
             }
         }
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import de.mm20.launcher2.ui.launcher.widgets.school.pillSurface
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -68,47 +69,6 @@ fun SearchBar(
     val transition = updateTransition(level, label = "Searchbar")
     val context = LocalContext.current
 
-    val elevation by transition.animateDp(
-        label = "elevation",
-        transitionSpec = {
-            when {
-                initialState == SearchBarLevel.Resting -> tween(
-                    durationMillis = 200,
-                    delayMillis = 200
-                )
-
-                targetState == SearchBarLevel.Resting -> tween(durationMillis = 200)
-                else -> tween(durationMillis = 500)
-            }
-        }
-    ) {
-        when {
-            it == SearchBarLevel.Resting && style != SearchBarStyle.Solid -> 0.dp
-            it == SearchBarLevel.Raised -> 8.dp
-            else -> 0.dp
-        }
-    }
-
-    val backgroundOpacity by transition.animateFloat(label = "backgroundOpacity",
-        transitionSpec = {
-            when {
-                initialState == SearchBarLevel.Resting -> tween(durationMillis = 200)
-                targetState == SearchBarLevel.Resting -> tween(
-                    durationMillis = 200,
-                    delayMillis = 200
-                )
-
-                else -> tween(durationMillis = 200)
-            }
-        }) {
-        when {
-            it == SearchBarLevel.Active -> MaterialTheme.transparency.surface
-            style != SearchBarStyle.Transparent -> 1f
-            it == SearchBarLevel.Resting -> 0f
-            else -> 1f
-        }
-    }
-
     val contentColor by transition.animateColor(label = "textColor",
         transitionSpec = {
             when {
@@ -121,11 +81,8 @@ fun SearchBar(
                 else -> tween(durationMillis = 500)
             }
         }) {
-        when {
-            style != SearchBarStyle.Transparent -> MaterialTheme.colorScheme.onSurface
-            it == SearchBarLevel.Resting -> if (darkColors) Color(0, 0, 0, 180) else Color.White
-            else -> MaterialTheme.colorScheme.onSurface
-        }
+        // Fork (round 15): always on the pill surface, so always its text color.
+        MaterialTheme.colorScheme.onSurface
     }
 
     val opacity by transition.animateFloat(label = "opacity") {
@@ -135,14 +92,14 @@ fun SearchBar(
     }
 
     // Fork (round 13): the same pill as the dock and the input bars: height, round ends, surface, shadow.
+    // Round 15 (device test: "the search bar still doesn't look like a pill"): the shared pill surface at
+    // every level, outline included; Kvaesitso's levels used to fade it to the bare wallpaper.
     val barH = de.mm20.launcher2.ui.launcher.widgets.school.barHeight()
-    LauncherCard(
+    val pillShape = androidx.compose.foundation.shape.RoundedCornerShape(barH / 2)
+    androidx.compose.foundation.layout.Box(
         modifier = modifier
-            .alpha(opacity),
-        backgroundOpacity = backgroundOpacity,
-        elevation = if (style == SearchBarStyle.Transparent) elevation else maxOf(elevation, 6.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(barH / 2),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = (backgroundOpacity * 0.94f).coerceIn(0f, 1f)),
+            .alpha(opacity)
+            .pillSurface(pillShape),
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor

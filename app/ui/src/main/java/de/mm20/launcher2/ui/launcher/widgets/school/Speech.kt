@@ -1,12 +1,14 @@
 package de.mm20.launcher2.ui.launcher.widgets.school
 
 import android.Manifest
-import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.speech.RecognitionListener
+import android.speech.RecognitionService
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,11 +28,10 @@ import de.mm20.launcher2.ui.R
 import kotlinx.coroutines.delay
 
 /**
- * Voice input inside the launcher (round 15). Round 14 handed dictation to the system's speech screen;
- * on the device that opened a settings prompt instead of listening, and failures were swallowed. Now the
- * launcher listens itself: what is heard appears in the field while speaking, and the field's hint says
- * "Počúvam…" or what went wrong. The system screen stays only as a fallback for phones without a
- * speech recognition service.
+ * Voice input inside the launcher (round 15). The launcher listens itself: what is heard appears in the
+ * field while speaking, and the field's hint says "Počúvam…" or what went wrong. Never the system speech
+ * screen. (The device report "the mic opens settings" had another cause: the invisible search pill sat
+ * over this bar and took the tap; see LauncherScaffold.searchBarAnimation.)
  */
 @Stable
 class SpeechInput internal constructor() {
@@ -70,21 +71,13 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
     val sFailed = stringResource(R.string.voice_failed)
     val sMissing = stringResource(R.string.voice_unavailable)
 
-    // Fallback only: the system's speech screen.
-    val systemScreen = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
-        r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { text(it) }
-    }
-
     fun listen(language: String?) {
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            try {
-                systemScreen.launch(recognizeIntent(context, language))
-            } catch (_: ActivityNotFoundException) {
-                speech.status = sMissing
-            }
+        val service = recognitionService(context)
+        if (service == null) {
+            speech.status = sMissing
             return
         }
-        val r = holder.recognizer ?: SpeechRecognizer.createSpeechRecognizer(context).also { holder.recognizer = it }
+        val r = holder.recognizer ?: SpeechRecognizer.createSpeechRecognizer(context, service).also { holder.recognizer = it }
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { speech.status = sListening }
             override fun onBeginningOfSpeech() {}
@@ -156,6 +149,23 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
 }
 
 private const val Slovak = "sk-SK"
+
+/**
+ * The speech service to use: Google's first (it knows Slovak; Samsung phones often default to Samsung's
+ * own, which may not), then the phone's default, then any. Null if the phone has none.
+ */
+private fun recognitionService(context: Context): ComponentName? {
+    val services = context.packageManager
+        .queryIntentServices(Intent(RecognitionService.SERVICE_INTERFACE), 0)
+        .map { ComponentName(it.serviceInfo.packageName, it.serviceInfo.name) }
+    if (services.isEmpty()) return null
+    val default = Settings.Secure.getString(context.contentResolver, "voice_recognition_service")
+        ?.let(ComponentName::unflattenFromString)
+    return services.firstOrNull { it.packageName == "com.google.android.googlequicksearchbox" }
+        ?: services.firstOrNull { it.packageName == "com.google.android.tts" }
+        ?: services.firstOrNull { it == default }
+        ?: services.first()
+}
 
 // SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED / ERROR_LANGUAGE_UNAVAILABLE (API 31); plain values so older
 // phones simply never see them.

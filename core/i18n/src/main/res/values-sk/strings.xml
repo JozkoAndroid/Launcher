@@ -1233,6 +1233,11 @@
     <string name="focus_live_channel">Prebiehajúce sústredenie</string>
     <string name="focus_free">Sústredenie bez úlohy</string>
     <string name="focus_no_notifications">Upozornenia sú vypnuté: koniec uvidíš len tu.</string>
+    <string name="focus_will_block">Počas sústredenia zablokuje %1$s</string>
+    <string name="focus_blocking">Zablokované: %1$s</string>
+    <string name="focus_block_setup">Na blokovanie Instagramu, YouTube a Threads zapni prístupnosť launchera</string>
+    <string name="focus_blocked">%1$s je počas sústredenia zablokovaný. Ešte %2$d min.</string>
+    <string name="accessibility_service_description">Gestá launchera a blokovanie rušivých aplikácií počas sústredenia. Launcher nečíta obsah obrazovky, len ktorá aplikácia je otvorená.</string>
     <string name="voice_listening">Počúvam…</string>
     <string name="voice_stop">Zastaviť diktovanie</string>
     <string name="voice_nothing_heard">Nič nebolo počuť. Skús znova.</string>
