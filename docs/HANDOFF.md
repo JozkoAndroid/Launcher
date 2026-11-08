@@ -39,9 +39,11 @@ Must stay free: no paid cloud jobs. The phone talks to Schoolhelp (MCP) and Gemi
 - Gradle 9.6, AGP 9.4.1, compileSdk 37.1, minSdk 26, JDK 21.
 - **Signing (round 15 lesson):** `fork` is signed with `~/.android/debug.keystore`, which a fresh container
   creates anew. A new key means the phone refuses the update ("App not installed") and the user has to
-  uninstall, losing logins, keys, permissions and layout. The key used since round 15 is NOT stored
-  anywhere persistent yet (storing it in the private `Launcher-feed` repo was blocked in that session).
-  Before building, put that key back in place; if it is lost, warn the user before sending an APK.
+  uninstall, losing logins, keys, permissions and layout. The key used since round 15 (certificate
+  SHA-256 5a299f32...a6aaef) is kept by the user in the PRIVATE repo `JozkoAndroid/Launcher-feed` as
+  `fork-debug.keystore` (never in this public repo). Before building: attach Launcher-feed, then
+  `cp <Launcher-feed>/fork-debug.keystore ~/.android/debug.keystore`; after building, check with
+  `apksigner verify --print-certs` that the digest matches. If the key is missing, stop and tell the user.
 
 ## 4. Build, test, ship
 
