@@ -1,6 +1,6 @@
 # Handoff: school launcher (Kvaesitso fork)
 
-State after round 14 (2026-11-08). Everything is on branch `brief-widgets` of
+State after round 15 (2026-11-08). Everything is on branch `brief-widgets` of
 `github.com/JozkoAndroid/Launcher` (upstream: `MM2-0/Kvaesitso`). `main` only carries the GitHub Pages
 OAuth bounce page in `docs/oauth/`.
 
@@ -74,14 +74,21 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
 **app/ui/.../launcher/widgets/school/** (all fork UI)
 - `SchoolTokens.kt` tokens, `Segment`/`segmentShape` (joined sheet), `SchoolFonts` (Display = Google Sans
   Flex wdth 112; Serif/SerifDisplay = bundled Fraunces).
-- `Bars.kt`: **the one bar design** (`PillBar`, `InkButton`, `InputBar`, `Segmented`, speech input) and
+- `Speech.kt` (round 15): `rememberSpeechInput` -> `SpeechInput`. The launcher listens itself
+  (`SpeechRecognizer`, `RECORD_AUDIO` asked on first tap, Slovak then the phone's language, live partial
+  text). Status and errors show in the `InputBar` hint. The system speech screen is only a fallback (round
+  14 used it: on the Fold it opened a settings prompt instead of listening).
+- `Bars.kt`: **the one bar design** (`PillBar`, `InkButton`, `InputBar(voice = SpeechInput)`, `Segmented`) and
   the **pill motion** (`pillArriving` D(1-p)^2, `pillLeaving` D p^2, D = 128dp + nav bar). Use these for
   any new bottom bar.
 - `SchoolWidgets.kt` (lesson hero on wallpaper, brief, tasks with check circles, context chips, contextItem),
   `ChipStyles.kt` (tile/ring/glance/pill, `ChipTiles` balanced grid, `LocalTileWidth`), `MoreWidgets.kt`
   (week, my day, test prep), `Dock.kt`, `DayPage.kt` ("Môj deň"), `AppsPage.kt`, `FoldersWidget.kt`
   (folders = Kvaesitso tags, `AppPickerSheet`), `AddEvent.kt` ("+" tile and sheet), `Focus.kt` (focus
-  timer + `FocusAlarmReceiver`), `SchoolPages.kt` (chat VM, `ChatDock`, quick actions, DayCard),
+  timer, round 15: start from a plan step's play button or a free 15/25/45 min line on "Môj deň"; silent
+  ongoing notification with a live countdown and Live Update request; exact alarm (`USE_EXACT_ALARM`);
+  loud end notification with "Hotovo" / "+5 min"; time running out never ticks the step;
+  `FocusAlarmReceiver` handles the alarm and the notification buttons), `SchoolPages.kt` (chat VM, `ChatDock`, quick actions, DayCard),
   `context/` (Práve teraz: rules, sources, VM, settings), `Links.kt`, `AssistantWidget.kt` (Gemini overlay
   via `SearchManager.launchAssist` reflection).
 - `ForkSetup.kt`: versioned one-time migrations (now `Version = 13`), recommended layout
@@ -106,8 +113,10 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   (dock there). Pages without it (`showSearchBar = false`, Môj deň) move it off screen: invisible but
   on top it stole taps from the page's own bar (round 15 bug). All pills share one motion (rise D(1-p)^2,
   grow from 96 %, fade in by 60 %), read in `graphicsLayer`.
-- Focus: `Focus.kt` (`FocusTimer`, prefs "focus" with `ends`/`block`), "Fokus" mode on Môj deň
-  (`FocusBar`). Blocking Instagram/YouTube/Threads is done by Kvaesitso's own
+- Focus: `Focus.kt` (`FocusTimer`, prefs "focus" with `ends`/`block`). Two sessions built it in parallel
+  and were merged: the engine (live notification, exact alarm, +5 min) from session ...MCqTV, the
+  start UI is the "Fokus" mode bar at the bottom of Môj deň (`FocusBar`, 15/20/30/45 min); the top line
+  only shows a running session. Blocking Instagram/YouTube/Threads is done by Kvaesitso's own
   `LauncherAccessibilityService` (services/global-actions) on `TYPE_WINDOW_STATE_CHANGED`: needs the
   user to enable the launcher's accessibility service.
 - Gestures (defaults + ForkSetup): swipe left = panel (`Widgets(Widgets2)`), swipe right = "Môj deň"
@@ -130,12 +139,14 @@ Endpoint `https://lessons.labeltranslator.com/mcp`, tool `app_call {name, argume
 
 ## 7. Verified vs not verified on device
 
-Verified by the user in earlier rounds: OAuth login, tasks load, Gemini overlay, brief, tick "Hotovo",
-masonry dashboard, panel/apps page look, dock, Day page look.
-Not yet verified (rounds 12 to 14): bottom search pill everywhere, consistent pill motion, return from
-search to the origin page (drag, system back, after launching an app), transparent Day page, focus timer
-(alarm is inexact, can be minutes late), minimal tiles migration, Fraunces on device, screen-off reset,
-Instagram minutes fix, add-event date picker, apps page drag reorder.
+Verified by the user: OAuth login, tasks load, Gemini overlay, brief, tick "Hotovo", masonry dashboard,
+panel/apps page look, dock, Day page look, and (round 15 check of rounds 12 to 14) bottom search pill,
+consistent pill motion, return from search to the origin page, transparent Day page, minimal tiles,
+Fraunces, screen-off reset, Instagram minutes, add-event date picker, apps page drag reorder.
+Reported broken in round 15 and rewritten, not yet verified on device: focus timer (never showed up),
+chat/task bar mic (opened a settings prompt instead of listening). The home dock's round button stays the
+Gemini overlay (user's choice).
+Unverified: whether Samsung shows the countdown as a Live Update (Now Bar); the exact alarm on time.
 
 ## 8. Open items / backlog
 
@@ -146,7 +157,7 @@ Instagram minutes fix, add-event date picker, apps page drag reorder.
 5. Smoothness: no baseline profile yet (needs a device/emulator); app list scroll jank reported earlier.
 6. Settings: the user wants them simpler; Kvaesitso's own settings are untouched (maybe hide rarely used).
 7. Minimal design: continue (fewer labels, maybe drop news icons, unify Kvaesitso weather card style).
-8. Focus timer: consider exact alarm or a foreground notification with a live countdown.
+8. Focus timer: done in round 15 (see 5); check on device.
 
 ## 9. Starter prompt for the next chat
 

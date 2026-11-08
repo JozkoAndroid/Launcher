@@ -315,7 +315,8 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
                     hint = stringResource(R.string.chat_hint),
                     submitIcon = R.drawable.arrow_forward_20px, submitLabel = stringResource(R.string.chat_send),
                     onSubmit = { vm.send(input); input = "" },
-                    onVoice = rememberSpeechInput { input = it },
+                    // Dictation fills the field while speaking; the user edits or sends it.
+                    voice = rememberSpeechInput(onText = { input = it }, onPartial = { input = it }),
                 )
             }
         }

@@ -11,6 +11,10 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,6 +40,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import de.mm20.launcher2.schoolbrief.BriefRepository
 import de.mm20.launcher2.schoolbrief.PlanStep
 import de.mm20.launcher2.ui.R
@@ -44,13 +51,18 @@ import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-/** A running focus session on one step of Schoolhelp's day plan. */
-data class Focus(val step: Int, val text: String, val minutes: Int, val endsAt: Long)
+/** A running focus session, on a plan step of Schoolhelp's day ([step]) or free ([step] = null). */
+data class Focus(val step: Int?, val text: String, val minutes: Int, val endsAt: Long)
 
 /**
- * Focus timer (round 13, idea 1): start a plan step's minutes; when they are up, a notification says so
- * and the step is ticked in Schoolhelp (queued on the phone if Schoolhelp is down). Kept in preferences,
- * so it survives the launcher being restarted.
+ * Focus timer. Round 15 (device test: "it doesn't pop up anywhere"): it could only start from a
+ * Schoolhelp plan step with minutes, and nothing showed outside the launcher. Now:
+ * - start: a plan step's play button, or a free session (15/25/45 min) on "Môj deň";
+ * - while running: a silent notification with the live countdown (lock screen, status bar), "Hotovo"
+ *   and "Zastaviť" on it;
+ * - at the end: an exact alarm and a loud notification with "Hotovo" and "+5 min".
+ * Time running out no longer ticks the step: only "Hotovo" does. Kept in preferences, so it survives the
+ * launcher being restarted.
  */
 object FocusTimer : KoinComponent {
     private val brief: BriefRepository by inject()
@@ -58,72 +70,184 @@ object FocusTimer : KoinComponent {
     private val state = MutableStateFlow<Focus?>(null)
     private var loaded = false
 
+    private const val LiveChannel = "focus_live"
+    private const val EndChannel = "focus"
+    private const val LiveId = 4711
+    private const val EndId = 4712
+
+    internal const val ActionDone = "de.mm20.launcher2.school.FOCUS_DONE"
+    internal const val ActionStop = "de.mm20.launcher2.school.FOCUS_STOP"
+    internal const val ActionExtend = "de.mm20.launcher2.school.FOCUS_EXTEND"
+    internal const val ExtraStep = "step"
+    internal const val ExtraText = "text"
+    const val ExtendMinutes = 5
+
     fun current(context: Context): StateFlow<Focus?> {
         if (!loaded) {
             loaded = true
             val p = context.getSharedPreferences(Prefs, Context.MODE_PRIVATE)
             val ends = p.getLong("ends", 0L)
-            if (ends > 0) state.value = Focus(p.getInt("step", 0), p.getString("text", "").orEmpty(), p.getInt("minutes", 0), ends)
+            if (ends > 0) {
+                state.value = Focus(
+                    p.getInt("step", -1).takeIf { it >= 0 }, p.getString("text", "").orEmpty(), p.getInt("minutes", 0), ends,
+                )
+            }
         }
         return state
     }
 
     fun start(context: Context, s: PlanStep) {
-        val minutes = s.minutes ?: return
-        begin(context, Focus(s.index, s.text, minutes, System.currentTimeMillis() + minutes * 60_000L))
+        start(context, s.index, s.text, s.minutes ?: return)
     }
 
-    /** A session without a plan step (the focus bar on "Môj deň"). */
-    fun startFree(context: Context, minutes: Int) =
-        begin(context, Focus(-1, context.getString(R.string.focus_label), minutes, System.currentTimeMillis() + minutes * 60_000L))
-
-    private fun begin(context: Context, f: Focus) {
+    fun start(context: Context, step: Int?, text: String, minutes: Int) {
+        val f = Focus(step, text, minutes, System.currentTimeMillis() + minutes * 60_000L)
         save(context, f)
-        alarms(context).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.endsAt, alarm(context))
+        val am = alarms(context)
+        // Exact (USE_EXACT_ALARM): round 13's inexact alarm came minutes late.
+        if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.endsAt, alarm(context))
+        } else {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.endsAt, alarm(context))
+        }
+        nm(context).cancel(EndId)
+        notify(context, LiveId, live(context, f))
     }
 
-    /** Ends the session; [done] = tick the step in Schoolhelp. */
+    /** Ends the session early; [done] = tick the plan step in Schoolhelp. */
     fun stop(context: Context, done: Boolean) {
         val f = current(context).value ?: return
-        if (done && f.step >= 0) brief.setStepDone(f.step, true)
+        if (done) f.step?.let { brief.setStepDone(it, true) }
         alarms(context).cancel(alarm(context))
+        nm(context).cancel(LiveId)
         save(context, null)
     }
 
+    /** "Hotovo" on a notification: the running session, or the step of the one that just ran out. */
+    internal fun done(context: Context, step: Int?) {
+        if (current(context).value != null) stop(context, done = true)
+        else step?.let { brief.setStepDone(it, true) }
+        nm(context).cancel(EndId)
+    }
+
+    /** Time is up (alarm, or the countdown on screen reached 0): the loud notification, nothing ticked. */
     internal fun finished(context: Context) {
         val f = current(context).value ?: return
-        stop(context, done = true)
-        val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel("focus", context.getString(R.string.focus_channel), NotificationManager.IMPORTANCE_HIGH))
-        val n = android.app.Notification.Builder(context, "focus")
+        alarms(context).cancel(alarm(context))
+        save(context, null)
+        val nm = nm(context)
+        nm.cancel(LiveId)
+        val n = NotificationCompat.Builder(context, EndChannel)
             .setSmallIcon(R.drawable.timer_24px)
-            .setContentTitle(context.getString(if (f.step >= 0) R.string.focus_done_title else R.string.focus_done_free))
+            .setContentTitle(context.getString(R.string.focus_done_title))
             .setContentText(f.text)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(openLauncher(context))
             .setAutoCancel(true)
+            .apply { if (f.step != null) addAction(0, context.getString(R.string.focus_finish), action(context, ActionDone, f)) }
+            .addAction(0, context.getString(R.string.focus_extend, ExtendMinutes), action(context, ActionExtend, f))
             .build()
-        runCatching { nm.notify(4711, n) }
+        notify(context, EndId, n)
+    }
+
+    /** True if the end of a session can be shown outside the launcher. */
+    fun canNotify(context: Context) = NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+    private fun live(context: Context, f: Focus) = NotificationCompat.Builder(context, LiveChannel)
+        .setSmallIcon(R.drawable.timer_24px)
+        .setContentTitle(f.text)
+        .setContentText(context.getString(R.string.focus_live_text, f.minutes))
+        // The system draws the countdown; nothing in the launcher has to run for it.
+        .setWhen(f.endsAt)
+        .setShowWhen(true)
+        .setUsesChronometer(true)
+        .setChronometerCountDown(true)
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .setSilent(true)
+        .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+        // Android 16 Live Update (status bar chip, lock screen) where the phone supports it.
+        .setRequestPromotedOngoing(true)
+        .setContentIntent(openLauncher(context))
+        .addAction(0, context.getString(R.string.focus_finish), action(context, ActionDone, f))
+        .addAction(0, context.getString(R.string.focus_cancel), action(context, ActionStop, f))
+        .build()
+
+    private fun notify(context: Context, id: Int, n: android.app.Notification) {
+        val nm = nm(context)
+        nm.createNotificationChannel(NotificationChannel(LiveChannel, context.getString(R.string.focus_live_channel), NotificationManager.IMPORTANCE_LOW))
+        nm.createNotificationChannel(NotificationChannel(EndChannel, context.getString(R.string.focus_channel), NotificationManager.IMPORTANCE_HIGH))
+        runCatching { nm.notify(id, n) }
     }
 
     private fun save(context: Context, f: Focus?) {
         state.value = f
         context.getSharedPreferences(Prefs, Context.MODE_PRIVATE).edit().apply {
-            // "block": the launcher's accessibility service sends Instagram, YouTube and Threads home meanwhile.
-            if (f == null) clear() else putInt("step", f.step).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt).putBoolean("block", true)
+            if (f == null) clear()
+            // "block" (round 15): the launcher's accessibility service sends Instagram, YouTube and Threads
+            // home while a session runs (services/global-actions LauncherAccessibilityService).
+            else putInt("step", f.step ?: -1).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt).putBoolean("block", true)
         }.apply()
     }
 
+    private fun nm(context: Context) = context.getSystemService(NotificationManager::class.java)
     private fun alarms(context: Context) = context.getSystemService(AlarmManager::class.java)
     private fun alarm(context: Context) = PendingIntent.getBroadcast(
-        context, 4711, Intent(context, FocusAlarmReceiver::class.java),
+        context, LiveId, Intent(context, FocusAlarmReceiver::class.java),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
+
+    private fun action(context: Context, action: String, f: Focus) = PendingIntent.getBroadcast(
+        context, action.hashCode(),
+        Intent(context, FocusAlarmReceiver::class.java).setAction(action)
+            .putExtra(ExtraStep, f.step ?: -1).putExtra(ExtraText, f.text),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun openLauncher(context: Context): PendingIntent? {
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return null
+        return PendingIntent.getActivity(context, LiveId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+    }
 }
 
 class FocusAlarmReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent?) = FocusTimer.finished(context.applicationContext)
+    override fun onReceive(context: Context, intent: Intent?) {
+        val c = context.applicationContext
+        val step = intent?.getIntExtra(FocusTimer.ExtraStep, -1)?.takeIf { it >= 0 }
+        when (intent?.action) {
+            FocusTimer.ActionDone -> FocusTimer.done(c, step)
+            FocusTimer.ActionStop -> FocusTimer.stop(c, done = false)
+            FocusTimer.ActionExtend -> FocusTimer.start(c, step, intent.getStringExtra(FocusTimer.ExtraText).orEmpty(), FocusTimer.ExtendMinutes)
+            else -> FocusTimer.finished(c)
+        }
+    }
 }
 
-/** "18:42", ticking each second while shown; finishes the session if it ran out while away. */
+/**
+ * Starts a session; asks for the notification permission first (the countdown and the end are
+ * notifications). Denied still starts: the countdown then shows only in the launcher.
+ */
+@Composable
+internal fun rememberFocusStarter(): (step: Int?, text: String, minutes: Int) -> Unit {
+    val context = LocalContext.current
+    var pending by remember { mutableStateOf<Triple<Int?, String, Int>?>(null) }
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        pending?.let { (s, t, m) -> FocusTimer.start(context, s, t, m) }
+        pending = null
+    }
+    return { step, text, minutes ->
+        val granted = Build.VERSION.SDK_INT < 33 ||
+            context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        if (granted) FocusTimer.start(context, step, text, minutes)
+        else {
+            pending = Triple(step, text, minutes)
+            ask.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+}
+
+/** Time left in ms, ticking each second while shown; ends the session if it ran out while away. */
 @Composable
 internal fun rememberFocusLeft(f: Focus): Long {
     val context = LocalContext.current
@@ -140,17 +264,28 @@ internal fun rememberFocusLeft(f: Focus): Long {
 
 internal fun clock(ms: Long): String = "%d:%02d".format(ms / 60_000, ms / 1000 % 60)
 
-/** On "Môj deň": the countdown large, the step under it; done or stop as quiet text buttons. */
+/** Free sessions from the focus bar on "Môj deň", without a Schoolhelp plan step (user: 15, 20, 30). */
+internal val FreeFocusMinutes = listOf(15, 20, 30, 45)
+
+/**
+ * On "Môj deň", under the date. Running: the countdown large, the step under it, done or stop as quiet
+ * text buttons. Otherwise one quiet line to start a free session.
+ */
 @Composable
 internal fun FocusPanel(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val f by FocusTimer.current(context).collectAsState()
+    // Starting is in the focus bar at the bottom ("Fokus" mode); here only the running session.
     val focus = f ?: return
     val left = rememberFocusLeft(focus)
     Column(modifier.widthIn(max = 640.dp).fillMaxWidth().padding(top = 24.dp)) {
         Text(stringResource(R.string.focus_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(clock(left), style = SchoolFonts.display(64).merge(SchoolTokens.Tabular), color = MaterialTheme.colorScheme.primary)
         Text(focus.text, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        if (!FocusTimer.canNotify(context)) {
+            // Honest: with notifications off, the end shows only here.
+            Text(stringResource(R.string.focus_no_notifications), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Spacer(Modifier.height(4.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { FocusTimer.stop(context, done = true) }) { Text(stringResource(R.string.focus_finish)) }
@@ -159,7 +294,7 @@ internal fun FocusPanel(modifier: Modifier = Modifier) {
     }
 }
 
-/** On home, above the dock: a quiet line while a session runs ("● 18:42 · Für Ethik lernen"). */
+/** On home, above the dock: a quiet line while a session runs ("18:42 · Für Ethik lernen"). */
 @Composable
 internal fun FocusLine(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -189,9 +324,8 @@ internal fun FocusBar(modifier: Modifier = Modifier) {
     var minutes by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(20) }
     val permissions: de.mm20.launcher2.permissions.PermissionsManager = org.koin.compose.koinInject()
     val canBlock by remember { permissions.hasPermission(de.mm20.launcher2.permissions.PermissionGroup.Accessibility) }.collectAsState(true)
-    val askNotify = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { FocusTimer.startFree(context, minutes) }
+    val start = rememberFocusStarter()
+    val freeText = stringResource(R.string.focus_free)
     val text = MaterialTheme.colorScheme.onSurface
     Column(modifier.widthIn(max = 640.dp).fillMaxWidth()) {
         if (!canBlock) {
@@ -208,7 +342,7 @@ internal fun FocusBar(modifier: Modifier = Modifier) {
             val running = f
             PillBar(Modifier.weight(1f)) {
                 if (running == null) {
-                    for (m in listOf(15, 20, 30, 45)) {
+                    for (m in FreeFocusMinutes) {
                         val on = m == minutes
                         Text(
                             "$m min",
@@ -238,11 +372,7 @@ internal fun FocusBar(modifier: Modifier = Modifier) {
             }
             Spacer(Modifier.width(10.dp))
             if (running == null) {
-                InkButton(R.drawable.play_arrow_24px, stringResource(R.string.focus_start, minutes), text) {
-                    val granted = android.os.Build.VERSION.SDK_INT < 33 ||
-                        context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    if (granted) FocusTimer.startFree(context, minutes) else askNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                }
+                InkButton(R.drawable.play_arrow_24px, stringResource(R.string.focus_start, minutes), text) { start(null, freeText, minutes) }
             } else {
                 InkButton(R.drawable.stop_24px, stringResource(R.string.focus_cancel), text) { FocusTimer.stop(context, done = false) }
             }
