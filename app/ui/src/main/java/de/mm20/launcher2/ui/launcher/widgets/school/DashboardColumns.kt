@@ -39,6 +39,11 @@ object DashboardColumns {
         else -> (w.id.hashCode() and Int.MAX_VALUE) % cols
     }
 
-    /** Columns at this width: two on the unfolded Fold, three from 1000dp (tablet landscape). */
-    fun count(widthDp: Float) = if (widthDp >= 1000f) 3 else 2
+    /**
+     * Always two on wide screens (round 22, device test: three looked cluttered, and switching between
+     * two and three when the tablet turned merged columns and lost the arrangement). Below 600dp the
+     * dashboard is one column anyway.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun count(widthDp: Float) = 2
 }

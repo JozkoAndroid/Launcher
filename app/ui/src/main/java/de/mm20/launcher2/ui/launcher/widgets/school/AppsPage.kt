@@ -206,7 +206,7 @@ fun AppsPage(modifier: Modifier = Modifier) {
     }
 
     menu?.let { e ->
-        ModalBottomSheet(onDismissRequest = { menu = null }) {
+        ModalBottomSheet(onDismissRequest = { menu = null }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             Column(Modifier.padding(bottom = 24.dp)) {
                 when (e) {
                     is PageEntry.App -> {

@@ -281,7 +281,7 @@ fun TestPrepWidget(widget: TestPrepWidget) {
         }
     }
     if (practising) {
-        ModalBottomSheet(onDismissRequest = { practising = false }) {
+        ModalBottomSheet(onDismissRequest = { practising = false }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             ChatDock(Modifier.padding(bottom = 16.dp), bottomInset = 0.dp)
         }
     }

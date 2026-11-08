@@ -1279,6 +1279,7 @@
     <string name="chat_key_title">Gemini key</string>
     <string name="widget_name_week">Week</string>
     <string name="widget_name_myday">My day (morning and evening)</string>
+    <string name="widget_name_focus">Focus</string>
     <string name="widget_name_testprep">Test prep</string>
     <string name="myday_morning">Good morning</string>
     <string name="myday_evening">Tomorrow</string>
@@ -1411,6 +1412,8 @@
     <string name="dashboard_column">Column %1$d</string>
     <string name="widget_tile_conditional">Shows only when there is something to show</string>
     <string name="lesson_ruler">Today\'s lessons from %1$s to %2$s</string>
+    <string name="settings_your_name">Your name (greeting in the daily brief)</string>
+    <string name="chat_recent">Recent</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

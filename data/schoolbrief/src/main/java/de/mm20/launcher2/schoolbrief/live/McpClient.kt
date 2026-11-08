@@ -89,12 +89,14 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
         val res = Http.request(SchoolhelpAuth.Resource, "POST", Json.encodeToString(JsonObject.serializer(), msg), headers, timeoutMs = 45_000)
         res.header("Mcp-Session-Id")?.let { sessionId = it }
         if (res.code == 401 && !retried) {
-            auth.invalidateAccessToken(); return post(msg, retried = true)
+            auth.invalidateAccessToken(token); return post(msg, retried = true)
         }
         if (res.code == 404 && sessionId != null && !retried) {
             sessionId = null; initialize(); return post(msg, retried = true) // session expired
         }
-        if (res.code == 401) throw LoggedOut()
+        // A second 401 right after a fresh token is Schoolhelp's problem, not a logout (round 22): a temporary
+        // error, retried on the next refresh. Logging out is SchoolhelpAuth's call alone.
+        if (res.code == 401) throw HttpException(401, "Schoolhelp rejected a fresh token (401)")
         if (!res.ok) throw HttpException(res.code, "Schoolhelp error ${res.code}")
         return res
     }

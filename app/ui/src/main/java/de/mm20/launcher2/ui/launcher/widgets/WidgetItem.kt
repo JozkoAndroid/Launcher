@@ -193,6 +193,7 @@ fun WidgetItem(
                     is WeekWidget -> de.mm20.launcher2.ui.launcher.widgets.school.WeekWidget(widget)
                     is MyDayWidget -> de.mm20.launcher2.ui.launcher.widgets.school.MyDayWidget(widget)
                     is TestPrepWidget -> de.mm20.launcher2.ui.launcher.widgets.school.TestPrepWidget(widget)
+                    is de.mm20.launcher2.widgets.FocusWidget -> de.mm20.launcher2.ui.launcher.widgets.school.FocusWidget(widget)
 
                     is AppWidget -> {
                         AppWidget(

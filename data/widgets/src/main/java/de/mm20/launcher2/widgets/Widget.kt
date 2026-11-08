@@ -77,6 +77,7 @@ sealed class Widget {
                 WeekWidget.Type -> WeekWidget(entity.id)
                 MyDayWidget.Type -> MyDayWidget(entity.id)
                 TestPrepWidget.Type -> TestPrepWidget(entity.id)
+                FocusWidget.Type -> FocusWidget(entity.id)
                 in ChipWidget.Kinds.map { ChipWidget.TypePrefix + it } -> ChipWidget(
                     entity.id,
                     entity.type.removePrefix(ChipWidget.TypePrefix),

@@ -64,9 +64,10 @@ class LiveDataTest {
         SchoolTask("2", SchoolTask.Test, "Ethik Leistungsnachweis", "Ethik", "2026-11-11"),
     )
     private val news = listOf(
-        NewsItem("aviation", "A", "https://simpleflying.com/a"),
-        NewsItem("tech", "B", "https://www.theverge.com/b"),
+        NewsItem("sk", "S", "https://dennikn.sk/s"),
         NewsItem("eu", "C", "https://www.euractiv.com/c"),
+        NewsItem("tech", "B", "https://www.theverge.com/b"),
+        NewsItem("aviation", "A", "https://simpleflying.com/a"),
     )
     private val urls = news.map { it.url }.toSet()
 

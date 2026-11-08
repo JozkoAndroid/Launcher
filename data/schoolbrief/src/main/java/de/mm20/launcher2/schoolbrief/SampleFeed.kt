@@ -18,9 +18,10 @@ object SampleFeed {
             brief = "Dnes ťa čaká hlavne „Mathe: Arbeitsblatt Vektoren Seite 2“, odovzdáva sa zajtra. " +
                 "Vo štvrtok píšeš „Biologie Leistungsnachweis“ a v piatok je „Elternsprechtag“.",
             news = listOf(
-                NewsItem("aviation", "Airbus confirms A350F first delivery slips to next year", "https://simpleflying.com/"),
+                NewsItem("sk", "Bratislava otvára novú električkovú trať do Petržalky", "https://dennikn.sk/"),
+                NewsItem("eu", "Europarlament schválil prísnejšie overovanie veku na sociálnych sieťach", "https://www.teraz.sk/"),
                 NewsItem("tech", "Android 17 QPR1 brings desktop windowing to foldables", "https://www.theverge.com/"),
-                NewsItem("eu", "MEPs back stricter age checks for social media platforms", "https://www.euractiv.com/"),
+                NewsItem("aviation", "Airbus confirms A350F first delivery slips to next year", "https://simpleflying.com/"),
             ),
             tasks = listOf(
                 SchoolTask("s1", SchoolTask.Homework, "Deutsch: Erörterung zum Thema Social Media gliedern", "Deutsch", d(-1)),

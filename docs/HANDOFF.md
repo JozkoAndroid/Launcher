@@ -165,6 +165,21 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   (`GestureAction.SchoolChat` id kept), swipe up = search, swipe down = notifications (the user may have
   changed it on the device).
 
+## 5a. Round 22
+
+- Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on
+  invalid_grant for the stored refresh token or invalid_client; other failures are transient. Refresh
+  tokens are written with commit(). A second 401 after a fresh token is a transient error in McpClient.
+  (Cause of "asks to log in 5x a day": parallel refreshes with the same single-use refresh token.)
+- Wide dashboard always 2 columns (rotation no longer changes the count). Sheets open fully expanded.
+- Focus: home pill (ring, countdown, task) instead of a text line; `FocusWidget` block (type school_focus).
+- Brief: greeting with the name from Settings > Škola (`Personal`), health line Wed, Thu, Sat, Sun, short
+  on Fri. News topics `sk, eu, tech, aviation` (Slovak feeds; EU ranked by Slovak angle).
+- Chat: recent chats (`ChatHistory`, last 10, on the phone), conversation up to 62% of the screen height.
+- Next round (agreed with the user): merge the right panel's two pages into one page of blocks with an
+  app-grid block (chosen apps, drag reorder, big icons; also the "4 apps" widget); clearer widget
+  settings (tile panel options).
+
 ## 5b. Design language: "instrument panel" (round 21)
 
 Monochrome ink on the wallpaper or one surface; the accent means only "now / progress"; hairlines (1dp,

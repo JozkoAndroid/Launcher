@@ -15,10 +15,26 @@ internal data class NewsCandidate(val topic: String, val title: String, val url:
 internal object NewsSource {
 
     val Feeds = mapOf(
-        "aviation" to listOf("https://simpleflying.com/feed/"),
+        // Round 22: Slovak outlets (checked Nov 2026: valid RSS, fresh items).
+        "sk" to listOf(
+            "https://dennikn.sk/feed/", "https://www.aktuality.sk/rss/",
+            "https://www.teraz.sk/rss/slovensko.rss", "https://spravy.stvr.sk/feed/",
+        ),
+        // EU: TASR's foreign desk (Slovak, often EU from a Slovak view) and Euractiv; see [slovakAngle].
+        "eu" to listOf("https://www.teraz.sk/rss/zahranicie.rss", "https://www.euractiv.com/feed/"),
         "tech" to listOf("https://www.theverge.com/rss/index.xml", "https://feeds.arstechnica.com/arstechnica/index"),
-        "eu" to listOf("https://www.euractiv.com/feed/", "https://www.politico.eu/feed/"),
+        "aviation" to listOf("https://simpleflying.com/feed/"),
     )
+
+    private val EuWords = Regex("(?i)EÚ|Európsk|Europarlament|Brusel|Eurokomis|European Parliament|\\bEU\\b|Commission")
+    private val SkWords = Regex("(?i)Slovensk|Slovak|Bratislav|Fico|Šimečk|Pellegrini")
+
+    /** EU items about Slovakia first, then other EU institution news, then the rest; newest first within each. */
+    private fun slovakAngle(c: NewsCandidate): Int = when {
+        SkWords.containsMatchIn(c.title) && EuWords.containsMatchIn(c.title) -> 0
+        EuWords.containsMatchIn(c.title) -> 1
+        else -> 2
+    }
 
     /** Up to 15 newest items per topic from the last [hours]; one dead feed never fails the rest. */
     suspend fun fetch(now: OffsetDateTime, hours: Long = 36): Map<String, List<NewsCandidate>> = coroutineScope {
@@ -28,6 +44,7 @@ internal object NewsSource {
                 .flatMap { it.await() }
                 .filter { it.published.isAfter(cutoff) }
                 .sortedByDescending { it.published }
+                .let { list -> if (topic == "eu") list.sortedBy { slovakAngle(it) } else list }
                 .distinctBy { it.url }
                 .take(15)
         }
@@ -35,7 +52,7 @@ internal object NewsSource {
 
     /** Without AI: the newest item of each topic. */
     fun newestPerTopic(c: Map<String, List<NewsCandidate>>): List<NewsItem> =
-        listOf("aviation", "tech", "eu").mapNotNull { t -> c[t]?.firstOrNull()?.let { NewsItem(t, it.title, it.url) } }
+        de.mm20.launcher2.schoolbrief.BriefRules.Topics.mapNotNull { t -> c[t]?.firstOrNull()?.let { NewsItem(t, it.title, it.url) } }
 
     fun parse(topic: String, xml: String): List<NewsCandidate> {
         val f = DocumentBuilderFactory.newInstance().apply {

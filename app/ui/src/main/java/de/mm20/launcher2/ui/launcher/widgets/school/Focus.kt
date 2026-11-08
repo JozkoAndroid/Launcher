@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -389,20 +390,70 @@ internal fun FocusNote(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier
     }
 }
 
-/** On home, above the dock: a quiet line while a session runs ("18:42 · Für Ethik lernen"). */
+/**
+ * The focus block on home (round 22): the same bar as in "Môj deň" (15/20/30 minutes and start, or the
+ * countdown and stop), on the block's own surface, with what gets blocked above it.
+ */
+@Composable
+fun FocusWidget(widget: de.mm20.launcher2.widgets.FocusWidget) {
+    val context = LocalContext.current
+    var canBlock by remember { mutableStateOf(FocusGuard.canBlock(context)) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        canBlock = FocusGuard.canBlock(context)
+        onPauseOrDispose {}
+    }
+    SchoolCard {
+        Text(stringResource(R.string.focus_label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(10.dp))
+        FocusBar()
+        if (!canBlock) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.focus_block_setup),
+                style = MaterialTheme.typography.bodyMedium,
+                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                modifier = Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button) { FocusGuard.requestMissing(context) },
+            )
+        }
+    }
+}
+
+/**
+ * On home, above the dock, while a session runs (round 22, device test: the text line was hard to read on
+ * the wallpaper and clashed with other text): a pill like the dock's, a thin ring for the time gone, the
+ * countdown large in the accent, the task beside it.
+ */
 @Composable
 internal fun FocusLine(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val f by FocusTimer.current(context).collectAsState()
     val focus = f ?: return
     val left = rememberFocusLeft(focus)
-    val content = schoolContentColor()
-    Row(modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    val total = focus.minutes * 60_000f
+    val gone = if (total > 0) (1f - left / total).coerceIn(0f, 1f) else 0f
+    Row(
+        modifier
+            .padding(bottom = 10.dp)
+            .widthIn(max = 360.dp)
+            .pillSurface(androidx.compose.foundation.shape.CircleShape)
+            .padding(start = 10.dp, end = 18.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.CircularProgressIndicator(
+            progress = { gone }, modifier = Modifier.size(28.dp), strokeWidth = 3.dp,
+            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
+            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round, gapSize = 0.dp,
+        )
+        androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
         Text(
-            clock(left) + " · " + focus.text,
-            style = MaterialTheme.typography.bodyMedium.merge(SchoolTokens.Tabular),
-            color = content, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 320.dp),
+            clock(left),
+            style = MaterialTheme.typography.titleLarge.merge(SchoolTokens.Tabular),
+            color = MaterialTheme.colorScheme.primary,
+        )
+        androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
+        Text(
+            focus.text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
     }
 }

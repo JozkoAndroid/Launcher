@@ -60,7 +60,7 @@ internal fun RevisionSheet(title: String, onDismiss: () -> Unit) {
     val start = rememberFocusStarter()
     var practising by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
             if (test == null || due == null) {
                 Text(title, style = SchoolFonts.serifDisplay(28))
@@ -115,7 +115,7 @@ internal fun RevisionSheet(title: String, onDismiss: () -> Unit) {
         }
     }
     if (practising) {
-        ModalBottomSheet(onDismissRequest = { practising = false }) {
+        ModalBottomSheet(onDismissRequest = { practising = false }, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
             ChatDock(Modifier.padding(bottom = 16.dp), bottomInset = 0.dp)
         }
     }

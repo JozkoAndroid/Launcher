@@ -183,7 +183,7 @@ internal fun AppIcon(item: SavableSearchable, icons: IconService, size: Dp) {
 internal fun FolderAppsSheet(tag: String, vm: FoldersVM, onEdit: () -> Unit, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val items by remember(tag) { vm.items(tag) }.collectAsState(emptyList())
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(tag, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
             TextButton(onClick = onEdit) { Text(stringResource(R.string.folders_edit)) }

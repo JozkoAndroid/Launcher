@@ -93,9 +93,10 @@ internal class GeminiWriter(private val apiKey: String, private val model: Strin
                 "Uveď najviac 3 položky: vždy najprv úlohy s when = PO TERMÍNE, potom čo je na rade dnes alebo zajtra, potom testy. Hovor k jednému človeku (ty), nie my. " +
                 "Názvy úloh cituj v „…“ presne tak, ako sú v dátach, znak po znaku. Nikdy ich neprekladaj, neskracuj ani nemeň. " +
                 "Ak je v ten deň voľno alebo víkend, povedz to a spomeň najdôležitejšiu vec na ďalší školský deň. " +
-                "Z kandidátov vyber po jednej správe: aviation (lietadlá, aerolinky, letiská; nie videá ani zoznamy), " +
+                "Z kandidátov vyber po jednej správe: sk (najdôležitejšia správa zo Slovenska; nie krimi ani bulvár), " +
+                "eu (prednostne Európsky parlament a EÚ vo vzťahu k Slovensku, inak inštitúcie EÚ), " +
                 "tech (najdôležitejšia technologická správa; nie veda, zdravie ani zábava), " +
-                "eu (prednostne Európsky parlament, inak inštitúcie EÚ; nie národná politika). Titulok a url skopíruj presne."
+                "aviation (lietadlá, aerolinky, letiská; nie videá ani zoznamy). Titulok a url skopíruj presne."
 
         private fun dayWord(today: LocalDate, d: LocalDate, sk: Locale): String = when (val n = java.time.temporal.ChronoUnit.DAYS.between(today, d)) {
             0L -> "dnes"

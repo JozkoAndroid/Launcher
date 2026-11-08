@@ -125,6 +125,13 @@ data class MyDayWidget(override val id: UUID) : Widget() {
     companion object { const val Type = "school_myday" }
 }
 
+/** Starts a focus session from home (round 22): 15/20/30 minutes, or the countdown and stop while one runs. */
+data class FocusWidget(override val id: UUID) : Widget() {
+    override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = null)
+    override fun getLabel(context: Context): String = context.getString(R.string.widget_name_focus)
+    companion object { const val Type = "school_focus" }
+}
+
 /** Nearest test with a "practise" button that quizzes you in the chat. */
 data class TestPrepWidget(override val id: UUID) : Widget() {
     override fun toDatabaseEntity() = PartialWidgetEntity(id = id, type = Type, config = null)

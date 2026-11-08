@@ -38,6 +38,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +80,25 @@ class SchoolChatVM : ViewModel(), KoinComponent {
     val messages = mutableStateListOf<ChatMessage>()
     var thinking by mutableStateOf(false)
         private set
+
+    // Round 22: recent chats, saved on the phone after every answer.
+    private val history = ChatHistory(org.koin.core.context.GlobalContext.get().get<android.content.Context>())
+    private var chatId: Long = 0
+    var recent by mutableStateOf(history.all())
+        private set
+
+    private fun persist() {
+        if (messages.isEmpty()) return
+        if (chatId == 0L) chatId = System.currentTimeMillis()
+        history.save(chatId, messages.toList())
+        recent = history.all()
+    }
+
+    /** Opens a saved chat to read or continue. */
+    fun restore(c: SavedChat) {
+        if (thinking) return
+        messages.clear(); messages.addAll(c.messages); chatId = c.id
+    }
     val hasKey: Boolean get() = chat.hasKey
     /** Observable key state, so the dock switches from "add key" to chat at once. */
     val keyState = brief.hasGeminiKey
@@ -93,6 +114,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
             val answer = chat.reply(messages.toList(), feed)
             messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
+            persist()
         }
     }
 
@@ -109,6 +131,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
             val answer = chat.reply(messages.toList(), brief.feed.first())
             messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
+            persist()
         }
     }
 
@@ -175,10 +198,12 @@ class SchoolChatVM : ViewModel(), KoinComponent {
             val r = brief.answerNow()
             messages += ChatMessage(false, r.getOrElse { "Nepodarilo sa (${it.message})." })
             thinking = false
+            persist()
         }
     }
 
-    fun clear() = messages.clear()
+    /** Starts a new chat; the current one stays in the recent list. */
+    fun clear() { persist(); messages.clear(); chatId = 0 }
 }
 
 @Composable
@@ -262,6 +287,8 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
     val listState = rememberLazyListState()
     LaunchedEffect(vm.messages.size, vm.thinking) { if (vm.messages.isNotEmpty()) listState.animateScrollToItem(vm.messages.size) }
     val surface = MaterialTheme.colorScheme.surfaceContainerHigh
+    var showRecent by remember { mutableStateOf(false) }
+    if (showRecent) RecentChatsSheet(vm, onDismiss = { showRecent = false })
 
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
         // ChatPart.All keeps its own frame (side panel); the parts get theirs from "Môj deň".
@@ -277,16 +304,21 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                             stringResource(R.string.chat_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             modifier = Modifier.weight(1f).padding(start = 8.dp),
                         )
+                        if (vm.recent.isNotEmpty()) {
+                            androidx.compose.material3.TextButton(onClick = { showRecent = true }) { Text(stringResource(R.string.chat_recent)) }
+                        }
                         androidx.compose.material3.TextButton(onClick = { vm.clear() }) { Text(stringResource(R.string.chat_close)) }
                     }
-                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                    // Round 22 (user: "bigger, fill the screen"): the conversation takes most of the page height.
+                    val maxChat = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.62f).dp
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxChat), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
                         items(vm.messages) { m -> Bubble(m) }
                         if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
             }
-            if (part != ChatPart.Bar && hasKey && vm.messages.isEmpty()) QuickActions(vm)
+            if (part != ChatPart.Bar && hasKey && vm.messages.isEmpty()) QuickActions(vm, onRecent = { showRecent = true })
             if (part == ChatPart.Above) return@Column
             if (!hasKey) {
                 KeyRow(onSave = { vm.saveKey(it) })
@@ -310,7 +342,7 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
  * Fach's lesson topics from Schoolhelp, so Gemini knows what is meant; the bubble shows only the label.
  */
 @Composable
-private fun QuickActions(vm: SchoolChatVM) {
+private fun QuickActions(vm: SchoolChatVM, onRecent: () -> Unit = {}) {
     val brief: SchoolBriefVM = viewModel(key = "school-brief")
     val feed by brief.feed.collectAsState(null)
     val rec by brief.recording.collectAsState()
@@ -362,6 +394,7 @@ private fun QuickActions(vm: SchoolChatVM) {
         }
     }
 
+    if (vm.recent.isNotEmpty()) actions.add(0, stringResource(R.string.chat_recent) to onRecent)
     Row(
         Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -405,6 +438,37 @@ private fun KeyRow(onSave: (String) -> Unit) {
             androidx.compose.material3.TextButton(onClick = {
                 context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://aistudio.google.com/apikey")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
             }) { Text(stringResource(R.string.brief_settings_gemini_get)) }
+        }
+    }
+}
+
+
+/** Recent chats: the first question as the title, when it was; tap to open and continue. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun RecentChatsSheet(vm: SchoolChatVM, onDismiss: () -> Unit) {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val fmt = DateTimeFormatter.ofPattern("EEEE d.\u00A0M., HH:mm", locale)
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp)) {
+            Text(stringResource(R.string.chat_recent), style = SchoolFonts.serifDisplay(28))
+            Spacer(Modifier.height(12.dp))
+            for (c in vm.recent) {
+                Column(
+                    Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                        .clickable(role = Role.Button) { vm.restore(c); onDismiss() }
+                        .padding(vertical = 10.dp),
+                ) {
+                    Text(c.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Secondary(
+                        java.time.Instant.ofEpochMilli(c.id).atZone(java.time.ZoneId.systemDefault()).format(fmt)
+                            .replaceFirstChar { it.titlecase(locale) } + " · " + (c.messages.size / 2).coerceAtLeast(1) + "×"
+                    )
+                }
+            }
         }
     }
 }

@@ -8,7 +8,8 @@ import java.time.temporal.ChronoUnit
 /** Checks and fallbacks for the brief text. Port of the earlier check_brief(), plus a no-AI template. */
 object BriefRules {
 
-    val Topics = listOf("aviation", "tech", "eu")
+    // Round 22 (user: "news more about Slovakia"): Slovakia first, the EU with a Slovak angle, then tech and aviation.
+    val Topics = listOf("sk", "eu", "tech", "aviation")
 
     /** The three daily slots; the evening one writes about tomorrow. */
     val Slots: List<LocalTime> = listOf(LocalTime.of(6, 30), LocalTime.of(13, 30), LocalTime.of(19, 30))

@@ -167,7 +167,8 @@ fun ConfigureWidgetSheet(
                 // The other school widgets have no options in version 1.
                 is ContextWidget -> de.mm20.launcher2.ui.launcher.widgets.school.SchoolSettingsLink()
                 is ChipWidget -> ConfigureChipWidget(widget, onWidgetUpdated)
-                is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget, is WeekWidget, is MyDayWidget, is TestPrepWidget -> {}
+                is LessonWidget, is TasksWidget, is AssistantWidget, is FoldersWidget, is WeekWidget, is MyDayWidget, is TestPrepWidget,
+                is de.mm20.launcher2.widgets.FocusWidget -> {}
             }
         }
 
@@ -714,6 +715,7 @@ fun ColumnScope.ConfigureAppWidget(
                     is WeekWidget -> it.copy(id = widget.id)
                     is MyDayWidget -> it.copy(id = widget.id)
                     is TestPrepWidget -> it.copy(id = widget.id)
+                    is de.mm20.launcher2.widgets.FocusWidget -> it.copy(id = widget.id)
                 }
                 onWidgetUpdated(updatedWidget)
                 replaceWidget = false

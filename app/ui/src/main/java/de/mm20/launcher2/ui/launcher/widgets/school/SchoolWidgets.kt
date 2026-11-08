@@ -309,8 +309,22 @@ internal fun BriefContent(f: Feed, now: OffsetDateTime) {
             if (stale) stringResource(R.string.school_stale) + " · " + updatedTime(f) else updatedTime(f),
         )
         Spacer(Modifier.height(10.dp))
+        // Round 22: personal. A greeting with the user's name, the brief, and on some days a word on health.
+        val local = now.toLocalDateTime()
+        // Read each time (an in-memory preference): a change in settings shows on the next look.
+        val name = Personal.name(context)
+        Text(Personal.greeting(name, local), style = SchoolFonts.serifDisplay(24))
+        Spacer(Modifier.height(6.dp))
         // The brief reads like the first lines of a newspaper: serif, generous leading.
         Text(f.brief, style = TextStyle(fontFamily = SchoolFonts.Serif, fontSize = 18.sp, lineHeight = 27.sp))
+        Personal.health(local)?.let { h ->
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(painterResource(R.drawable.favorite_24px), null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(10.dp))
+                Text(h, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         if (f.news.isNotEmpty()) Spacer(Modifier.height(10.dp))
         val openLabel = stringResource(R.string.open_article)
         for (item in f.news) {
@@ -336,6 +350,7 @@ internal fun BriefContent(f: Feed, now: OffsetDateTime) {
 
 @DrawableRes
 private fun topicIcon(topic: String): Int = when (topic) {
+    "sk" -> R.drawable.flag_24px
     "aviation" -> R.drawable.flight_24px
     "tech" -> R.drawable.smartphone_24px
     "eu" -> R.drawable.account_balance_24px

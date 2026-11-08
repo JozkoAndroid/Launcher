@@ -38,6 +38,14 @@ fun ColumnScope.ConfigureSchoolBrief() {
     val hasKey by vm.hasGeminiKey.collectAsState()
     val context = LocalContext.current
 
+    // Round 22: the name the brief greets with.
+    var name by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(Personal.name(context)) }
+    androidx.compose.material3.OutlinedTextField(
+        name, { name = it; Personal.setName(context, it) },
+        label = { Text(stringResource(R.string.settings_your_name)) }, singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(20.dp))
     Text(stringResource(R.string.brief_settings_schoolhelp), style = MaterialTheme.typography.titleMedium)
     Spacer(Modifier.height(8.dp))
     when (status) {

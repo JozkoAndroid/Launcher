@@ -1115,6 +1115,7 @@
     <string name="chat_key_title">Kľúč Gemini</string>
     <string name="widget_name_week">Týždeň</string>
     <string name="widget_name_myday">Môj deň (ráno a večer)</string>
+    <string name="widget_name_focus">Sústredenie</string>
     <string name="widget_name_testprep">Príprava na test</string>
     <string name="myday_morning">Dobré ráno</string>
     <string name="myday_evening">Zajtra</string>
@@ -1257,6 +1258,8 @@
     <string name="dashboard_column">Stĺpec %1$d</string>
     <string name="widget_tile_conditional">Ukáže sa, len keď je čo ukázať</string>
     <string name="lesson_ruler">Dnešné hodiny od %1$s do %2$s</string>
+    <string name="settings_your_name">Tvoje meno (pozdrav v Prehľade dňa)</string>
+    <string name="chat_recent">Nedávne</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>
