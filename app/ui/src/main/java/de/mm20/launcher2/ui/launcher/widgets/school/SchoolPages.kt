@@ -91,7 +91,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         viewModelScope.launch {
             val feed = brief.feed.first()
             val answer = chat.reply(messages.toList(), feed)
-            messages += ChatMessage(false, answer.getOrElse { "Odpoveď sa nepodarilo načítať (${it.message}). Skús to znova." })
+            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
         }
     }
@@ -107,7 +107,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
             val ctx = folder.takeIf { it.isNotBlank() }?.let { brief.studyContext(it) }
             if (at in messages.indices) messages[at] = ChatMessage(true, label, prompt(ctx))
             val answer = chat.reply(messages.toList(), brief.feed.first())
-            messages += ChatMessage(false, answer.getOrElse { "Odpoveď sa nepodarilo načítať (${it.message}). Skús to znova." })
+            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
         }
     }
@@ -132,6 +132,13 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         if (c?.current != null) "Vysvetli mi stručne a jednoducho po slovensky aktuálnu tému z predmetu $folder: ${c.describe()}. " +
             "Pridaj 2 kľúčové pojmy v jazyku predmetu (${c.lang ?: "de"}) a jednu kontrolnú otázku."
         else "Z predmetu $folder nemám záznamy hodín. Povedz mi to otvorene a spýtaj sa, akú tému mám vysvetliť."
+    }
+
+    /** A short quiz on the subject's latest lesson, one question at a time. */
+    fun quizTopic(folder: String, label: String) = sendWithTopics(label, folder) { c ->
+        if (c != null && c.describe().isNotBlank()) "Vyskúšaj ma z poslednej hodiny predmetu $folder: ${c.describe()}. " +
+            "Päť krátkych otázok, vždy len jednu; po mojej odpovedi povedz, či je správna, a daj ďalšiu. Jazyk predmetu: ${c.lang ?: "de"}."
+        else "Z predmetu $folder nemám záznamy hodín. Spýtaj sa ma jednou vetou, z čoho ma máš vyskúšať."
     }
 
     fun helpWithTask(t: de.mm20.launcher2.schoolbrief.SchoolTask, label: String) = sendWithTopics(label, t.subject) { c ->
@@ -319,6 +326,19 @@ private fun QuickActions(vm: SchoolChatVM) {
     }
     val week = stringResource(R.string.quick_week)
     actions += week to { vm.send(week, "Čo ma čaká tento týždeň? Testy, odovzdania a termíny podľa dní, stručne.") }
+    // Round 16 (user: "a few more questions"): ones that help any day, data or not.
+    val priority = stringResource(R.string.quick_priority)
+    actions += priority to { vm.send(priority, "Čo je teraz najdôležitejšie spraviť? Jedna vec, prečo práve ona a prvý krok. Stručne.") }
+    val plan = stringResource(R.string.quick_plan)
+    actions += plan to { vm.send(plan, "Naplánuj mi zvyšok dňa: ktoré úlohy a učenie v akom poradí, s odhadom minút a krátkymi prestávkami. Stručne, ako zoznam.") }
+    val bag = stringResource(R.string.quick_bag)
+    actions += bag to { vm.send(bag, "Čo si mám zbaliť na zajtra podľa rozvrhu a úloh? Zoznam.") }
+    if (f != null) {
+        lessonsOn(f, today).lastOrNull { it.end <= now.toLocalTime().toString().take(5) }?.let { le ->
+            val l = stringResource(R.string.quick_quiz, le.subject)
+            actions += l to { vm.quizTopic(le.subject, l) }
+        }
+    }
 
     Row(
         Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),
@@ -330,8 +350,7 @@ private fun QuickActions(vm: SchoolChatVM) {
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .pillSurface(androidx.compose.foundation.shape.CircleShape)
                     .clickable(role = Role.Button, onClick = action)
                     .heightIn(min = 44.dp)
                     .padding(horizontal = 16.dp, vertical = 12.dp),

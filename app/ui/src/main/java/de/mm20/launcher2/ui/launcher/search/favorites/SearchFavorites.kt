@@ -62,7 +62,8 @@ fun LazyListScope.SearchFavorites(
                         icon = if (selectedTag == null) R.drawable.star_24px else R.drawable.tag_24px,
                     )
                 }
-                if (pinnedTags.isNotEmpty() || editButton) {
+                // Fork (round 16): always, so the "+ Priečinok" chip is there before the first folder exists.
+                run {
                     FavoritesTagSelector(
                         tags = pinnedTags,
                         selectedTag = selectedTag,

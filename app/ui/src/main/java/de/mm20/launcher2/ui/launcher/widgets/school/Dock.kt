@@ -195,6 +195,7 @@ internal fun DockContent(
             Spacer(Modifier.width(10.dp))
         }
         // Ink on the wallpaper: the home screen's one primary action.
-        InkButton(R.drawable.mic_24px, stringResource(R.string.assistant_button), schoolContentColor(), onAssistant)
+        // Round 16 (user): a spark for Gemini, so it is not mistaken for the dictation mic.
+        InkButton(R.drawable.spark_24px, stringResource(R.string.assistant_button), schoolContentColor(), onAssistant)
     }
 }

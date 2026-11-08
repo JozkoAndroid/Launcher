@@ -1242,6 +1242,7 @@
         <item quantity="other">%1$d new messages in Schoolhelp</item>
     </plurals>
     <string name="widget_name_folders">Folders</string>
+    <string name="folders_create">Folder</string>
     <string name="folders_new">New</string>
     <string name="folders_name">Folder name</string>
     <string name="folders_apps">Apps in the folder</string>
@@ -1299,6 +1300,10 @@
     <string name="quick_practise">Practise: %1$s</string>
     <string name="quick_explain">Explain topic: %1$s</string>
     <string name="quick_help_task">Help with: %1$s</string>
+    <string name="quick_priority">What matters most?</string>
+    <string name="quick_plan">Plan my day</string>
+    <string name="quick_bag">What to pack?</string>
+    <string name="quick_quiz">Review: %1$s</string>
     <string name="quick_week">This week</string>
     <string name="task_undo">Undo</string>
     <string name="task_done_label">Done</string>

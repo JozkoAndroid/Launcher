@@ -1,0 +1,11 @@
+<!-- Fork (round 16): the assistant's four-point spark, so the home button is not mistaken for dictation. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="?attr/colorControlNormal">
+  <path
+      android:fillColor="@android:color/white"
+      android:pathData="M480,96Q505,402 864,480Q505,558 480,864Q455,558 96,480Q455,402 480,96Z"/>
+</vector>

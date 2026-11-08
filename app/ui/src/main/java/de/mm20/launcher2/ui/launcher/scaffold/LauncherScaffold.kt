@@ -923,9 +923,11 @@ internal class LauncherScaffoldState(
     private suspend fun switchToSearch(from: ScaffoldComponent) {
         val g = listOf(Gesture.SwipeDown, Gesture.SwipeUp, Gesture.SwipeLeft, Gesture.SwipeRight)
             .find { config[it]?.component is SearchComponent } ?: Gesture.TapSearchBar
-        val back = currentGesture
+        // Round 16 (device test: swiping search away went home, not back to the page it came from): the
+        // way back is known before the switch animates. Set after it, a touch or the opening fling's tail
+        // during those 220 ms interrupted the animation and the line never ran.
+        returnGesture = currentGesture
         switchTo(g, from)
-        returnGesture = back
     }
 
     /** Leaves search for the side page it came from; false if it was opened from home. */
@@ -952,8 +954,12 @@ internal class LauncherScaffoldState(
         currentOffset3D = Offset3D(target.x * 0.85f, target.y * 0.85f, target.z)
         secondaryPageSearchBarOffset = 0f
         from.onDismiss(this@LauncherScaffoldState)
-        animateOffset3DTo(target, animationSpec = tween(220, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)))
-        to.onActivate(this@LauncherScaffoldState)
+        try {
+            animateOffset3DTo(target, animationSpec = tween(220, easing = androidx.compose.animation.core.CubicBezierEasing(0.23f, 1f, 0.32f, 1f)))
+        } finally {
+            // Interrupted by a drag or fling (they take the offset over): the page is still the active one.
+            to.onActivate(this@LauncherScaffoldState)
+        }
     }
 
     suspend fun navigateToPage(gesture: Gesture) {

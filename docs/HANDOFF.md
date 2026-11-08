@@ -106,10 +106,11 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
 - Week (round 15): `WeekOverview` (panel block and week page): 7-day strip with due dots, then only the
   days with something due. No timetable (user found it excessive).
 - Tiles (round 15): `ChipTiles` is a fixed grid (2 columns narrow, 3 from 450dp), empty tiles take no slot.
-- Recommended layout (ForkSetup v15, applied on update): home = Lesson, My day, Brief, Tasks, ten tiles
-  (add, test, lunch, nameday, birthday, chats, data, steps, instagram, music; empty ones take no slot);
-  panel = Weather, Week, Calendar, Folders, Notes. No duplicates (weather in the lesson header, no
-  "Práve teraz", test prep via the test tile's revision sheet).
+- Recommended layout (ForkSetup v16, applied on update; `run` once per process, v15 could run twice
+  and duplicate blocks): home = Lesson, Weather (compact), Brief, Tasks, ten tiles (add, test, lunch,
+  nameday, birthday, chats, data, steps, instagram, music; empty ones take no slot); panel = Week,
+  Calendar, Folders, Notes. No duplicates; no "Práve teraz", no "Môj deň" card, test prep via the
+  test tile's revision sheet.
 - "Môj deň" bottom area: one frame for all modes (`DayBarMode`): mode extras (chat `ChatPart.Above`,
   `FocusNote`) above an equal-width `Segmented`, the bar below at the same size in every mode.
 - Revision sheet (`Revision.kt`): test tile tap; note topics + `studyContext` (live), "Učiť sa 20 min"
@@ -118,7 +119,10 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   the app list.
 - Settings > Škola lists every permission (location, mic, notifications, overlay, usage, notification
   access, contacts, steps).
-- Weather provider stays met.no (default); "not available" after the reinstall was missing location.
+- Weather (round 16): met.no needs contact info in its User-Agent; `metno_contact` was missing (upstream
+  sets it in its gitignored config.xml), so no request was ever sent. Now in
+  `data/weather/src/main/res/values/metno_contact.xml` (project URL, kept from shrinking).
+  `DevicePoseProvider` also reads the fused provider and listens on the main looper.
 - Code map: `graphify update .` on a copy of the fork code (scratchpad) gives graph.json /
   GRAPH_REPORT.md; `graphify explain X`, `graphify path A B` to navigate (local, no LLM).
 - `ForkSetup.kt`: versioned one-time migrations (now `Version = 13`), recommended layout

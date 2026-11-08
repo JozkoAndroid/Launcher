@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -118,6 +119,8 @@ fun FavoritesTagSelector(
                             }
                         )
                     }
+                    // Fork (round 16, user: "I want to create folders in the app list"): the last chip makes one.
+                    NewFolderChip(Modifier.padding(start = 8.dp), onCreated = onSelectTag)
                     if (canScroll) {
                         val rot by transition.animateFloat {
                             if (it == EnterExitState.Visible) 0f else 180f
@@ -230,3 +233,22 @@ fun FavoritesTagSelector(
     }
 }
 
+
+
+/** Fork: "+ Priečinok" opens the folder editor (name, apps); the new folder is selected right away. */
+@Composable
+private fun NewFolderChip(modifier: Modifier, onCreated: (String?) -> Unit) {
+    var creating by remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.material3.AssistChip(
+        modifier = modifier,
+        onClick = { creating = true },
+        leadingIcon = {
+            Icon(painterResource(R.drawable.add_24px), contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
+        },
+        label = { Text(stringResource(R.string.folders_create)) },
+    )
+    if (creating) {
+        val vm: de.mm20.launcher2.ui.launcher.widgets.school.FoldersVM = androidx.lifecycle.viewmodel.compose.viewModel(key = "school-folders")
+        de.mm20.launcher2.ui.launcher.widgets.school.FolderEditor(null, vm, onDismiss = { creating = false }, onSaved = { onCreated(it) })
+    }
+}

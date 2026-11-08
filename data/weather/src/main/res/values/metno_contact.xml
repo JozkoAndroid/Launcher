@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fork (round 16): met.no requires contact information in every request's User-Agent; without this
+  string the provider never sent a request ("Údaje o počasí nie sú k dispozícii" on the device).
+  Upstream fills it in its own CI via the gitignored config.xml. A project URL, no personal data.
+  Kept from resource shrinking because MetNoProvider looks it up by name.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/metno_contact">
+    <string name="metno_contact" translatable="false">https://github.com/JozkoAndroid/Launcher</string>
+</resources>

@@ -33,20 +33,50 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
     override val hasKey: Boolean get() = secrets.get(SecretStore.GeminiKey) != null
 
     override suspend fun reply(history: List<ChatMessage>, feed: Feed?): Result<String> = runCatching {
-        val key = secrets.get(SecretStore.GeminiKey) ?: error("Chýba kľúč Gemini.")
-        val res = Http.request(
-            "https://generativelanguage.googleapis.com/v1beta/models/${GeminiWriter.DefaultModel}:generateContent", "POST",
-            body = Json.encodeToString(JsonObject.serializer(), request(history, feed, LocalDateTime.now())),
-            headers = mapOf("Content-Type" to "application/json", "x-goog-api-key" to key),
-            timeoutMs = 30_000,
-        )
-        if (!res.ok) error("Gemini ${res.code}")
+        val key = secrets.get(SecretStore.GeminiKey) ?: error("Chýba kľúč Gemini. Vlož ho v Nastavenia > Škola.")
+        val body = Json.encodeToString(JsonObject.serializer(), request(history, feed, LocalDateTime.now()))
+        // Round 16 (device test: only "Gemini 401" was shown): the default model, and if Google no longer
+        // knows it (404) the fallbacks; every failure says what is wrong and what to do.
+        var res = ask(GeminiWriter.DefaultModel, body, key)
+        for (m in FallbackModels) {
+            if (res.code != 404) break
+            res = ask(m, body, key)
+        }
+        if (!res.ok) error(explain(res.code, res.body))
         Json.parseToJsonElement(res.body).jsonObject["candidates"]!!.jsonArray[0].jsonObject["content"]!!.jsonObject["parts"]!!
             .jsonArray.mapNotNull { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull }.joinToString("").trim()
             .ifEmpty { error("Prázdna odpoveď.") }
     }
 
+    private suspend fun ask(model: String, body: String, key: String) = Http.request(
+        "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent", "POST",
+        body = body,
+        headers = mapOf("Content-Type" to "application/json", "x-goog-api-key" to key),
+        timeoutMs = 30_000,
+    )
+
     companion object {
+        /** Tried in order when the default model answers 404 (renamed or retired). */
+        internal val FallbackModels = listOf("gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash")
+
+        /** A failed Gemini call in words: the cause, Google's own message, and the next step. */
+        internal fun explain(code: Int, body: String): String {
+            val google = runCatching {
+                Json.parseToJsonElement(body).jsonObject["error"]!!.jsonObject["message"]!!.jsonPrimitive.content
+            }.getOrNull()?.take(160)
+            val what = when {
+                code == 400 && body.contains("API_KEY", ignoreCase = true) ->
+                    "Kľúč Gemini je neplatný. Vytvor nový na aistudio.google.com a vlož ho v Nastavenia > Škola."
+                code == 401 || code == 403 ->
+                    "Google kľúč Gemini odmieta (zrušený alebo zablokovaný). Vytvor nový na aistudio.google.com a vlož ho v Nastavenia > Škola."
+                code == 404 -> "Model Gemini sa nenašiel. Aplikácia potrebuje aktualizáciu."
+                code == 429 -> "Bezplatný limit otázok je na chvíľu vyčerpaný. Skús o minútu."
+                code >= 500 -> "Gemini je práve preťažený. Skús znova o chvíľu."
+                else -> "Gemini neodpovedal (kód $code)."
+            }
+            return if (google != null) "$what\n($google)" else what
+        }
+
         private const val System =
             "Si stručný pomocník na domovskej obrazovke študenta. Odpovedaj po slovensky, tykaj, krátko (najviac 4 vety alebo krátky zoznam). " +
                 "Na otázky o škole používaj iba priložené údaje (school_data): rozvrh, úlohy, testy, termíny a prehľad. " +

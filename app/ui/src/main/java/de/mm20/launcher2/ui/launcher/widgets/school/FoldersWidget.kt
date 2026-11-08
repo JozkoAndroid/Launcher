@@ -67,6 +67,7 @@ import org.koin.core.component.inject
 /** Folders = Kvaesitso tags, so they also work in the app list's search. */
 class FoldersVM : ViewModel(), KoinComponent {
     private val tags: TagsService by inject()
+    private val favorites: de.mm20.launcher2.services.favorites.FavoritesService by inject()
     private val apps: AppRepository by inject()
     val icons: IconService by inject()
 
@@ -75,7 +76,11 @@ class FoldersVM : ViewModel(), KoinComponent {
     val allApps: Flow<List<Application>> = apps.findMany().map { list -> list.sortedBy { (it.labelOverride ?: it.label).lowercase() } }
 
     fun save(oldName: String?, name: String, items: List<SavableSearchable>) {
-        if (oldName == null) tags.createTag(name, items) else tags.updateTag(oldName, newName = name, items = items)
+        if (oldName == null) {
+            tags.createTag(name, items)
+            // Round 16: a new folder shows at once as a chip at the top of the app list (only pinned tags do).
+            favorites.pinItem(de.mm20.launcher2.search.Tag(name))
+        } else tags.updateTag(oldName, newName = name, items = items)
     }
 
     fun delete(tag: String) = tags.deleteTag(tag)

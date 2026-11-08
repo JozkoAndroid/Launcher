@@ -32,17 +32,22 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 15
+    private const val Version = 16
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
     private val widgets: WidgetRepository by inject()
     private val searchUiSettings: de.mm20.launcher2.preferences.ui.SearchUiSettings by inject()
 
+    /** Once per process (round 16, device test: 20 blocks listed, duplicates). Every launcher activity
+     *  creation calls [run], unfolding the Fold too; two runs overlapping both rebuilt the layout. */
+    private val started = java.util.concurrent.atomic.AtomicBoolean(false)
+
     fun run(context: Context) {
         val prefs = context.getSharedPreferences(Prefs, Context.MODE_PRIVATE)
         val from = prefs.getInt("version", 0)
         if (from >= Version) return
+        if (!started.compareAndSet(false, true)) return
 
         // Slovak UI regardless of the phone's language (spec). Changeable later in Android's per-app language.
         if (AppCompatDelegate.getApplicationLocales().isEmpty) {
@@ -118,7 +123,8 @@ object ForkSetup : KoinComponent {
             // v14 (round 15, user: "your suggested layout, no duplicates"): the recommended home and panel.
             // App widgets stay. Fresh installs get it just below.
             // v15: the fuller set (user: "way too few widgets"), on the home screen and the right screen.
-            if (from in 1..14) applyRecommendedLayout()
+            // v16: once more, cleanly (v15 could run twice at once and duplicate blocks).
+            if (from in 1..15) applyRecommendedLayout()
             // v4 (folders on home) is superseded by v8.
             // Fresh install (round 15, reinstall after a signing key change): the steps above only upgrade
             // older layouts (layoutHome ran for v8 phones only), so a new install got round 1's blocks.
@@ -139,16 +145,16 @@ object ForkSetup : KoinComponent {
         fun chip(kind: String, cfg: de.mm20.launcher2.widgets.ChipWidgetConfig) = de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), kind, cfg)
         val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain")
         // Round 15 (user: "your suggested layout, no duplicates", then "way too few widgets"): each thing
-        // once, as much as is useful. Now and next (lesson, weather in its header), the day's adaptive card
-        // (mornings what to bring, evenings tomorrow and the bag), the brief, the tasks; then the tiles
+        // once, as much as is useful. Now and next (lesson), today's weather (compact; once, so not on the
+        // panel), the brief (with the news), the tasks; then the tiles
         // right above the dock, under the thumb. Tiles with nothing to show take no place (lunch on school
         // days, birthdays, unread chats, music while playing), so ten fit without clutter.
-        // Not here: a weather card (in the lesson header; the full one is on the panel), "Práve teraz"
-        // (its values are the tiles), test prep (the test tile opens the revision sheet).
+        // Not here: "Práve teraz" (its values are the tiles), test prep (the test tile opens the revision
+        // sheet), "Môj deň" card (empty most of the day, read as a missing block on the device).
         val ring = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")
         listOf(
             LessonWidget(UUID.randomUUID()),
-            de.mm20.launcher2.widgets.MyDayWidget(UUID.randomUUID()),
+            WeatherWidget(UUID.randomUUID(), de.mm20.launcher2.widgets.WeatherWidgetConfig(showForecast = false)),
             BriefWidget(UUID.randomUUID()),
             TasksWidget(UUID.randomUUID()),
             chip("add", tile),
@@ -177,10 +183,9 @@ object ForkSetup : KoinComponent {
         }
         layoutHome()
         layout(
-            // The right screen: the longer view. Forecast, the week as what is due, the personal calendar
-            // (family, appointments; school dates are in the week), app folders, quick notes.
+            // The right screen: the longer view. The week as what is due, the personal calendar (family,
+            // appointments; school dates are in the week), app folders, quick notes.
             WidgetScreenTarget.Widgets2.id, listOf(
-                WeatherWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
                 CalendarWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()),

@@ -69,7 +69,10 @@ class DevicePoseProvider internal constructor(
                 val hasCoarseAccess =
                     context.checkPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
 
+                // Fork (round 16): Samsung keeps its freshest fix in the fused provider; GPS and network
+                // often have none when no app asked recently.
                 val previousLocation =
+                    (if (android.os.Build.VERSION.SDK_INT >= 31) (hasFineAccess || hasCoarseAccess).foldOrNull { getLastKnownLocation(LocationManager.FUSED_PROVIDER) } else null) ?:
                     hasFineAccess.foldOrNull { getLastKnownLocation(LocationManager.GPS_PROVIDER) } ?:
                     hasCoarseAccess.foldOrNull { getLastKnownLocation(LocationManager.NETWORK_PROVIDER) }
 
@@ -78,19 +81,25 @@ class DevicePoseProvider internal constructor(
                 }
 
                 if (hasFineAccess) {
+                    // Fork (round 16): on the main looper; from the weather worker's thread (no looper)
+                    // this threw, and runCatching hid it.
                     requestLocationUpdates(
                         LocationManager.GPS_PROVIDER,
                         minTimeMs,
                         minDistanceM,
-                        locationCallback
+                        locationCallback,
+                        android.os.Looper.getMainLooper(),
                     )
                 }
                 if (hasCoarseAccess) {
+                    // Fork (round 16): on the main looper; from the weather worker's thread (no looper)
+                    // this threw, and runCatching hid it.
                     requestLocationUpdates(
                         LocationManager.NETWORK_PROVIDER,
                         minTimeMs,
                         minDistanceM,
-                        locationCallback
+                        locationCallback,
+                        android.os.Looper.getMainLooper(),
                     )
                 }
             }?.onFailure {
