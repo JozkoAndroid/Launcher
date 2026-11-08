@@ -102,7 +102,14 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
 - Screen off -> `reset()` to home. App launched from search -> back to origin page on return.
 - `WidgetsComponent` for `Widgets2` = side panel with a 2-page `HorizontalPager` (widgets, apps page),
   pull past either end opens search with keyboard (opens on finger lift).
-- Search bar = shared pill, bottom position, hidden on home (dock there), no fade (slides with page).
+- Search bar = shared pill (`pillColor`, `pillOutline`, same shadow), bottom position, hidden on home
+  (dock there). Pages without it (`showSearchBar = false`, Môj deň) move it off screen: invisible but
+  on top it stole taps from the page's own bar (round 15 bug). All pills share one motion (rise D(1-p)^2,
+  grow from 96 %, fade in by 60 %), read in `graphicsLayer`.
+- Focus: `Focus.kt` (`FocusTimer`, prefs "focus" with `ends`/`block`), "Fokus" mode on Môj deň
+  (`FocusBar`). Blocking Instagram/YouTube/Threads is done by Kvaesitso's own
+  `LauncherAccessibilityService` (services/global-actions) on `TYPE_WINDOW_STATE_CHANGED`: needs the
+  user to enable the launcher's accessibility service.
 - Gestures (defaults + ForkSetup): swipe left = panel (`Widgets(Widgets2)`), swipe right = "Môj deň"
   (`GestureAction.SchoolChat` id kept), swipe up = search, swipe down = notifications (the user may have
   changed it on the device).

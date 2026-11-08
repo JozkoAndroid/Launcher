@@ -1228,4 +1228,10 @@
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>
     <string name="focus_start">Spustiť %1$d min sústredenia</string>
+    <string name="focus_blocked">Sústredenie beží: ešte %1$d min.</string>
+    <string name="day_mode_focus">Fokus</string>
+    <string name="focus_done_free">Sústredenie skončilo.</string>
+    <string name="focus_block_off">Na blokovanie Instagramu, YouTube a Threads treba zapnúť prístupnosť launchera.</string>
+    <string name="focus_block_on">Zapnúť</string>
+    <string name="glance_data_until">do %1$s</string>
 </resources>

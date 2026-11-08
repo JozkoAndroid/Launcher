@@ -190,7 +190,7 @@ internal object ClockAndWidgetsHomeComponent : ScaffoldComponent() {
                 modifier = Modifier.align(Alignment.BottomCenter),
                 enter = fadeIn(), exit = fadeOut(),
             ) {
-                val travel = de.mm20.launcher2.ui.launcher.widgets.school.pillTravelPx()
+                val travel = de.mm20.launcher2.ui.launcher.widgets.school.pillTravel()
                 androidx.compose.foundation.layout.Column(
                     // The dock leaves on the same curve the search pill arrives on (round 14).
                     Modifier.pillLeaving(travel) { state.currentProgress }

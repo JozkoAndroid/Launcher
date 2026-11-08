@@ -22,7 +22,8 @@ sealed interface ContextCard {
         override val rank = 2
     }
 
-    data class MobileData(val usedBytes: Long, val planBytes: Long) : ContextCard {
+    /** [renews] = the first day of the next cycle. */
+    data class MobileData(val usedBytes: Long, val planBytes: Long, val renews: LocalDate? = null) : ContextCard {
         override val rank = 3
     }
 

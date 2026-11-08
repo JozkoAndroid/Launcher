@@ -303,7 +303,7 @@ class SchoolScreenshotTest {
                             ),
                         ),
                         now = this@SchoolScreenshotTest.now,
-                        asking = false, onAsking = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
+                        mode = 0, onMode = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
                         chat = {},
                     )
                 }

@@ -103,9 +103,11 @@ fun ChipTiles(
         val rows = (widgets.size + fit - 1) / fit
         val cols = if (rows == 0) fit else ((widgets.size + rows - 1) / rows).coerceAtLeast(2)
         // 1dp slack: rounding to pixels must not push the last tile of a row onto the next line.
-        val w = (maxWidth - 8.dp * (cols - 1)) / cols - 1.dp
+        // Same 12dp gaps as the dashboard columns, so tile edges line up with the blocks above (round 15).
+        val gap = 12.dp
+        val w = (maxWidth - gap * (cols - 1)) / cols - 1.dp
         CompositionLocalProvider(LocalTileWidth provides w) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (x in widgets) androidx.compose.runtime.key(x.id) { item(x) }
             }
         }

@@ -108,10 +108,11 @@ fun DayPage(
     val now by brief.now.collectAsState(LocalDateTime.now())
     val today by vm.today.collectAsState()
     LaunchedEffect(now) { vm.refresh() }
-    var asking by rememberSaveable { mutableStateOf(false) }
+    // 0 = task, 1 = ask, 2 = focus (round 15).
+    var mode by rememberSaveable { androidx.compose.runtime.mutableIntStateOf(0) }
     DayContent(
         feed = feed, today = today, now = now, listState = listState,
-        asking = asking, onAsking = { asking = it },
+        mode = mode, onMode = { mode = it },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { bottom -> ChatDock(Modifier, bottomInset = bottom) },
         barProgress = progress,
@@ -124,8 +125,8 @@ internal fun DayContent(
     today: TodayData?,
     now: LocalDateTime,
     listState: LazyListState = rememberLazyListState(),
-    asking: Boolean,
-    onAsking: (Boolean) -> Unit,
+    mode: Int,
+    onMode: (Int) -> Unit,
     onAdd: (String) -> Unit,
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
@@ -196,7 +197,7 @@ internal fun DayContent(
                 }
             }
 
-            val travel = pillTravelPx()
+            val travel = pillTravel()
             Column(
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -208,11 +209,19 @@ internal fun DayContent(
             ) {
                 Row(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
                     Segmented(
-                        listOf(false to stringResource(R.string.day_mode_task), true to stringResource(R.string.day_mode_ask)),
-                        selected = asking, onSelect = onAsking,
+                        listOf(
+                            0 to stringResource(R.string.day_mode_task),
+                            1 to stringResource(R.string.day_mode_ask),
+                            2 to stringResource(R.string.day_mode_focus),
+                        ),
+                        selected = mode, onSelect = onMode,
                     )
                 }
-                if (asking) chat(bottom) else CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
+                when (mode) {
+                    1 -> chat(bottom)
+                    2 -> FocusBar(Modifier.padding(horizontal = 16.dp).padding(bottom = bottom + 12.dp))
+                    else -> CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
+                }
             }
         }
     }

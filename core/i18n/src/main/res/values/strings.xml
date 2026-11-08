@@ -1384,4 +1384,10 @@
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>
     <string name="focus_start">Start %1$d min focus</string>
+    <string name="focus_blocked">Focus is on: %1$d min left.</string>
+    <string name="day_mode_focus">Focus</string>
+    <string name="focus_done_free">Focus session done.</string>
+    <string name="focus_block_off">Blocking Instagram, YouTube and Threads needs the launcher\'s accessibility access.</string>
+    <string name="focus_block_on">Turn on</string>
+    <string name="glance_data_until">until %1$s</string>
 </resources>

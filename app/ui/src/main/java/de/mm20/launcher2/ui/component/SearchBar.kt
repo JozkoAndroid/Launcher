@@ -1,5 +1,7 @@
 package de.mm20.launcher2.ui.component
 
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.shadow
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
@@ -134,15 +136,25 @@ fun SearchBar(
         1f
     }
 
-    // Fork (round 13): the same pill as the dock and the input bars: height, round ends, surface, shadow.
+    // Fork (rounds 13, 15): exactly the pill of the dock and the input bars: height, round ends, the same
+    // fill at every level (it used to animate to transparent), the same hairline outline and shadow.
     val barH = de.mm20.launcher2.ui.launcher.widgets.school.barHeight()
+    val pillShape = androidx.compose.foundation.shape.RoundedCornerShape(barH / 2)
+    val pillTint = Color(0xFF0A0C10)
     LauncherCard(
         modifier = modifier
-            .alpha(opacity),
+            .alpha(opacity)
+            .then(
+                if (style == SearchBarStyle.Transparent) Modifier
+                else Modifier
+                    .shadow(16.dp, pillShape, ambientColor = pillTint, spotColor = pillTint)
+                    .border(1.dp, de.mm20.launcher2.ui.launcher.widgets.school.pillOutline(), pillShape)
+            ),
         backgroundOpacity = backgroundOpacity,
-        elevation = if (style == SearchBarStyle.Transparent) elevation else maxOf(elevation, 6.dp),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(barH / 2),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = (backgroundOpacity * 0.94f).coerceIn(0f, 1f)),
+        elevation = if (style == SearchBarStyle.Transparent) elevation else 0.dp,
+        shape = pillShape,
+        color = if (style == SearchBarStyle.Transparent) MaterialTheme.colorScheme.surface.copy(alpha = backgroundOpacity.coerceIn(0f, 1f))
+        else de.mm20.launcher2.ui.launcher.widgets.school.pillColor(),
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor

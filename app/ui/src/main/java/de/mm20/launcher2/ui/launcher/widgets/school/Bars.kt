@@ -2,6 +2,7 @@ package de.mm20.launcher2.ui.launcher.widgets.school
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,15 @@ import de.mm20.launcher2.ui.R
 
 private val ShadowTint = Color(0xFF0A0C10)
 
+/** The pill's fill: the same on every page (search, dock, task and chat bars), apart from its background. */
+@Composable
+internal fun pillColor(): Color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f)
+
+/** A hairline that keeps the pill's edge visible on any wallpaper (round 15, device test: "add an outline"). */
+@Composable
+internal fun pillOutline(): Color =
+    if (MaterialTheme.colorScheme.surfaceContainerHigh.luminance() < 0.5f) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.10f)
+
 @Composable
 internal fun barHeight(): Dp = if (LocalConfiguration.current.screenWidthDp >= 600) 76.dp else 64.dp
 
@@ -63,7 +73,8 @@ internal fun PillBar(modifier: Modifier = Modifier, content: @Composable RowScop
             .height(h)
             .shadow(16.dp, shape, ambientColor = ShadowTint, spotColor = ShadowTint)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.94f))
+            .background(pillColor())
+            .border(1.dp, pillOutline(), shape)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
@@ -82,6 +93,7 @@ internal fun InkButton(@DrawableRes icon: Int, label: String, base: Color, onCli
             .shadow(16.dp, CircleShape, ambientColor = ShadowTint, spotColor = ShadowTint)
             .clip(CircleShape)
             .background(ink)
+            .border(1.dp, pillOutline(), CircleShape)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
@@ -171,16 +183,23 @@ internal fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onSelect
  * with its page D·p² (p = how far the page swipe has gone). D = 128dp plus the navigation bar.
  */
 @Composable
-internal fun pillTravelPx(): Float {
+internal fun pillTravel(): Dp {
     val nav = androidx.compose.foundation.layout.WindowInsets.navigationBars
         .asPaddingValues().calculateBottomPadding()
-    return with(androidx.compose.ui.platform.LocalDensity.current) { (128.dp + nav).toPx() }
+    return 128.dp + nav
 }
 
-/** For a pill on a page that comes in with progress [progress]. */
-internal fun Modifier.pillArriving(travel: Float, progress: () -> Float) =
-    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * (1 - p) * (1 - p) }
+/**
+ * A pill arriving with its page (progress p from 0 to 1): rises on D·(1−p)², grows from 96 % and fades
+ * in by 60 % of the way. Leaving is the same motion backwards. Read in the layer, never in composition.
+ */
+internal fun Modifier.pillArriving(travel: Dp, progress: () -> Float) = graphicsLayer {
+    val p = progress().coerceIn(0f, 1f)
+    translationY = travel.toPx() * (1 - p) * (1 - p)
+    alpha = (p / 0.6f).coerceIn(0f, 1f)
+    val sc = 0.96f + 0.04f * p
+    scaleX = sc; scaleY = sc
+}
 
-/** For a pill on home, leaving as another page comes in with progress [progress]. */
-internal fun Modifier.pillLeaving(travel: Float, progress: () -> Float) =
-    graphicsLayer { val p = progress().coerceIn(0f, 1f); translationY = travel * p * p }
+/** A pill on home leaving as another page comes in: [pillArriving] mirrored. */
+internal fun Modifier.pillLeaving(travel: Dp, progress: () -> Float) = pillArriving(travel) { 1f - progress() }

@@ -503,11 +503,16 @@ internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): Contex
             icon = R.drawable.music_note_24px, onClick = open, playing = c.playing, onTogglePlay = vm?.let { v -> { v.togglePause() } },
             value = c.title, label = c.artist?.takeIf { it.isNotBlank() } ?: stringResource(R.string.chip_name_music),
         )
-        is ContextCard.MobileData -> ContextItem(
-            "data", stringResource(R.string.context_mobile_data, gb(c.usedBytes), gb(c.planBytes)), R.drawable.data_usage_24px, onClick = open,
-            value = "${gb(c.usedBytes)} GB", label = stringResource(R.string.glance_data_of, gb(c.planBytes)),
-            progress = if (c.planBytes > 0) (c.usedBytes.toFloat() / c.planBytes).coerceIn(0f, 1f) else null,
-        )
+        is ContextCard.MobileData -> {
+            // Under 1 GB in MB (0,4 GB read as nothing); the label says when the plan renews.
+            val used = if (c.usedBytes < 1_000_000_000L) "${nf.format(c.usedBytes / 1_000_000)} MB" else "${gb(c.usedBytes)} GB"
+            val until = c.renews?.let { " · " + stringResource(R.string.glance_data_until, it.format(java.time.format.DateTimeFormatter.ofPattern("d.\u00A0M.", locale))) }.orEmpty()
+            ContextItem(
+                "data", stringResource(R.string.context_mobile_data, gb(c.usedBytes), gb(c.planBytes)), R.drawable.data_usage_24px, onClick = open,
+                value = used, label = stringResource(R.string.glance_data_of, gb(c.planBytes)) + until,
+                progress = if (c.planBytes > 0) (c.usedBytes.toFloat() / c.planBytes).coerceIn(0f, 1f) else null,
+            )
+        }
         is ContextCard.Birthday -> ContextItem(
             "birthday:${c.contactId}", stringResource(R.string.context_birthday, c.name), R.drawable.cake_24px, onClick = open,
             value = c.name, label = stringResource(R.string.chip_name_birthday),

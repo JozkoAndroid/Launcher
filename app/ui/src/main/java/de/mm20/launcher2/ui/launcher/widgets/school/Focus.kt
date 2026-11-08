@@ -1,5 +1,9 @@
 package de.mm20.launcher2.ui.launcher.widgets.school
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -66,7 +70,14 @@ object FocusTimer : KoinComponent {
 
     fun start(context: Context, s: PlanStep) {
         val minutes = s.minutes ?: return
-        val f = Focus(s.index, s.text, minutes, System.currentTimeMillis() + minutes * 60_000L)
+        begin(context, Focus(s.index, s.text, minutes, System.currentTimeMillis() + minutes * 60_000L))
+    }
+
+    /** A session without a plan step (the focus bar on "Môj deň"). */
+    fun startFree(context: Context, minutes: Int) =
+        begin(context, Focus(-1, context.getString(R.string.focus_label), minutes, System.currentTimeMillis() + minutes * 60_000L))
+
+    private fun begin(context: Context, f: Focus) {
         save(context, f)
         alarms(context).setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, f.endsAt, alarm(context))
     }
@@ -74,7 +85,7 @@ object FocusTimer : KoinComponent {
     /** Ends the session; [done] = tick the step in Schoolhelp. */
     fun stop(context: Context, done: Boolean) {
         val f = current(context).value ?: return
-        if (done) brief.setStepDone(f.step, true)
+        if (done && f.step >= 0) brief.setStepDone(f.step, true)
         alarms(context).cancel(alarm(context))
         save(context, null)
     }
@@ -86,7 +97,7 @@ object FocusTimer : KoinComponent {
         nm.createNotificationChannel(NotificationChannel("focus", context.getString(R.string.focus_channel), NotificationManager.IMPORTANCE_HIGH))
         val n = android.app.Notification.Builder(context, "focus")
             .setSmallIcon(R.drawable.timer_24px)
-            .setContentTitle(context.getString(R.string.focus_done_title))
+            .setContentTitle(context.getString(if (f.step >= 0) R.string.focus_done_title else R.string.focus_done_free))
             .setContentText(f.text)
             .setAutoCancel(true)
             .build()
@@ -96,7 +107,8 @@ object FocusTimer : KoinComponent {
     private fun save(context: Context, f: Focus?) {
         state.value = f
         context.getSharedPreferences(Prefs, Context.MODE_PRIVATE).edit().apply {
-            if (f == null) clear() else putInt("step", f.step).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt)
+            // "block": the launcher's accessibility service sends Instagram, YouTube and Threads home meanwhile.
+            if (f == null) clear() else putInt("step", f.step).putString("text", f.text).putInt("minutes", f.minutes).putLong("ends", f.endsAt).putBoolean("block", true)
         }.apply()
     }
 
@@ -162,5 +174,78 @@ internal fun FocusLine(modifier: Modifier = Modifier) {
             color = content, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.widthIn(max = 320.dp),
         )
+    }
+}
+
+/**
+ * The focus bar ("Fokus" on "Môj deň", round 15): the same pill and ink button as every bar. Idle: pick
+ * 15, 20, 30 or 45 minutes and start. Running: the countdown and a stop button. Blocking needs the
+ * launcher's accessibility service; until it is on, one quiet line offers to turn it on.
+ */
+@Composable
+internal fun FocusBar(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val f by FocusTimer.current(context).collectAsState()
+    var minutes by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(20) }
+    val permissions: de.mm20.launcher2.permissions.PermissionsManager = org.koin.compose.koinInject()
+    val canBlock by remember { permissions.hasPermission(de.mm20.launcher2.permissions.PermissionGroup.Accessibility) }.collectAsState(true)
+    val askNotify = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { FocusTimer.startFree(context, minutes) }
+    val text = MaterialTheme.colorScheme.onSurface
+    Column(modifier.widthIn(max = 640.dp).fillMaxWidth()) {
+        if (!canBlock) {
+            Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Secondary(stringResource(R.string.focus_block_off), Modifier.weight(1f))
+                TextButton(onClick = {
+                    (context as? androidx.appcompat.app.AppCompatActivity)?.let {
+                        permissions.requestPermission(it, de.mm20.launcher2.permissions.PermissionGroup.Accessibility)
+                    }
+                }) { Text(stringResource(R.string.focus_block_on)) }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val running = f
+            PillBar(Modifier.weight(1f)) {
+                if (running == null) {
+                    for (m in listOf(15, 20, 30, 45)) {
+                        val on = m == minutes
+                        Text(
+                            "$m min",
+                            style = MaterialTheme.typography.labelLarge.merge(SchoolTokens.Tabular),
+                            color = if (on) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 2.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(if (on) text else androidx.compose.ui.graphics.Color.Transparent)
+                                .clickable(role = androidx.compose.ui.semantics.Role.RadioButton) { minutes = m }
+                                .padding(vertical = 12.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                    }
+                } else {
+                    val left = rememberFocusLeft(running)
+                    Text(
+                        clock(left), style = SchoolFonts.display(24).merge(SchoolTokens.Tabular),
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 14.dp),
+                    )
+                    Text(
+                        running.text, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            if (running == null) {
+                InkButton(R.drawable.play_arrow_24px, stringResource(R.string.focus_start, minutes), text) {
+                    val granted = android.os.Build.VERSION.SDK_INT < 33 ||
+                        context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (granted) FocusTimer.startFree(context, minutes) else askNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            } else {
+                InkButton(R.drawable.stop_24px, stringResource(R.string.focus_cancel), text) { FocusTimer.stop(context, done = false) }
+            }
+        }
     }
 }

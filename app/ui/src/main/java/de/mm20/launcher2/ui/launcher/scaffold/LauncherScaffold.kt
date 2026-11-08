@@ -1826,20 +1826,23 @@ private fun Modifier.searchBarAnimation(
         if (config.searchBarPosition == SearchBarPosition.Top) insets.calculateTopPadding() else insets.calculateBottomPadding()
     val hidden = config.searchBarStyle == SearchBarStyle.Hidden
 
-    // Fork: progress read in the offset lambda (layout phase), not in composition.
+    // Fork (round 15): the shared pill motion (rise, grow, fade with the page), read in the layer.
+    // A page that has no search pill (Môj deň) moves it off screen: invisible but still on top, it
+    // caught taps meant for that page's own bar (device test: the mic opened settings).
+    val travel = 128.dp + systemBarInset
     val modifier =
         if (component?.showSearchBar == false && hidden) {
-            Modifier.alpha(0f)
+            Modifier.alpha(0f).offset { IntOffset(0, 100_000) }
         } else if (!hidden) {
             Modifier
         } else {
-            Modifier.offset {
-                val progress = if (state.currentAnimation == ScaffoldAnimation.Rubberband) {
-                    (state.currentProgress * 2f).coerceAtMost(1f)
-                } else {
-                    state.currentProgress
-                }
-                IntOffset(0, (offsetFactor * (1 - progress).pow(2) * (128.dp + systemBarInset).toPx()).toInt())
+            Modifier.graphicsLayer {
+                val raw = if (state.currentAnimation == ScaffoldAnimation.Rubberband) (state.currentProgress * 2f).coerceAtMost(1f) else state.currentProgress
+                val p = raw.coerceIn(0f, 1f)
+                translationY = offsetFactor * travel.toPx() * (1 - p) * (1 - p)
+                alpha = (p / 0.6f).coerceIn(0f, 1f)
+                val sc = 0.96f + 0.04f * p
+                scaleX = sc; scaleY = sc
             }
         }
 

@@ -129,7 +129,8 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         val cycleFrom = ContextRules.cycleStart(today, s).atStartOfDay(zone).toInstant().toEpochMilli()
         usageAccess.value = ContextSources.hasUsageAccess(ctx)
         // Every value is read; "Práve teraz" shows only the urgent ones (ContextRules.urgent), a dedicated block shows its value always.
-        ContextSources.mobileBytes(ctx, cycleFrom, now)?.let { used -> out += ContextCard.MobileData(used, s.planBytes) }
+        val renews = ContextRules.cycleStart(today, s).plusDays(s.cycleDays)
+        ContextSources.mobileBytes(ctx, cycleFrom, now)?.let { used -> out += ContextCard.MobileData(used, s.planBytes, renews) }
         out += ContextSources.birthdays(ctx, today)
         val names = ContextRules.nameDay(ContextSources.nameDays(ctx), today)
         if (names.isNotEmpty()) {
