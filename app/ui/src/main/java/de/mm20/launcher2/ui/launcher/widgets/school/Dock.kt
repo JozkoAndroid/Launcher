@@ -66,12 +66,16 @@ class DockVM : ViewModel(), KoinComponent {
 
     /**
      * Round 15 (user: "how can I manually add apps to the dock"): the apps chosen with a long press on the
-     * dock, exactly those. Until something is chosen: the most used apps (a new install starts filled).
+     * dock first, in their order; free places (or all, before anything is chosen) go to the most used apps.
      */
     fun apps(count: Int): Flow<List<SavableSearchable>> = kotlinx.coroutines.flow.combine(
         chosen(count),
-        favorites.getFavorites(includeTypes = listOf("app"), minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned, limit = count),
-    ) { picked, used -> if (picked.isNotEmpty()) picked else used }
+        favorites.getFavorites(includeTypes = listOf("app"), minPinnedLevel = de.mm20.launcher2.searchable.PinnedLevel.NotPinned, limit = count * 2),
+    ) { picked, used ->
+        // Round 24 (device test: unfolded, the dock kept the 4 apps chosen on the cover screen): the chosen
+        // apps first, then the most used ones fill the free places of a wider dock (7 unfolded, 9 on a tablet).
+        (picked + used.filter { u -> picked.none { it.key == u.key } }).take(count)
+    }
 
     /**
      * Makes [apps] the dock, in this order. Kvaesitso's favorites store re-pins everything at once, so

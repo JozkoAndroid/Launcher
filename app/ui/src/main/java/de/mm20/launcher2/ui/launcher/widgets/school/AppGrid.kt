@@ -31,6 +31,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -82,51 +85,79 @@ fun AppGridWidget(widget: AppGridWidget, onWidgetUpdate: (de.mm20.launcher2.widg
         val rows = (count + cols - 1) / cols
         var dragKey by remember { mutableStateOf<String?>(null) }
         var drag by remember { mutableStateOf(Offset.Zero) }
+        // Round 24 (device test: dragging did nothing): the order lives here while dragging; the others make
+        // room as the finger moves, and the new order is saved when it lifts.
+        val order = remember(widget.config.apps, byKey) { androidx.compose.runtime.mutableStateListOf(*widget.config.apps.filter { it in byKey }.toTypedArray()) }
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        fun slot(i: Int) = with(density) { Offset((cellW * (i % cols)).toPx(), (cellH * (i / cols)).toPx()) }
 
         Box(Modifier.fillMaxWidth().height(cellH * rows)) {
-            apps.forEachIndexed { i, app ->
-                val lifted = dragKey == app.key
-                val x = cellW * (i % cols)
-                val y = cellH * (i / cols)
-                val keys by rememberUpdatedState(widget.config.apps)
-                Column(
-                    Modifier
-                        .offset(x, y)
-                        .width(cellW)
-                        .then(if (lifted) Modifier.offset { IntOffset(drag.x.roundToInt(), drag.y.roundToInt()) } else Modifier)
-                        .graphicsLayer { val s = if (lifted) 1.1f else 1f; scaleX = s; scaleY = s }
-                        .clip(RoundedCornerShape(SchoolTokens.ItemRadius))
-                        .clickable(role = Role.Button) { if (app.launch(context, null)) vm.launched(app) }
-                        .pointerInput(app.key) {
-                            var moved = false
-                            detectDragGesturesAfterLongPress(
-                                onDragStart = { moved = false; dragKey = app.key; drag = Offset.Zero; haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
-                                onDrag = { change, amount -> change.consume(); drag += amount; moved = moved || drag.getDistance() > 12f },
-                                onDragEnd = {
-                                    if (!moved) menuFor = app.key
-                                    else {
-                                        // Drop: the cell under the icon's centre takes it.
-                                        val from = keys.indexOf(app.key)
-                                        val cx = (x.toPx() + cellW.toPx() / 2 + drag.x) / cellW.toPx()
-                                        val cy = (y.toPx() + cellH.toPx() / 2 + drag.y) / cellH.toPx()
-                                        val to = (cy.toInt().coerceIn(0, rows - 1) * cols + cx.toInt().coerceIn(0, cols - 1)).coerceIn(0, keys.lastIndex)
-                                        if (from >= 0 && to != from) save(keys.toMutableList().apply { add(to, removeAt(from)) })
-                                    }
-                                    dragKey = null; drag = Offset.Zero
-                                },
-                                onDragCancel = { dragKey = null; drag = Offset.Zero },
-                            )
-                        }
-                        .padding(vertical = 6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    AppIcon(app, vm.icons, icon)
-                    Spacer(Modifier.height(6.dp))
-                    CellLabel(app.labelOverride ?: app.label)
+            order.forEachIndexed { i, key ->
+                val app = byKey[key] ?: return@forEachIndexed
+                androidx.compose.runtime.key(key) {
+                    val lifted = dragKey == key
+                    val target = slot(i)
+                    val shown by androidx.compose.animation.core.animateOffsetAsState(
+                        target, androidx.compose.animation.core.spring(stiffness = 600f), label = "cell",
+                    )
+                    Column(
+                        Modifier
+                            .offset { if (lifted) IntOffset((target.x + drag.x).roundToInt(), (target.y + drag.y).roundToInt()) else IntOffset(shown.x.roundToInt(), shown.y.roundToInt()) }
+                            .width(cellW)
+                            .zIndex(if (lifted) 1f else 0f)
+                            .graphicsLayer { val s = if (lifted) 1.1f else 1f; scaleX = s; scaleY = s }
+                            .pointerInput(Unit) {
+                                // Claim the touch, so the panel's long press (edit mode) leaves it to this cell.
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false, pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                    de.mm20.launcher2.ui.launcher.helper.LongPressClaim.claimed = true
+                                    do {
+                                        val e = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                    } while (e.changes.any { it.pressed })
+                                    de.mm20.launcher2.ui.launcher.helper.LongPressClaim.claimed = false
+                                }
+                            }
+                            .clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                            .clickable(role = Role.Button) { if (app.launch(context, null)) vm.launched(app) }
+                            .pointerInput(key) {
+                                var moved = false
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = { moved = false; dragKey = key; drag = Offset.Zero; haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        drag += amount
+                                        if (drag.getDistance() > 12f) moved = true
+                                        // The cell under the icon's centre makes room.
+                                        val from = order.indexOf(key)
+                                        val origin = slot(from)
+                                        val cx = (origin.x + cellW.toPx() / 2 + drag.x) / cellW.toPx()
+                                        val cy = (origin.y + cellH.toPx() / 2 + drag.y) / cellH.toPx()
+                                        val to = (cy.toInt().coerceIn(0, rows - 1) * cols + cx.toInt().coerceIn(0, cols - 1)).coerceIn(0, order.lastIndex)
+                                        if (to != from) {
+                                            order.add(to, order.removeAt(from))
+                                            // Keep the icon under the finger: the drag is now measured from the new slot.
+                                            drag += origin - slot(to)
+                                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                        }
+                                    },
+                                    onDragEnd = {
+                                        if (!moved) menuFor = key else save(order.toList() + current.config.apps.filter { it !in order })
+                                        dragKey = null; drag = Offset.Zero
+                                    },
+                                    onDragCancel = { dragKey = null; drag = Offset.Zero },
+                                )
+                            }
+                            .padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        AppIcon(app, vm.icons, icon)
+                        Spacer(Modifier.height(6.dp))
+                        CellLabel(app.labelOverride ?: app.label)
+                    }
                 }
             }
             // The quiet add cell, last.
-            val i = apps.size
+            val i = order.size
             Column(
                 Modifier.offset(cellW * (i % cols), cellH * (i / cols)).width(cellW)
                     .clip(RoundedCornerShape(SchoolTokens.ItemRadius))

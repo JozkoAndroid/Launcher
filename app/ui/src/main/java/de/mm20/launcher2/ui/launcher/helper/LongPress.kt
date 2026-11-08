@@ -25,7 +25,9 @@ suspend fun PointerInputScope.detectLongPressPassive(onLongPress: () -> Unit) = 
         }
         @Suppress("UNREACHABLE_CODE") true
     }
-    if (released == null) {
+    // Fork (round 24): a child that handles its own long press (an app in the apps block, to drag it) claims
+    // the touch; then this one stays out, instead of switching to edit mode and swallowing the drag.
+    if (released == null && !LongPressClaim.claimed) {
         onLongPress()
         // Swallow the rest of this touch so the card under the finger does not also get a click on release.
         do {
@@ -33,4 +35,10 @@ suspend fun PointerInputScope.detectLongPressPassive(onLongPress: () -> Unit) = 
             e.changes.forEach { it.consume() }
         } while (e.changes.any { it.pressed })
     }
+}
+
+
+/** Set while a touch belongs to a child with its own long press (see [detectLongPressPassive]). */
+object LongPressClaim {
+    @Volatile var claimed = false
 }
