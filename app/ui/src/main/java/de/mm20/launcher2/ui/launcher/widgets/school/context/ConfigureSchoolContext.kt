@@ -58,6 +58,7 @@ fun ColumnScope.ConfigureSchoolContext() {
     val hcLauncher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { resumes++ }
     // Round 15: every permission the launcher uses is here, the focus timer's and dictation's too.
     val location by vm.hasLocation.collectAsState(false)
+    val calendar by vm.hasCalendar.collectAsState(false)
     fun granted(p: String) = androidx.core.content.ContextCompat.checkSelfPermission(context, p) == android.content.pm.PackageManager.PERMISSION_GRANTED
     val askRuntime = rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { resumes++ }
     val mic = remember(resumes) { granted(android.Manifest.permission.RECORD_AUDIO) }
@@ -75,6 +76,7 @@ fun ColumnScope.ConfigureSchoolContext() {
     )
     Spacer(Modifier.height(12.dp))
     PermissionRow(stringResource(R.string.context_perm_location), location) { activity?.let { vm.requestLocation(it) } }
+    PermissionRow(stringResource(R.string.context_perm_calendar), calendar) { activity?.let { vm.requestCalendar(it) } }
     PermissionRow(stringResource(R.string.context_perm_mic), mic) { askRuntime.launch(android.Manifest.permission.RECORD_AUDIO) }
     PermissionRow(stringResource(R.string.context_perm_notifications), notifications) {
         if (android.os.Build.VERSION.SDK_INT >= 33) askRuntime.launch(android.Manifest.permission.POST_NOTIFICATIONS)

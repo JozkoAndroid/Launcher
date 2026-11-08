@@ -218,6 +218,9 @@ internal fun schoolDays(f: Feed, from: LocalDate, count: Int = 5): List<LocalDat
 
 // ---------------------------------------------------------------- Chat dock (side panel)
 
+/** Which part of the chat to draw: all of it, or (on "Môj deň") the conversation above the mode switch and the bar below it. */
+enum class ChatPart { All, Above, Bar }
+
 /**
  * The chat docked at the bottom of the side panel. Collapsed it is one input line; after the first
  * question the conversation opens above it. Without a Gemini key it asks for one right here.
@@ -226,7 +229,7 @@ internal fun schoolDays(f: Feed, from: LocalDate, count: Int = 5): List<LocalDat
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
+fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part: ChatPart = ChatPart.All) {
     val vm: SchoolChatVM = viewModel(key = "school-chat")
     val hasKey by vm.keyState.collectAsState()
     var input by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
@@ -235,8 +238,11 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
     val surface = MaterialTheme.colorScheme.surfaceContainerHigh
 
     androidx.compose.runtime.CompositionLocalProvider(androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
-        Column(modifier.fillMaxWidth().widthIn(max = 640.dp).padding(horizontal = 12.dp).padding(bottom = bottomInset + 8.dp)) {
-            if (vm.messages.isNotEmpty()) {
+        // ChatPart.All keeps its own frame (side panel); the parts get theirs from "Môj deň".
+        val frame = if (part == ChatPart.All) modifier.fillMaxWidth().widthIn(max = 640.dp).padding(horizontal = 12.dp).padding(bottom = bottomInset + 8.dp)
+        else modifier.fillMaxWidth()
+        Column(frame) {
+            if (part != ChatPart.Bar && vm.messages.isNotEmpty()) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(8.dp),
                 ) {
@@ -254,10 +260,11 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp) {
                 }
                 Spacer(Modifier.height(8.dp))
             }
+            if (part != ChatPart.Bar && hasKey && vm.messages.isEmpty()) QuickActions(vm)
+            if (part == ChatPart.Above) return@Column
             if (!hasKey) {
                 KeyRow(onSave = { vm.saveKey(it) })
             } else {
-                if (vm.messages.isEmpty()) QuickActions(vm)
                 // Same bar as the dock and the task bar; dictation fills the field to edit or send.
                 InputBar(
                     value = input, onValue = { input = it },

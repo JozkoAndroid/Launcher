@@ -67,6 +67,7 @@
     <string name="context_settings_title">Karty</string>
     <string name="context_settings_info">Každá karta sa ukáže, len keď je dôležitá. Povoľ, čo chceš vidieť; nič neopúšťa telefón.</string>
     <string name="context_perm_location">Počasie: poloha</string>
+    <string name="context_perm_calendar">Kalendár: udalosti</string>
     <string name="context_perm_mic">Diktovanie: mikrofón</string>
     <string name="context_perm_notifications">Sústredenie: upozornenia</string>
     <string name="context_perm_overlay">Sústredenie: zobrazenie cez iné aplikácie (blokovanie)</string>
@@ -1232,6 +1233,21 @@
     <string name="dock_edit_title">Dock</string>
     <string name="dock_pick_info">Vybrané %1$d z %2$d. Bez výberu ukazuje najpoužívanejšie.</string>
     <string name="dock_save">Uložiť dock</string>
+    <string name="revision_missing">Tento test už v Schoolhelpe nie je.</string>
+    <string name="revision_today">Dnes</string>
+    <string name="revision_tomorrow">Zajtra</string>
+    <plurals name="revision_days_n">
+        <item quantity="one">O %1$d deň</item>
+        <item quantity="few">O %1$d dni</item>
+        <item quantity="many">O %1$d dňa</item>
+        <item quantity="other">O %1$d dní</item>
+    </plurals>
+    <string name="revision_topics">Čo pokrýva</string>
+    <string name="revision_recent">Posledné hodiny</string>
+    <string name="revision_loading">Načítavam témy zo Schoolhelpu…</string>
+    <string name="revision_no_topics">Témy v Schoolhelpe nie sú. Spýtaj sa učiteľa alebo pozri zošit.</string>
+    <string name="revision_start">Učiť sa %1$d min</string>
+    <string name="revision_focus_text">Učenie: %1$s</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>

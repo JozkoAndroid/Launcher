@@ -306,7 +306,7 @@ internal val BlockedApps = listOf(
  * One line above says what gets blocked, or how to turn blocking on.
  */
 @Composable
-internal fun FocusBar(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier: Modifier = Modifier) {
+internal fun FocusBar(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val f by FocusTimer.current(context).collectAsState()
     val focus = f
@@ -314,26 +314,8 @@ internal fun FocusBar(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier:
     var minutes by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableIntStateOf(20) }
     val ink = MaterialTheme.colorScheme.onSurface
     val freeText = stringResource(R.string.focus_free)
-    val names = BlockedApps.joinToString(", ") { it.second }
 
     Column(modifier.fillMaxWidth()) {
-        // On its own small pill: the bar floats over the page's list, bare text collided with it.
-        val noteShape = androidx.compose.foundation.shape.RoundedCornerShape(50)
-        Text(
-            if (canBlock) stringResource(if (focus == null) R.string.focus_will_block else R.string.focus_blocking, names)
-            else stringResource(R.string.focus_block_setup),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (canBlock) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            textDecoration = if (canBlock) null else androidx.compose.ui.text.style.TextDecoration.Underline,
-            modifier = Modifier
-                .padding(bottom = 10.dp)
-                .pillSurface(noteShape)
-                .then(
-                    if (canBlock) Modifier
-                    else Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onEnableBlocking)
-                )
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             PillBar(Modifier.weight(1f)) {
                 if (focus == null) {
@@ -377,6 +359,33 @@ internal fun FocusBar(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier:
                 InkButton(R.drawable.stop_24px, stringResource(R.string.focus_cancel), ink) { FocusTimer.stop(context, done = false) }
             }
         }
+    }
+}
+
+/** Above the "Môj deň" switch in focus mode: what gets blocked, or how to turn blocking on. */
+@Composable
+internal fun FocusNote(canBlock: Boolean, onEnableBlocking: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val f by FocusTimer.current(context).collectAsState()
+    val focus = f
+    val names = BlockedApps.joinToString(", ") { it.second }
+    Column(modifier) {
+        // On its own small pill: the bar floats over the page's list, bare text collided with it.
+        val noteShape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+        Text(
+            if (canBlock) stringResource(if (focus == null) R.string.focus_will_block else R.string.focus_blocking, names)
+            else stringResource(R.string.focus_block_setup),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (canBlock) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            textDecoration = if (canBlock) null else androidx.compose.ui.text.style.TextDecoration.Underline,
+            modifier = Modifier
+                .pillSurface(noteShape)
+                .then(
+                    if (canBlock) Modifier
+                    else Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onEnableBlocking)
+                )
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        )
     }
 }
 

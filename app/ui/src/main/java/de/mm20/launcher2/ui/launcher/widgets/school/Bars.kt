@@ -165,18 +165,31 @@ internal fun InputBar(
     }
 }
 
-/** Connected segments, the selected one in ink; one choice, one control ("Úloha | Opýtaj sa", task kinds). */
+/**
+ * Connected segments, the selected one in ink; one choice, one control ("Úloha | Opýtaj sa", task kinds).
+ * The pill surface like the bars. [equal]: segments share the width evenly (round 15, device test: on
+ * "Môj deň" the selected box changed size with its label).
+ */
 @Composable
-internal fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp)) {
+internal fun <T> Segmented(
+    options: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    equal: Boolean = false,
+) {
+    Row(modifier.pillSurface(CircleShape).padding(4.dp)) {
         for ((value, label) in options) {
             val on = value == selected
             Text(
                 label,
                 style = MaterialTheme.typography.labelLarge,
                 color = if (on) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(9.dp))
+                    .then(if (equal) Modifier.weight(1f) else Modifier)
+                    .clip(CircleShape)
                     .background(if (on) MaterialTheme.colorScheme.onSurface else Color.Transparent)
                     .clickable(role = Role.Tab) { onSelect(value) }
                     .padding(horizontal = 16.dp, vertical = 10.dp),

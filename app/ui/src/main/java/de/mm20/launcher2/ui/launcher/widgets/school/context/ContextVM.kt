@@ -187,6 +187,10 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     fun requestNotificationAccess(activity: androidx.appcompat.app.AppCompatActivity) =
         permissions.requestPermission(activity, PermissionGroup.Notifications)
 
+    val hasCalendar: Flow<Boolean> = permissions.hasPermission(PermissionGroup.Calendar)
+    fun requestCalendar(activity: androidx.appcompat.app.AppCompatActivity) =
+        permissions.requestPermission(activity, PermissionGroup.Calendar)
+
     val hasLocation: Flow<Boolean> = permissions.hasPermission(PermissionGroup.Location)
     fun requestLocation(activity: androidx.appcompat.app.AppCompatActivity) =
         permissions.requestPermission(activity, PermissionGroup.Location)

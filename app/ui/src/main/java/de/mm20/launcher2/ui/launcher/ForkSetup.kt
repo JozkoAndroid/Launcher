@@ -32,7 +32,7 @@ import java.util.UUID
  */
 object ForkSetup : KoinComponent {
     private const val Prefs = "fork_setup"
-    private const val Version = 14
+    private const val Version = 15
 
     private val uiSettings: UiSettings by inject()
     private val gestureSettings: GestureSettings by inject()
@@ -117,7 +117,8 @@ object ForkSetup : KoinComponent {
             }
             // v14 (round 15, user: "your suggested layout, no duplicates"): the recommended home and panel.
             // App widgets stay. Fresh installs get it just below.
-            if (from in 1..13) applyRecommendedLayout()
+            // v15: the fuller set (user: "way too few widgets"), on the home screen and the right screen.
+            if (from in 1..14) applyRecommendedLayout()
             // v4 (folders on home) is superseded by v8.
             // Fresh install (round 15, reinstall after a signing key change): the steps above only upgrade
             // older layouts (layoutHome ran for v8 phones only), so a new install got round 1's blocks.
@@ -137,19 +138,29 @@ object ForkSetup : KoinComponent {
         widgets.get(parent).first().filter { it !is de.mm20.launcher2.widgets.AppWidget }.forEach { widgets.delete(it) }
         fun chip(kind: String, cfg: de.mm20.launcher2.widgets.ChipWidgetConfig) = de.mm20.launcher2.widgets.ChipWidget(UUID.randomUUID(), kind, cfg)
         val tile = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "tile", icon = "plain")
-        // Round 15 (user: "your suggested layout, no duplicates"): each thing once. The lesson block's
-        // header already carries the weather, so no weather card here (the full one is on the panel);
-        // no "Práve teraz", its values are the tiles. Tiles last, right above the dock, under the thumb.
+        // Round 15 (user: "your suggested layout, no duplicates", then "way too few widgets"): each thing
+        // once, as much as is useful. Now and next (lesson, weather in its header), the day's adaptive card
+        // (mornings what to bring, evenings tomorrow and the bag), the brief, the tasks; then the tiles
+        // right above the dock, under the thumb. Tiles with nothing to show take no place (lunch on school
+        // days, birthdays, unread chats, music while playing), so ten fit without clutter.
+        // Not here: a weather card (in the lesson header; the full one is on the panel), "Práve teraz"
+        // (its values are the tiles), test prep (the test tile opens the revision sheet).
+        val ring = de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")
         listOf(
             LessonWidget(UUID.randomUUID()),
+            de.mm20.launcher2.widgets.MyDayWidget(UUID.randomUUID()),
             BriefWidget(UUID.randomUUID()),
             TasksWidget(UUID.randomUUID()),
             chip("add", tile),
             chip("test", tile),
+            chip("lunch", tile),
             chip("nameday", tile.copy(font = "serif")),
-            chip("data", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
-            chip("steps", de.mm20.launcher2.widgets.ChipWidgetConfig(style = "ring")),
-            chip("instagram", tile.copy(font = "condensed")),
+            chip("birthday", tile.copy(font = "serif")),
+            chip("chats", tile),
+            chip("data", ring),
+            chip("steps", ring),
+            chip("instagram", tile),
+            chip("music", tile),
         ).forEachIndexed { i, w -> widgets.create(w, i, parent) }
     }
 
@@ -166,10 +177,14 @@ object ForkSetup : KoinComponent {
         }
         layoutHome()
         layout(
+            // The right screen: the longer view. Forecast, the week as what is due, the personal calendar
+            // (family, appointments; school dates are in the week), app folders, quick notes.
             WidgetScreenTarget.Widgets2.id, listOf(
                 WeatherWidget(UUID.randomUUID()),
                 de.mm20.launcher2.widgets.WeekWidget(UUID.randomUUID()),
-                de.mm20.launcher2.widgets.TestPrepWidget(UUID.randomUUID()),
+                CalendarWidget(UUID.randomUUID()),
+                de.mm20.launcher2.widgets.FoldersWidget(UUID.randomUUID()),
+                NotesWidget(UUID.randomUUID()),
             )
         )
     }

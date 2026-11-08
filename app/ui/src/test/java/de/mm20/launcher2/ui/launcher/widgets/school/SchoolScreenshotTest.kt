@@ -303,7 +303,7 @@ class SchoolScreenshotTest {
                         ),
                         now = this@SchoolScreenshotTest.now,
                         mode = DayBarMode.Task, onMode = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
-                        chat = {},
+                        chat = { _, _ -> },
                     )
                 }
             }
@@ -338,7 +338,7 @@ class SchoolScreenshotTest {
                         ),
                         now = this@SchoolScreenshotTest.now,
                         mode = DayBarMode.Focus, onMode = {}, canBlock = false, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
-                        chat = {},
+                        chat = { _, _ -> },
                     )
                 }
             }

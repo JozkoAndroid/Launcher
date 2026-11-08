@@ -1197,6 +1197,7 @@
     <string name="context_settings_title">Cards</string>
     <string name="context_settings_info">Each card appears only when it matters. Grant what you want to see; nothing leaves the phone.</string>
     <string name="context_perm_location">Weather: location</string>
+    <string name="context_perm_calendar">Calendar: events</string>
     <string name="context_perm_mic">Dictation: microphone</string>
     <string name="context_perm_notifications">Focus: notifications</string>
     <string name="context_perm_overlay">Focus: display over other apps (blocking)</string>
@@ -1388,6 +1389,19 @@
     <string name="dock_edit_title">Dock</string>
     <string name="dock_pick_info">%1$d of %2$d chosen. With none, it shows the most used.</string>
     <string name="dock_save">Save dock</string>
+    <string name="revision_missing">This test is no longer in Schoolhelp.</string>
+    <string name="revision_today">Today</string>
+    <string name="revision_tomorrow">Tomorrow</string>
+    <plurals name="revision_days_n">
+        <item quantity="one">In %1$d day</item>
+        <item quantity="other">In %1$d days</item>
+    </plurals>
+    <string name="revision_topics">What it covers</string>
+    <string name="revision_recent">Recent lessons</string>
+    <string name="revision_loading">Loading topics from Schoolhelp…</string>
+    <string name="revision_no_topics">No topics in Schoolhelp. Ask the teacher or check your notes.</string>
+    <string name="revision_start">Study %1$d min</string>
+    <string name="revision_focus_text">Studying: %1$s</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

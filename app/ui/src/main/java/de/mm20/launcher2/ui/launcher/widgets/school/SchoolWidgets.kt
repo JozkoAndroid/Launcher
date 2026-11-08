@@ -767,8 +767,17 @@ fun ChipWidget(widget: de.mm20.launcher2.widgets.ChipWidget) {
     val locale: Locale = LocalConfiguration.current.locales[0]
     val mine = all.filter { it.kind() == widget.kind }
         .filter { widget.kind != "nameday" || !widget.config.onlyContacts || (it as ContextCard.NameDay).contactName != null }
+    // Round 15: the test countdown opens the revision sheet instead of the Schoolhelp app.
+    var revising by remember { mutableStateOf<ContextCard.TestSoon?>(null) }
+    revising?.let { t -> RevisionSheet(t.title, onDismiss = { revising = null }) }
     when {
-        mine.isNotEmpty() -> ChipBlock(mine.map { contextItem(it, locale, vm) }, widget.config)
+        mine.isNotEmpty() -> ChipBlock(
+            mine.map { c ->
+                val item = contextItem(c, locale, vm)
+                if (c is ContextCard.TestSoon) item.copy(onClick = { revising = c }) else item
+            },
+            widget.config,
+        )
         // Without usage access these blocks would stay empty (device test: "mobile data doesn't work").
         !usage && (widget.kind == "data" || widget.kind == "instagram") -> ContextContent(
             listOf(ContextItem("setup", stringResource(R.string.chip_needs_usage), R.drawable.data_usage_24px, onClick = { vm.openUsageAccess() }))

@@ -121,7 +121,7 @@ fun DayPage(
         mode = mode, onMode = { mode = it },
         canBlock = canBlock, onEnableBlocking = { FocusGuard.requestMissing(context) },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
-        chat = { bottom -> ChatDock(Modifier, bottomInset = bottom) },
+        chat = { part, modifier -> ChatDock(modifier, bottomInset = 0.dp, part = part) },
         barProgress = progress,
     )
 }
@@ -139,7 +139,7 @@ internal fun DayContent(
     onAdd: (String) -> Unit,
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
-    chat: @Composable (androidx.compose.ui.unit.Dp) -> Unit,
+    chat: @Composable (ChatPart, Modifier) -> Unit,
     barProgress: () -> Float = { 1f },
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -216,20 +216,29 @@ internal fun DayContent(
                     .padding(top = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
-                    Segmented(
-                        listOf(
-                            DayBarMode.Task to stringResource(R.string.day_mode_task),
-                            DayBarMode.Ask to stringResource(R.string.day_mode_ask),
-                            DayBarMode.Focus to stringResource(R.string.focus_label),
-                        ),
-                        selected = mode, onSelect = onMode,
-                    )
-                }
+                // Round 15 (device test: "the bars are not consistent, the size and placement change"): one
+                // frame for every mode. What a mode adds (the chat, its quick questions, the focus note) sits
+                // above the switch; the switch and the bar keep the same place, width and size in all three.
+                val frame = Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(horizontal = 16.dp)
                 when (mode) {
-                    DayBarMode.Task -> CaptureBar(onAdd, Modifier.padding(bottom = bottom + 12.dp))
-                    DayBarMode.Ask -> chat(bottom)
-                    DayBarMode.Focus -> FocusBar(canBlock, onEnableBlocking, Modifier.widthIn(max = 640.dp).padding(horizontal = 16.dp).padding(bottom = bottom + 12.dp))
+                    DayBarMode.Task -> {}
+                    DayBarMode.Ask -> chat(ChatPart.Above, frame.padding(bottom = 8.dp))
+                    DayBarMode.Focus -> FocusNote(canBlock, onEnableBlocking, frame.padding(bottom = 8.dp))
+                }
+                Segmented(
+                    listOf(
+                        DayBarMode.Task to stringResource(R.string.day_mode_task),
+                        DayBarMode.Ask to stringResource(R.string.day_mode_ask),
+                        DayBarMode.Focus to stringResource(R.string.focus_label),
+                    ),
+                    selected = mode, onSelect = onMode, equal = true,
+                    modifier = frame.padding(bottom = 10.dp),
+                )
+                val bar = frame.padding(bottom = bottom + 12.dp)
+                when (mode) {
+                    DayBarMode.Task -> CaptureBar(onAdd, bar)
+                    DayBarMode.Ask -> chat(ChatPart.Bar, bar)
+                    DayBarMode.Focus -> FocusBar(bar)
                 }
             }
         }
@@ -345,6 +354,6 @@ private fun CaptureBar(onAdd: (String) -> Unit, modifier: Modifier) {
         onSubmit = { if (input.isNotBlank()) { onAdd(input); input = "" } },
         voice = speak,
         imeAction = ImeAction.Done,
-        modifier = modifier.widthIn(max = 640.dp).padding(horizontal = 16.dp),
+        modifier = modifier,
     )
 }

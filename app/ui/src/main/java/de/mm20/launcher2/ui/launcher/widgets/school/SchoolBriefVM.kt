@@ -23,6 +23,9 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     val hasGeminiKey: StateFlow<Boolean> = repository.hasGeminiKey
     val pendingChanges: StateFlow<Int> = repository.pendingChanges
 
+    /** Schoolhelp's lesson topics for a subject (stoff.read); null when offline or unknown. */
+    suspend fun studyContext(folder: String) = runCatching { repository.studyContext(folder) }.getOrNull()
+
     /**
      * Ticks on every full minute while a school block is on screen. Each tick asks the repository
      * to refresh if due, so data only loads while the home screen is actually visible.
