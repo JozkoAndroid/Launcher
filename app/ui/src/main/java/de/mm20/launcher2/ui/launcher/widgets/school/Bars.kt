@@ -156,6 +156,18 @@ internal fun InputBar(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            // Round 34 (user): an X empties the field, only while there is text.
+            if (value.isNotEmpty() && !voice.listening) {
+                Box(
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button, onClickLabel = stringResource(R.string.action_clear)) { onValue("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(painterResource(R.drawable.close_24px), stringResource(R.string.action_clear), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
             // Round 33: the dictation language, a tap switches SK, DE, EN (also while listening).
             if (value.isEmpty() || voice.listening) {
                 Text(

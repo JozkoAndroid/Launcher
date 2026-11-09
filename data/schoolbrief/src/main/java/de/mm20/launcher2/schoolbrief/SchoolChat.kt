@@ -46,14 +46,23 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
 
     override suspend fun reply(history: List<ChatMessage>, feed: Feed?, onProgress: (String) -> Unit): Result<String> = runCatching {
         val key = secrets.get(SecretStore.GeminiKey) ?: error("Chýba kľúč Gemini. Vlož ho v Nastavenia > Škola.")
-        val base = request(history, feed, LocalDateTime.now(), schoolhelp = brief != null)
+        var base = request(history, feed, LocalDateTime.now(), schoolhelp = brief != null)
         val contents = base["contents"]!!.jsonArray.toMutableList()
+        val start = contents.size
         var models = ChatModels
         // Round 33 (user: "it makes the exam topics up"): Gemini asks for Schoolhelp data with function
         // calls; the launcher runs each one and sends the result back, until Gemini answers in words.
         repeat(MaxRounds) {
             val body = JsonObject(base + ("contents" to JsonArray(contents)))
-            val (model, content) = generate(models, Json.encodeToString(JsonObject.serializer(), body), key)
+            val (model, content) = try {
+                generate(models, Json.encodeToString(JsonObject.serializer(), body), key)
+            } catch (e: IllegalStateException) {
+                // Round 34: if Gemini refuses the request with the Schoolhelp functions, answer without them
+                // rather than not at all (the round 32 chat worked without them).
+                if ("tools" !in base || contents.size != start || e.message?.contains("Kľúč", ignoreCase = true) == true) throw e
+                base = request(history, feed, LocalDateTime.now(), schoolhelp = false)
+                generate(models, Json.encodeToString(JsonObject.serializer(), JsonObject(base + ("contents" to JsonArray(contents)))), key)
+            }
             // Stay with the model that answered: its own notes (thought signatures) come back to it.
             models = listOf(model) + (models - model)
             val calls = content["parts"]?.jsonArray.orEmpty().mapNotNull { it.jsonObject["functionCall"]?.jsonObject }
@@ -82,8 +91,11 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
                 val res = try {
                     ask(model, body, key)
                 } catch (e: java.io.IOException) {
-                    last = "Gemini sa nedá zastihnúť. Skontroluj pripojenie a skús znova."
-                    if (attempt == 0) { kotlinx.coroutines.delay(1500); continue } else break@models
+                    // Round 34 (device: "it keeps saying it cannot reach it"): a slow model timed out and the
+                    // chat gave up on every model. Now the next model gets its turn, and the cause is named.
+                    last = if (e is java.net.SocketTimeoutException) "Gemini neodpovedal včas ($model)."
+                    else "Gemini sa nedá zastihnúť (${e.javaClass.simpleName}: ${e.message?.take(80)}). Skontroluj pripojenie."
+                    if (attempt == 0 && e !is java.net.SocketTimeoutException) { kotlinx.coroutines.delay(1500); continue } else continue@models
                 }
                 when (val step = next(res.code, res.body)) {
                     is Step.Reply -> return model to step.content
@@ -100,7 +112,7 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
         "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent", "POST",
         body = body,
         headers = mapOf("Content-Type" to "application/json", "x-goog-api-key" to key),
-        timeoutMs = 30_000,
+        timeoutMs = 45_000,
     )
 
     /** What to do after one Gemini response. */
@@ -114,7 +126,7 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
 
     companion object {
         /** All tries of one question together stop after this (each request has its own 30 s timeout). */
-        private const val TotalBudgetMs = 60_000L
+        private const val TotalBudgetMs = 100_000L
 
         /** At most this many Schoolhelp rounds per question (each round is one more free-tier request). */
         private const val MaxRounds = 6
@@ -125,10 +137,10 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
         const val Progress = "Pozerám do Schoolhelp…"
 
         /**
-         * The chat's models: Flash first (round 33: it uses Schoolhelp's functions far better than
-         * Flash-Lite), then the others, each with its own free daily quota.
+         * The chat's models, each with its own free daily quota. Round 34: Flash-Lite first again (fast; the
+         * round 33 order with Flash first timed out on the device), Flash when Lite is busy or out of quota.
          */
-        internal val ChatModels = listOf("gemini-flash-latest", GeminiWriter.DefaultModel, "gemini-2.5-flash", "gemini-2.5-flash-lite")
+        internal val ChatModels = listOf(GeminiWriter.DefaultModel, "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash")
 
         /** One response decides: the reply, stop (key problem), the same model once more, or the next model. */
         internal fun next(code: Int, body: String): Step {
@@ -204,7 +216,9 @@ internal class GeminiSchoolChat(context: Context, private val brief: BriefReposi
                             putJsonObject("properties") {
                                 for (p in f.params) putJsonObject(p.name) { put("type", p.type); put("description", p.description) }
                             }
-                            putJsonArray("required") { f.params.filter { it.required }.forEach { add(JsonPrimitive(it.name)) } }
+                            // No empty "required" list: some Gemini versions reject it.
+                            val required = f.params.filter { it.required }
+                            if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(JsonPrimitive(it.name)) } }
                         }
                     })
                 }

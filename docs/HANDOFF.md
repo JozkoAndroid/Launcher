@@ -226,6 +226,16 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
 - Recent chats: long press, "Odstrániť" (`ChatHistory.delete`).
 - Unverified: real Gemini function calls (no key here), free-tier quota with ~2 to 4 requests per question.
 
+## Round 34
+- Device: Gemini chat "cannot be reached" after round 33. Likely: Flash first + functions exceeded the 30 s
+  timeout, and an IOException on the second try ended the loop over all models. Now: Flash-Lite first,
+  45 s per request, 100 s per round, a timeout moves to the next model, the message names the cause, and a
+  request refused with the functions is answered without them. No empty `required` in declarations.
+  Still unverified live: no Gemini key in this environment (the secret form cannot set x-goog-api-key;
+  the user can add it in the environment settings as a header secret if a live test is wanted).
+- `InputBar`: X inside the pill while there is text (clears the field). The launcher search bar already
+  had it (Kvaesitso's menu icon turns into an X).
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on
