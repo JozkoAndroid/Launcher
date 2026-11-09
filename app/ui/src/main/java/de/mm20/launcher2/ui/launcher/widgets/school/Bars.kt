@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -153,6 +154,20 @@ internal fun InputBar(
                     keyboardActions = KeyboardActions(onSend = { onSubmit() }, onDone = { onSubmit() }),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            // Round 33: the dictation language, a tap switches SK, DE, EN (also while listening).
+            if (value.isEmpty() || voice.listening) {
+                Text(
+                    SpeechLanguage.label,
+                    style = MaterialTheme.typography.labelMedium.merge(SchoolTokens.Tabular),
+                    color = if (voice.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button, onClickLabel = stringResource(R.string.voice_language)) { voice.nextLanguage() }
+                        .wrapContentHeight(),
                 )
             }
         }

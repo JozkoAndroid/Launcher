@@ -41,5 +41,15 @@ class ChatHistory(context: Context) {
         prefs.edit().putString("chats", arr.toString()).apply()
     }
 
+    fun delete(id: Long) {
+        val arr = JSONArray()
+        for (c in all().filter { it.id != id }) {
+            arr.put(JSONObject().put("id", c.id).put("t", c.title).put("m", JSONArray().apply {
+                for (m in c.messages) put(JSONObject().put("u", m.fromUser).put("x", m.text).put("p", m.modelText ?: "").put("f", m.failed))
+            }))
+        }
+        prefs.edit().putString("chats", arr.toString()).apply()
+    }
+
     companion object { const val Max = 10 }
 }

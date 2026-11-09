@@ -76,6 +76,9 @@ interface BriefRepository {
     /** stoff.read for one Fach (folder name as in the timetable); null when offline or unknown. */
     suspend fun studyContext(folder: String): StudyContext? = null
 
+    /** Round 33: one Schoolhelp action for the chat (read_test, list_events, …), all result pages joined. */
+    suspend fun schoolhelpAction(action: String, arguments: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject = error("offline")
+
     /** Schoolhelp answers the teacher's last question in the running recording (lessons.answer_now). */
     suspend fun answerNow(): Result<String> = Result.failure(IllegalStateException("offline"))
 

@@ -210,10 +210,21 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
   429/404/400/blocked or empty answer moves to the next model (`FallbackModels`), key errors stop at once
   (`GeminiSchoolChat.next`). Failed answers are `ChatMessage.failed`: grey, "Skúsiť znova" under them, never
   sent to Gemini as context; turns alternate and start with the user (`turns`).
-- "Claude ↗" chip first in the quick questions: the field's text (else the last question) goes to the Claude
-  app (`Links.askClaude`): share intent to `com.anthropic.claude`; else copied + app opened; else
-  claude.ai/new?q=. The chat field text lives in `SchoolChatVM.draft`.
-- Unverified on device: whether the Claude app takes shared text into a new chat.
+- The chat field text lives in `SchoolChatVM.draft`. (The round 32 "Claude ↗" chip was removed in round 33.)
+
+## Round 33: Gemini looks things up in Schoolhelp
+- `GeminiSchoolChat` (`SchoolChat.kt`) offers Gemini function declarations (`Functions`): list_tests,
+  read_test, list_events, stoff_read, gather, search, read_note (format text), list_lessons, read_lesson,
+  and a generic schoolhelp_action {action, arguments_json}. Each call runs through
+  `BriefRepository.schoolhelpAction` = `mcp.appCallAll` (existing client, connection untouched). Up to 6
+  rounds per question; results cut to 20 000 chars; the model's content goes back unchanged (thought
+  signatures). Chat models: gemini-flash-latest first (better at functions), then flash-lite and 2.5.
+  The brief keeps flash-lite. System rule: never invent test topics; list_tests + read_test first.
+- Quick actions "Precvič test" and "Opakovací list" tell Gemini to read the saved scope first.
+- Mic: `SpeechLanguage` (SK/DE/EN, prefs `school_speech`), label in every `InputBar`, tap cycles, also
+  while listening (dictation continues in the new language).
+- Recent chats: long press, "Odstrániť" (`ChatHistory.delete`).
+- Unverified: real Gemini function calls (no key here), free-tier quota with ~2 to 4 requests per question.
 
 ## 5a. Round 22
 

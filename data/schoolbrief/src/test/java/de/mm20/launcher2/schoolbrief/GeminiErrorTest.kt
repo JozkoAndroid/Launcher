@@ -1,5 +1,9 @@
 package de.mm20.launcher2.schoolbrief
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -40,7 +44,38 @@ class GeminiErrorTest {
         val blocked = GeminiSchoolChat.next(200, """{"promptFeedback":{"blockReason":"SAFETY"}}""")
         assertTrue(blocked is GeminiSchoolChat.Step.NextModel && (blocked as GeminiSchoolChat.Step.NextModel).message.contains("SAFETY"))
         val ok = GeminiSchoolChat.next(200, """{"candidates":[{"content":{"parts":[{"text":"Zajtra Bio."}]}}]}""")
-        assertTrue(ok == GeminiSchoolChat.Step.Answer("Zajtra Bio."))
+        assertTrue(ok is GeminiSchoolChat.Step.Reply && GeminiSchoolChat.answerText((ok as GeminiSchoolChat.Step.Reply).content) == "Zajtra Bio.")
+        // Only a thought summary, no words: not an answer.
+        assertTrue(GeminiSchoolChat.next(200, """{"candidates":[{"content":{"parts":[{"text":"hmm","thought":true}]}}]}""") is GeminiSchoolChat.Step.NextModel)
+    }
+
+    // Round 33: Gemini's function calls become Schoolhelp actions.
+    @Test
+    fun functionCallsMapToSchoolhelpActions() {
+        val call = GeminiSchoolChat.next(200, """{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"read_test","args":{"folder":"Bio","name":"Zellbiologie"}}}]}}]}""")
+        assertTrue(call is GeminiSchoolChat.Step.Reply)
+        val fc = (call as GeminiSchoolChat.Step.Reply).content["parts"]!!.jsonArray[0].jsonObject["functionCall"]!!.jsonObject
+        val (action, args) = GeminiSchoolChat.actionFor(fc)!!
+        assertTrue(action == "read_test" && args["folder"]!!.jsonPrimitive.content == "Bio")
+
+        val note = GeminiSchoolChat.actionFor(Json.parseToJsonElement("""{"name":"read_note","args":{"folder":"Bio","name":"Zelle"}}""").jsonObject)!!
+        assertTrue(note.first == "read_note" && note.second["format"]!!.jsonPrimitive.content == "text")
+
+        val generic = GeminiSchoolChat.actionFor(Json.parseToJsonElement("""{"name":"schoolhelp_action","args":{"action":"today.add_todo","arguments_json":"{\"text\":\"Zošit\"}"}}""").jsonObject)!!
+        assertTrue(generic.first == "today.add_todo" && generic.second["text"]!!.jsonPrimitive.content == "Zošit")
+        assertTrue(GeminiSchoolChat.actionFor(Json.parseToJsonElement("""{"name":"rm_rf","args":{}}""").jsonObject) == null)
+    }
+
+    @Test
+    fun requestOffersFunctionsOnlyWithSchoolhelp() {
+        val withTools = GeminiSchoolChat.request(listOf(ChatMessage(true, "Čo bude na teste?")), null, java.time.LocalDateTime.parse("2026-11-10T07:30"), schoolhelp = true)
+        val names = withTools["tools"]!!.jsonArray[0].jsonObject["functionDeclarations"]!!.jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content }
+        assertTrue("read_test" in names && "list_events" in names && "stoff_read" in names)
+        val sys = withTools["systemInstruction"]!!.jsonObject["parts"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content
+        assertTrue(sys.contains("NIKDY NEVYMÝŠĽAJ"))
+        assertTrue("tools" !in GeminiSchoolChat.request(emptyList(), null, java.time.LocalDateTime.parse("2026-11-10T07:30")))
+        val big = GeminiSchoolChat.resultFor("\"" + "x".repeat(30_000) + "\"")
+        assertTrue("result_text" in big && "note" in big)
     }
 
     @Test

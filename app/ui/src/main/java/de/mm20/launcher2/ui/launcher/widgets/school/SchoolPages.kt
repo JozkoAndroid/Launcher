@@ -2,6 +2,8 @@ package de.mm20.launcher2.ui.launcher.widgets.school
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.runtime.key
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,20 +122,27 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         if (messages.lastOrNull()?.fromUser != true) return
         thinking = true
         viewModelScope.launch {
-            messages += reply(chat.reply(messages.toList(), brief.feed.first()))
+            messages += ask()
             thinking = false
             persist()
         }
     }
 
-    /**
-     * Round 31 (user: "just a Claude button"): the question goes to the Claude app, which has the Max plan
-     * and the Schoolhelp connector. The field's text, else the last question asked here.
-     */
-    fun askClaude(context: android.content.Context) {
-        val q = draft.trim().ifEmpty { messages.lastOrNull { it.fromUser }?.let { it.modelText ?: it.text }.orEmpty() }
-        Links.askClaude(context, q)
-        if (draft.isNotBlank()) draft = ""
+    /** Round 33: what Gemini is doing while it looks things up in Schoolhelp; null = just "…". */
+    var progress by mutableStateOf<String?>(null)
+        private set
+
+    private suspend fun ask(): ChatMessage {
+        val r = chat.reply(messages.toList(), brief.feed.first()) { progress = it }
+        progress = null
+        return reply(r)
+    }
+
+    /** Round 33 (user: "remove old chats by long-pressing"): deletes a saved chat; the open one closes. */
+    fun delete(c: SavedChat) {
+        history.delete(c.id)
+        if (c.id == chatId) { messages.clear(); chatId = 0 }
+        recent = history.all()
     }
 
     fun send(text: String, modelText: String? = null) {
@@ -142,8 +151,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         messages += ChatMessage(true, q, modelText)
         thinking = true
         viewModelScope.launch {
-            val feed = brief.feed.first()
-            messages += reply(chat.reply(messages.toList(), feed))
+            messages += ask()
             thinking = false
             persist()
         }
@@ -159,7 +167,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         viewModelScope.launch {
             val ctx = folder.takeIf { it.isNotBlank() }?.let { brief.studyContext(it) }
             if (at in messages.indices) messages[at] = ChatMessage(true, label, prompt(ctx))
-            messages += reply(chat.reply(messages.toList(), brief.feed.first()))
+            messages += ask()
             thinking = false
             persist()
         }
@@ -172,11 +180,13 @@ class SchoolChatVM : ViewModel(), KoinComponent {
             buildString {
                 append("Priprav ma na test „${t.title}“ z predmetu ${t.subject.ifBlank { "?" }} ($due). ")
                 append("Je to písomná skúška na známku. ")
+                // Round 33 (user: "it makes the exam topics up"): the saved scope first, via Schoolhelp.
+                append("Najprv si v Schoolhelp pozri uložený rozsah tohto testu (list_tests, potom read_test). ")
+                append("Ak rozsah uložený nie je, vychádzaj z hodín od posledného testu (stoff_read, gather) a na začiatku to jednou vetou povedz. ")
                 if (c != null && c.describe().isNotBlank()) append("Učivo podľa záznamov hodín v Schoolhelp: ${c.describe()}. ")
                 t.note?.takeIf { it.isNotBlank() }?.let { append("Poznámka k testu: $it. ") }
                 c?.lang?.let { append("Jazyk predmetu: $it. ") }
-                if (c == null || c.describe().isBlank()) append("Záznamy hodín nemám; spýtaj sa ma jednou vetou, ktoré témy test pokrýva. ")
-                else append("Začni hneď prvou otázkou z tohto učiva, od ľahšej k ťažšej.")
+                append("Potom začni hneď prvou otázkou z tohto učiva, od ľahšej k ťažšej. Témy si nikdy nevymýšľaj.")
             }
         }
     }
@@ -196,12 +206,15 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         sendWithTopics(label, t.subject) { c ->
             buildString {
                 append("Vytvor mi opakovací list na test „${t.title}“ z predmetu ${t.subject.ifBlank { "?" }} ($due). ")
+                // Round 33 (user: "it makes the exam topics up"): the saved scope first, via Schoolhelp.
+                append("Najprv si v Schoolhelp pozri uložený rozsah tohto testu (list_tests, potom read_test). ")
+                append("Ak rozsah uložený nie je, vychádzaj z hodín od posledného testu (stoff_read, gather) a na začiatku to jednou vetou povedz. ")
+                append("Obsah ber z poznámok a hodín v Schoolhelp (read_note, read_lesson), nie zo všeobecných vedomostí. ")
                 if (c != null && c.describe().isNotBlank()) append("Učivo podľa záznamov hodín v Schoolhelp: ${c.describe()}. ")
                 t.note?.takeIf { it.isNotBlank() }?.let { append("Poznámka k testu: $it. ") }
                 append("Formát: nadpisy podľa tém; pod každou 3 až 5 bodov (pojmy, definície, vzorce, dátumy), ")
                 append("odborné pojmy v jazyku predmetu (${c?.lang ?: "de"}) s krátkym slovenským vysvetlením; ")
-                append("na konci 5 typických otázok na test bez odpovedí. Len to, čo naozaj pokrýva učivo; ")
-                append("ak záznamy hodín chýbajú, napíš to na začiatku jednou vetou a drž sa poznámky k testu.")
+                append("na konci 5 typických otázok na test bez odpovedí. Len to, čo naozaj pokrýva učivo.")
             }
         }
     }
@@ -279,7 +292,7 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.chatConversation(vm:
         Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(vm.messages[i]) }
     }
     if (vm.thinking) item(key = "chat-thinking", contentType = "bubble") {
-        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, "…")) }
+        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, vm.progress ?: "…")) }
     } else if (vm.messages.lastOrNull()?.failed == true) item(key = "chat-retry", contentType = "retry") {
         Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { RetryButton(vm) }
     }
@@ -402,7 +415,7 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                     val maxChat = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.62f).dp
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxChat), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
                         items(vm.messages) { m -> Bubble(m) }
-                        if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
+                        if (vm.thinking) item { Bubble(ChatMessage(false, vm.progress ?: "…")) }
                         else if (vm.messages.lastOrNull()?.failed == true) item { RetryButton(vm) }
                     }
                 }
@@ -487,9 +500,6 @@ private fun QuickActions(vm: SchoolChatVM, onRecent: (() -> Unit)?) {
         }
     }
 
-    // Round 31: the same question in the Claude app (Max plan, Schoolhelp connector there).
-    val context = androidx.compose.ui.platform.LocalContext.current
-    actions.add(0, stringResource(R.string.chat_in_claude) to { vm.askClaude(context) })
     if (onRecent != null && vm.recent.isNotEmpty()) actions.add(0, stringResource(R.string.chat_recent) to onRecent)
     Row(
         Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),
@@ -553,17 +563,34 @@ private fun RecentChatsSheet(vm: SchoolChatVM, onDismiss: () -> Unit) {
             Text(stringResource(R.string.chat_recent), style = SchoolFonts.serifDisplay(28))
             Spacer(Modifier.height(12.dp))
             if (vm.recent.isEmpty()) Secondary(stringResource(R.string.chat_recent_empty))
-            for (c in vm.recent) {
-                Column(
-                    Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
-                        .clickable(role = Role.Button) { vm.restore(c); onDismiss() }
-                        .padding(vertical = 10.dp),
-                ) {
-                    Text(c.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Secondary(
-                        java.time.Instant.ofEpochMilli(c.id).atZone(java.time.ZoneId.systemDefault()).format(fmt)
-                            .replaceFirstChar { it.titlecase(locale) } + " · " + (c.messages.size / 2).coerceAtLeast(1) + "×"
-                    )
+            for (c in vm.recent) key(c.id) {
+                // Round 33 (user): long press, then "Odstrániť".
+                var menu by remember { mutableStateOf(false) }
+                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                Box {
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                            .combinedClickable(
+                                role = Role.Button,
+                                onLongClickLabel = stringResource(R.string.chat_delete),
+                                onLongClick = { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); menu = true },
+                                onClick = { vm.restore(c); onDismiss() },
+                            )
+                            .padding(vertical = 10.dp),
+                    ) {
+                        Text(c.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Secondary(
+                            java.time.Instant.ofEpochMilli(c.id).atZone(java.time.ZoneId.systemDefault()).format(fmt)
+                                .replaceFirstChar { it.titlecase(locale) } + " · " + (c.messages.size / 2).coerceAtLeast(1) + "×"
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.chat_delete)) },
+                            leadingIcon = { Icon(painterResource(R.drawable.delete_24px), null) },
+                            onClick = { menu = false; vm.delete(c) },
+                        )
+                    }
                 }
             }
         }

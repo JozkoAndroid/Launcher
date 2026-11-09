@@ -93,6 +93,9 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         )
     }.onFailure { Log.w(Tag, "stoff.read failed", it) }.getOrNull()
 
+    // Round 33: the chat's Schoolhelp lookups use the same client and login as everything else.
+    override suspend fun schoolhelpAction(action: String, arguments: kotlinx.serialization.json.JsonObject) = mcp.appCallAll(action, arguments)
+
     override suspend fun answerNow(): Result<String> = runCatching {
         val r = mcp.appCall("lessons.answer_now")
         val root = (r["result"] as? JsonObject) ?: r

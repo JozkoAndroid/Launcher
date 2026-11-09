@@ -46,6 +46,39 @@ class SpeechInput internal constructor() {
 
     /** The mic button: start listening, or stop and keep what was heard so far. */
     fun toggle() = onToggle()
+
+    internal var onLanguage: () -> Unit = {}
+
+    /** Round 33: the next dictation language (SK, DE, EN); while listening it switches at once. */
+    fun nextLanguage() {
+        SpeechLanguage.next()
+        onLanguage()
+    }
+}
+
+/**
+ * Round 33 (user: "the microphone understands only Slovak; I want Slovak, German and English"): the
+ * dictation language, one for every bar, kept on the phone. Android's recognizer hears one language at a
+ * time, so the bar shows it and a tap switches it.
+ */
+internal object SpeechLanguage {
+    val all = listOf("sk-SK" to "SK", "de-DE" to "DE", "en-US" to "EN")
+    private var prefs: android.content.SharedPreferences? = null
+    var code by mutableStateOf(all[0].first)
+        private set
+    val label: String get() = all.firstOrNull { it.first == code }?.second ?: "SK"
+
+    fun load(context: Context) {
+        if (prefs != null) return
+        prefs = context.applicationContext.getSharedPreferences("school_speech", Context.MODE_PRIVATE)
+        code = prefs?.getString("lang", null)?.takeIf { c -> all.any { it.first == c } } ?: all[0].first
+    }
+
+    fun next() {
+        val i = all.indexOfFirst { it.first == code }
+        code = all[(i + 1) % all.size].first
+        prefs?.edit()?.putString("lang", code)?.apply()
+    }
 }
 
 private class RecognizerHolder {
@@ -69,11 +102,12 @@ private class RecognizerHolder {
  * [onText] gets the text heard so far after each pause and at the stop, [onPartial] the text so far while
  * speaking (null: show nothing until a pause). Listens until the mic is tapped again (device test: it
  * stopped by itself after a pause): Android's recognizer ends at every pause, so it is started again.
- * Slovak first; if the recognizer has no Slovak, the phone's language.
+ * In the chosen [SpeechLanguage]; if the recognizer does not have it, the phone's language.
  */
 @Composable
 internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) -> Unit)? = null): SpeechInput {
     val context = LocalContext.current
+    remember { SpeechLanguage.load(context) }
     val speech = remember { SpeechInput() }
     val holder = remember { RecognizerHolder() }
     val text by rememberUpdatedState(onText)
@@ -154,7 +188,7 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
                     }
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> end(sDenied)
                     SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_SERVER -> end(sOffline)
-                    // No Slovak on this recognizer: once more in the phone's language.
+                    // The chosen language is not on this recognizer: once more in the phone's language.
                     ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE -> if (language != null) listen(null) else end(sFailed)
                     else -> {
                         holder.errors++
@@ -181,7 +215,18 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
         holder.heard = ""
         holder.silent = 0
         holder.errors = 0
-        listen(Slovak)
+        listen(SpeechLanguage.code)
+    }
+
+    speech.onLanguage = {
+        // Listening: the same dictation continues in the new language (text so far is kept).
+        if (holder.wanted) {
+            holder.handler.removeCallbacksAndMessages(null)
+            holder.recognizer?.cancel()
+            holder.silent = 0
+            holder.errors = 0
+            listen(SpeechLanguage.code)
+        }
     }
 
     val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -225,7 +270,6 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
 /** About a minute of silence (rounds of a few seconds each) ends listening left on by mistake. */
 private const val MaxSilentRounds = 12
 
-private const val Slovak = "sk-SK"
 
 /**
  * The speech service to use: Google's first (it knows Slovak; Samsung phones often default to Samsung's
