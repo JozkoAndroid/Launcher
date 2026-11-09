@@ -1418,6 +1418,10 @@
     <string name="lesson_ruler">Today\'s lessons from %1$s to %2$s</string>
     <string name="settings_your_name">Your name (greeting in the daily brief)</string>
     <string name="chat_recent">Recent</string>
+    <string name="school_last_contact">Schoolhelp last answered at %1$s</string>
+    <string name="school_last_problem">Last error: %1$s</string>
+    <string name="school_retry_now">Try again now</string>
+    <string name="week_open_calendar">Open the calendar in Schoolhelp</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

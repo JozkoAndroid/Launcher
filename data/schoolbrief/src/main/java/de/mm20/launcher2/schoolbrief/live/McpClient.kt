@@ -117,7 +117,13 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
 
         /** Tool results carry JSON either as structuredContent or as the text of the first content item. */
         fun toolJson(result: JsonObject): JsonObject {
-            result["structuredContent"]?.let { if (it is JsonObject) return it }
+            result["structuredContent"]?.let {
+                if (it is JsonObject) {
+                    // Round 25: an error reported inside the result is still an error (it was taken as success).
+                    (it["error"] as? JsonPrimitive)?.contentOrNull?.let { e -> throw IllegalStateException("Schoolhelp: $e") }
+                    return it
+                }
+            }
             if ((result["isError"] as? JsonPrimitive)?.contentOrNull == "true") {
                 val msg = result["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
                 throw IllegalStateException("Schoolhelp: ${msg ?: "tool error"}")

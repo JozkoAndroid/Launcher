@@ -64,6 +64,19 @@ fun ColumnScope.ConfigureSchoolBrief() {
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // Round 25: what the launcher last heard from Schoolhelp, so a silent failure is visible.
+            val contact by vm.lastContact.collectAsState()
+            val problem by vm.lastProblem.collectAsState()
+            if (contact > 0) {
+                Text(
+                    stringResource(R.string.school_last_contact, java.time.Instant.ofEpochMilli(contact).atZone(java.time.ZoneId.systemDefault()).toLocalTime().toString().take(5)),
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            problem?.let {
+                Text(stringResource(R.string.school_last_problem, it.take(160)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            androidx.compose.material3.TextButton(onClick = { vm.retryNow() }) { Text(stringResource(R.string.school_retry_now)) }
             (status as? BriefStatus.Error)?.let {
                 Spacer(Modifier.height(4.dp))
                 Text(

@@ -22,6 +22,9 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     val status: StateFlow<BriefStatus> = repository.status
     val hasGeminiKey: StateFlow<Boolean> = repository.hasGeminiKey
     val pendingChanges: StateFlow<Int> = repository.pendingChanges
+    val lastContact: StateFlow<Long> = repository.lastContact
+    val lastProblem: StateFlow<String?> = repository.lastProblem
+    fun retryNow() = repository.retryNow()
 
     /** Schoolhelp's lesson topics for a subject (stoff.read); null when offline or unknown. */
     suspend fun studyContext(folder: String) = runCatching { repository.studyContext(folder) }.getOrNull()

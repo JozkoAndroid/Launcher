@@ -3,6 +3,7 @@ package de.mm20.launcher2.ui.launcher.widgets.school
 import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
@@ -71,8 +72,15 @@ internal fun WeekOverview(f: Feed, today: LocalDate) {
     val days = (0L until 7L).map { today.plusDays(it) }
     fun off(d: LocalDate) = d.dayOfWeek == DayOfWeek.SATURDAY || d.dayOfWeek == DayOfWeek.SUNDAY ||
         f.daysOff.any { !d.isBefore(LocalDate.parse(it.start)) && !d.isAfter(LocalDate.parse(it.end)) }
+    val context = LocalContext.current
     SchoolCard {
-        Row(Modifier.fillMaxWidth()) {
+        // Round 25: the strip opens Schoolhelp's calendar.
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(SchoolTokens.ItemRadius))
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = stringResource(R.string.week_open_calendar)) {
+                    Links.openSchoolhelp(context, "kalender")
+                },
+        ) {
             for (d in days) {
                 val due = rows.filter { it.due == d }
                 Column(

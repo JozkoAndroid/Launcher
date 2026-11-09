@@ -188,6 +188,17 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   end of the panel (old `AppsPage.kt` removed; prefs "apps_page" read once).
 - Focus and apps blocks are in WidgetItem's `schoolBlock` list (no Kvaesitso card behind them).
 
+## 5a3. Round 25
+
+- Pending queue: a tool error (IllegalStateException "Schoolhelp: ...") drops a change only on its third
+  refusal (`PendingOp.refusals`); before, an outage answered with a tool error dropped tasks. A structured
+  result with "error" is an error. A successful lessons.status flushes the queue at once. today.read is
+  parsed inside the runCatching. `retryNow()` ("Skúsiť znova teraz" on Môj deň and in settings).
+- Settings show the last Schoolhelp answer time and last error (`lastContact`, `lastProblem`).
+- RecordingParser also searches the whole status for a lesson-like object (`deepFind`); the real shape of
+  a recording on ANOTHER device is still unknown: check lessons.status live during one.
+- Week strip opens Schoolhelp at `SchoolhelpUrl + "kalender"` (guessed path; unverified).
+
 ## 5b. Design language: "instrument panel" (round 21)
 
 Monochrome ink on the wallpaper or one surface; the accent means only "now / progress"; hairlines (1dp,

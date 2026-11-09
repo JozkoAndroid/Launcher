@@ -58,6 +58,8 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     override val recording = MutableStateFlow<de.mm20.launcher2.schoolbrief.Recording?>(null)
     override val unreadChats = MutableStateFlow(0)
+    override val lastContact = MutableStateFlow(0L)
+    override val lastProblem = MutableStateFlow<String?>(null)
     private var recordingJob: Job? = null
     private var lastRecordingCheck = 0L
 
@@ -70,9 +72,12 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     private suspend fun readRecording() {
         runCatching { mcp.appCall("lessons.status") }.onSuccess { s ->
+            lastContact.value = System.currentTimeMillis()
             recording.value = RecordingParser.parse(s, java.time.LocalDateTime.now())
             RecordingParser.subjectLangs(s).takeIf { it.isNotEmpty() }?.let { langs = it }
-        }
+            // Schoolhelp answers again: send what waited at once (round 25), not on the next timer.
+            if (!pending.isEmpty() && !syncLock.isLocked) sync()
+        }.onFailure { lastProblem.value = "lessons.status: ${it.message}" }
     }
 
     /** Fach folder -> teaching language (de, en, sk), from lessons.status. */
@@ -133,6 +138,12 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     )
     private var todayAt = 0L
 
+    /** "Odoslať teraz": send waiting changes and read today now, whatever the timers say. */
+    override fun retryNow() {
+        lastRecordingCheck = 0
+        if (auth.isLoggedIn && !syncLock.isLocked) scope.launch { sync(); readRecording() }
+    }
+
     /** While the Day page is visible: every 3 minutes, or every minute while changes are waiting. */
     override fun refreshToday() {
         val wait = if (pending.isEmpty()) 3 * 60_000L else 60_000L
@@ -144,9 +155,12 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     private suspend fun sync() = syncLock.withLock {
         todayAt = System.currentTimeMillis()
         val sent = flush()
-        runCatching { mcp.appCallAll("today.read") }
-            .onSuccess { r -> setToday(withPending(TodayParser.parse(r, LocalDate.now())).copy(offline = !sent)) }
+        // Parsing inside the runCatching (round 25): an answer the parser cannot read is offline, not a crash
+        // that silently stops every later sync.
+        runCatching { TodayParser.parse(mcp.appCallAll("today.read"), LocalDate.now()) }
+            .onSuccess { d -> lastContact.value = System.currentTimeMillis(); setToday(withPending(d).copy(offline = !sent)) }
             .onFailure { e ->
+                lastProblem.value = "today.read: ${e.message}"
                 Log.w(Tag, "today.read failed", e)
                 setToday((today.value ?: de.mm20.launcher2.schoolbrief.TodayData(LocalDate.now().toString(), emptyList(), emptyList())).copy(offline = true))
             }
@@ -160,9 +174,16 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
                 pending.remove(op); continue
             }
             val result = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }
-            // Schoolhelp answered but refused the change: drop it, or it would block every later change.
+            result.exceptionOrNull()?.let { lastProblem.value = "${op.action}: ${it.message}" }
+            // A tool error can also mean "Schoolhelp's app is not reachable right now" (device test: a task
+            // added while Schoolhelp was down was dropped and stayed "waiting"). Keep it and retry; only the
+            // third refusal drops it, so one bad change cannot block the rest for ever.
             val refused = (result.exceptionOrNull() as? IllegalStateException)?.message?.startsWith("Schoolhelp:") == true
-            if (result.isFailure && !refused) return false
+            if (result.isFailure && (!refused || op.refusals < 2)) {
+                if (refused) pending.replace(op, op.copy(refusals = op.refusals + 1))
+                return false
+            }
+            if (result.isSuccess) lastContact.value = System.currentTimeMillis()
             pending.remove(op)
             pendingChanges.value = pending.all().size
             if (op.action == "calendar.add_private") { lastAttempt = 0; prefs.edit().putLong(KeyDataAt, 0).apply() }

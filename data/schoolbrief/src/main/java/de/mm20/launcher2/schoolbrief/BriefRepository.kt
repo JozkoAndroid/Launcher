@@ -95,6 +95,13 @@ interface BriefRepository {
     /** Changes saved on the phone that Schoolhelp does not have yet. */
     val pendingChanges: StateFlow<Int> get() = MutableStateFlow(0)
 
+    /** When Schoolhelp last answered (ms), and the last failure in words (settings diagnostics, round 25). */
+    val lastContact: StateFlow<Long> get() = MutableStateFlow(0L)
+    val lastProblem: StateFlow<String?> get() = MutableStateFlow(null)
+
+    /** Send waiting changes and reread now. */
+    fun retryNow() {}
+
     /** Pause/continue or stop: Schoolhelp asks for a tap to confirm, so the caller opens Schoolhelp. */
     fun pauseRecording(pause: Boolean)
     fun stopRecording()

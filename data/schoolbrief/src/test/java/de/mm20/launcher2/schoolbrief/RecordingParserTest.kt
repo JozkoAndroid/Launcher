@@ -33,4 +33,12 @@ class RecordingParserTest {
         val r = parse("""{"lesson": null, "alive": ["browser", "Physik/2026-11-10-0800"], $subjects}""")!!
         assertEquals("Physik", r.subject)
     }
+
+    @Test
+    fun lessonNestedUnderAnotherDevice() {
+        val r = parse("""{"lesson": null, "alive": ["browser"], "devices": [{"device": "mac", "lesson": {"id": "Physik/2026-11-09-0800",
+            "folder": "Physik", "audio_seconds": 1834.0, "paused": false}}], $subjects}""")!!
+        assertEquals("Physik", r.subject)
+        assertEquals(1834L, r.seconds)
+    }
 }

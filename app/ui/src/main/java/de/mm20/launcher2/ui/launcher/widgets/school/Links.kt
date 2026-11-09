@@ -30,6 +30,22 @@ internal object Links {
         runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
+    /**
+     * Schoolhelp at one of its pages (round 25: the week strip opens the calendar). The app gets the page's
+     * link; if it does not take links, it simply opens.
+     */
+    fun openSchoolhelp(context: Context, page: String) {
+        val pm = context.packageManager
+        val pkg = schoolhelpPackage(context)
+        val url = Uri.parse(SchoolhelpUrl + page)
+        val intent = when {
+            pkg == null -> Intent(Intent.ACTION_VIEW, url)
+            else -> Intent(Intent.ACTION_VIEW, url).setPackage(pkg).takeIf { it.resolveActivity(pm) != null }
+                ?: pm.getLaunchIntentForPackage(pkg)
+        } ?: return
+        runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    }
+
     /** Articles open in a browser sheet over the launcher (Custom Tabs), not in a separate browser. */
     fun openArticle(context: Context, url: String) {
         runCatching {
