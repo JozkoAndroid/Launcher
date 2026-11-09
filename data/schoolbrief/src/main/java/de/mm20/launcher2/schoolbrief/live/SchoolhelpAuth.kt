@@ -2,7 +2,6 @@ package de.mm20.launcher2.schoolbrief.live
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -24,33 +23,8 @@ import android.util.Base64
  */
 internal class SchoolhelpAuth(private val secrets: SecretStore) {
 
-    @Volatile private var accessToken: String? = null
-    @Volatile private var expiresAt: Long = 0
-
-    /**
-     * One refresh at a time (round 22, device test: "asks me 5 times a day to log in"). The recording poll,
-     * the brief refresh and sync all call [token]; when the 30-minute token ran out they refreshed at
-     * once with the same single-use refresh token. One won, the other got invalid_grant and logged out,
-     * deleting the winner's new token.
-     */
-    private val refreshLock = kotlinx.coroutines.sync.Mutex()
-
-    /**
-     * Rejections in a row (a fresh token refused, or a refresh refused without invalid_grant). Two mean the
-     * login is gone for real: log out so the app asks to connect again, instead of failing silently for
-     * ever (round 26). Any accepted call resets it.
-     */
-    @Volatile private var rejections = 0
-
-    /** True when this rejection means: log in again (the tokens are cleared). */
-    fun reportRejected(): Boolean {
-        rejections++
-        if (rejections >= 2) { rejections = 0; logout(); return true }
-        accessToken = null
-        return false
-    }
-
-    fun reportAccepted() { rejections = 0 }
+    private var accessToken: String? = null
+    private var expiresAt: Long = 0
 
     val isLoggedIn: Boolean get() = secrets.get(SecretStore.RefreshToken) != null
 
@@ -137,16 +111,7 @@ internal class SchoolhelpAuth(private val secrets: SecretStore) {
 
     /** A valid access token, refreshed when it is about to expire. Null = logged out. */
     suspend fun token(): String? {
-        fresh()?.let { return it }
-        return refreshLock.withLock {
-            // Another caller may have refreshed while this one waited.
-            fresh() ?: refresh()
-        }
-    }
-
-    private fun fresh(): String? = accessToken?.takeIf { System.currentTimeMillis() < expiresAt - 60_000 }
-
-    private suspend fun refresh(): String? {
+        accessToken?.let { if (System.currentTimeMillis() < expiresAt - 60_000) return it }
         val refresh = secrets.get(SecretStore.RefreshToken) ?: return null
         val res = Http.request(
             "$Base/token", "POST",
@@ -160,23 +125,15 @@ internal class SchoolhelpAuth(private val secrets: SecretStore) {
             headers = mapOf("Content-Type" to "application/x-www-form-urlencoded", "Accept" to "application/json"),
         )
         if (res.code == 400 || res.code == 401) {
-            val error = runCatching { Json.parseToJsonElement(res.body).jsonObject["error"]?.jsonPrimitive?.contentOrNull }.getOrNull()
-            // Log out only when Schoolhelp rejects exactly this refresh token (or this app's registration).
-            // Anything else (a proxy's 400, an odd body) keeps the tokens and is retried later.
-            if ((error == "invalid_grant" && secrets.get(SecretStore.RefreshToken) == refresh) || error == "invalid_client") {
-                logout(); return null
-            }
-            if (reportRejected()) return null
-            throw HttpException(res.code, "Schoolhelp token refresh failed (${res.code}${error?.let { ": $it" } ?: ""})")
+            logout(); return null // refresh token expired or revoked: ask the user to log in again
         }
         if (!res.ok) throw HttpException(res.code, "Schoolhelp token refresh failed (${res.code})")
         store(Json.parseToJsonElement(res.body).jsonObject)
         return accessToken
     }
 
-    /** After a 401 with [used]: forget it, unless another caller already replaced it with a fresh one. */
-    fun invalidateAccessToken(used: String? = null) {
-        if (used == null || accessToken == used) accessToken = null
+    fun invalidateAccessToken() {
+        accessToken = null
     }
 
     fun logout() {

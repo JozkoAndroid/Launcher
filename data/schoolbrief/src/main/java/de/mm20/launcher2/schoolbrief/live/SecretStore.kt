@@ -33,13 +33,12 @@ internal class SecretStore(context: Context) {
 
     fun put(name: String, value: String?) {
         if (value == null) {
-            prefs.edit().remove(name).commit(); return
+            prefs.edit().remove(name).apply(); return
         }
         val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val enc = c.doFinal(value.toByteArray(Charsets.UTF_8))
         val packed = Base64.encodeToString(c.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(enc, Base64.NO_WRAP)
-        // commit, not apply (round 22): a rotated refresh token must not be lost if the process dies.
-        prefs.edit().putString(name, packed).commit()
+        prefs.edit().putString(name, packed).apply()
     }
 
     fun get(name: String): String? {

@@ -1,6 +1,5 @@
 package de.mm20.launcher2.schoolbrief.live
 
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -21,16 +20,7 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
     class LoggedOut : Exception("Nie si prihlásený do Schoolhelp.")
 
     /** Calls Schoolhelp's app_call tool, e.g. action "timetable.read", and returns its JSON result. */
-    /**
-     * One Schoolhelp call at a time (round 26): the recording check and the sync used to run in parallel
-     * and could open two sessions at once. Each call is bounded (45 s per request), so the queue moves.
-     */
-    private val callLock = kotlinx.coroutines.sync.Mutex()
-
-    suspend fun appCall(action: String, arguments: JsonObject = JsonObject(emptyMap())): JsonObject =
-        callLock.withLock { appCallUnlocked(action, arguments) }
-
-    private suspend fun appCallUnlocked(action: String, arguments: JsonObject): JsonObject {
+    suspend fun appCall(action: String, arguments: JsonObject = JsonObject(emptyMap())): JsonObject {
         if (sessionId == null) initialize()
         val result = rpc("tools/call", buildJsonObject {
             put("name", "app_call")
@@ -46,10 +36,7 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
      * For large results Schoolhelp returns {"paged_json": "<part>", "next_offset": n, "total": t}: read all
      * parts (result_offset) and parse the joined JSON. Small results come back as they are.
      */
-    suspend fun appCallAll(action: String, arguments: JsonObject = JsonObject(emptyMap())): JsonObject =
-        callLock.withLock { appCallAllUnlocked(action, arguments) }
-
-    private suspend fun appCallAllUnlocked(action: String, arguments: JsonObject): JsonObject {
+    suspend fun appCallAll(action: String, arguments: JsonObject = JsonObject(emptyMap())): JsonObject {
         if (sessionId == null) initialize()
         val sb = StringBuilder()
         var offset = 0
@@ -99,29 +86,16 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
             put("MCP-Protocol-Version", "2025-06-18")
             sessionId?.let { put("Mcp-Session-Id", it) }
         }
-        // A request (with an id) is done at the event that answers it; the stream is not read to its end.
-        val id = msg["id"]?.jsonPrimitive?.contentOrNull
-        val stop: ((String) -> Boolean)? = id?.let { want ->
-            { data -> runCatching { Json.parseToJsonElement(data).jsonObject }.getOrNull()
-                ?.let { it["id"]?.jsonPrimitive?.contentOrNull == want && ("result" in it || "error" in it) } == true }
-        }
-        val res = Http.request(SchoolhelpAuth.Resource, "POST", Json.encodeToString(JsonObject.serializer(), msg), headers, timeoutMs = 45_000, stopWhen = stop)
+        val res = Http.request(SchoolhelpAuth.Resource, "POST", Json.encodeToString(JsonObject.serializer(), msg), headers, timeoutMs = 45_000)
         res.header("Mcp-Session-Id")?.let { sessionId = it }
         if (res.code == 401 && !retried) {
-            auth.invalidateAccessToken(token); return post(msg, retried = true)
+            auth.invalidateAccessToken(); return post(msg, retried = true)
         }
         if (res.code == 404 && sessionId != null && !retried) {
             sessionId = null; initialize(); return post(msg, retried = true) // session expired
         }
-        // A second 401 right after a fresh token is Schoolhelp's problem, not a logout (round 22): a temporary
-        // error, retried on the next refresh. Logging out is SchoolhelpAuth's call alone.
-        if (res.code == 401) {
-            // Twice in a row with fresh tokens: the login itself is dead, ask for a new one (round 26).
-            if (auth.reportRejected()) throw LoggedOut()
-            throw HttpException(401, "Schoolhelp rejected a fresh token (401)")
-        }
+        if (res.code == 401) throw LoggedOut()
         if (!res.ok) throw HttpException(res.code, "Schoolhelp error ${res.code}")
-        auth.reportAccepted()
         return res
     }
 
@@ -141,13 +115,7 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
 
         /** Tool results carry JSON either as structuredContent or as the text of the first content item. */
         fun toolJson(result: JsonObject): JsonObject {
-            result["structuredContent"]?.let {
-                if (it is JsonObject) {
-                    // Round 25: an error reported inside the result is still an error (it was taken as success).
-                    (it["error"] as? JsonPrimitive)?.contentOrNull?.let { e -> throw IllegalStateException("Schoolhelp: $e") }
-                    return it
-                }
-            }
+            result["structuredContent"]?.let { if (it is JsonObject) return it }
             if ((result["isError"] as? JsonPrimitive)?.contentOrNull == "true") {
                 val msg = result["content"]?.jsonArray?.firstOrNull()?.jsonObject?.get("text")?.jsonPrimitive?.contentOrNull
                 throw IllegalStateException("Schoolhelp: ${msg ?: "tool error"}")

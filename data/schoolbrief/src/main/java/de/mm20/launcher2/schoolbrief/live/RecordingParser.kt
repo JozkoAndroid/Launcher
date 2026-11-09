@@ -32,10 +32,6 @@ internal object RecordingParser {
         }
         val entry: JsonElement = root["lesson"].takeUnless { it == null || it is JsonNull }
             ?: (root["alive"] as? JsonArray)?.firstOrNull { isLesson(it) }
-            // Round 25 (device test: a recording on another device never showed): a running lesson can sit
-            // elsewhere in the status (per device, per workspace). Any object that looks like a recording
-            // lesson (audio seconds or paused, plus a lesson id or folder) counts, wherever it is.
-            ?: deepFind(root)
             ?: return null
         val o = entry as? JsonObject
         val raw = o?.let { str(it, "folder") ?: str(it, "subject") ?: str(it, "fach") ?: str(it, "name") ?: str(it, "id") }
@@ -50,19 +46,6 @@ internal object RecordingParser {
             }
             ?: 0
         return Recording(name, paused, seconds)
-    }
-
-    private fun deepFind(e: JsonElement, depth: Int = 0): JsonObject? {
-        if (depth > 4) return null
-        return when (e) {
-            is JsonObject -> {
-                val looks = (e["audio_seconds"] != null || e["paused"] != null) &&
-                    (str(e, "folder") != null || str(e, "id")?.contains('/') == true)
-                if (looks) e else e.entries.filter { it.key != "subjects" }.firstNotNullOfOrNull { deepFind(it.value, depth + 1) }
-            }
-            is JsonArray -> e.firstNotNullOfOrNull { deepFind(it, depth + 1) }
-            else -> null
-        }
     }
 
     /** Folder -> language ("de", "en", "sk") from the "subjects" map. */

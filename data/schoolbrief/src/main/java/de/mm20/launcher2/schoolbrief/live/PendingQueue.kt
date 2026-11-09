@@ -8,7 +8,7 @@ import java.io.File
 
 /** A Schoolhelp change made on the phone; [localId] = the temporary id of a task added offline. */
 @Serializable
-internal data class PendingOp(val action: String, val args: JsonObject, val localId: String? = null, val refusals: Int = 0)
+internal data class PendingOp(val action: String, val args: JsonObject, val localId: String? = null)
 
 /**
  * Changes waiting for Schoolhelp (device test: Schoolhelp was down and new tasks were lost). Kept in a
@@ -18,16 +18,16 @@ internal class PendingQueue(private val file: File) {
     private val serializer = ListSerializer(PendingOp.serializer())
 
     @Synchronized
-    fun all(): List<PendingOp> = runCatching { Json.decodeFromString(serializer, file.readText()) }.getOrDefault(emptyList())
+    // Unknown keys ignored: round 25 saved an extra field; tasks still waiting from then must not be lost.
+    fun all(): List<PendingOp> = runCatching { lenient.decodeFromString(serializer, file.readText()) }.getOrDefault(emptyList())
+
+    private val lenient = Json { ignoreUnknownKeys = true }
 
     @Synchronized
     fun add(op: PendingOp) = write(all() + op)
 
     @Synchronized
     fun remove(op: PendingOp) = write(all().let { list -> list.toMutableList().apply { remove(op) } })
-
-    @Synchronized
-    fun replace(old: PendingOp, new: PendingOp) = write(all().map { if (it == old) new else it })
 
     fun isEmpty() = all().isEmpty()
 

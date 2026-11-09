@@ -165,6 +165,18 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   (`GestureAction.SchoolChat` id kept), swipe up = search, swipe down = notifications (the user may have
   changed it on the device).
 
+## 5a0. Round 27: Schoolhelp connection restored to round 21 (READ FIRST)
+
+The user reported Schoolhelp got worse with each of rounds 22, 25 and 26 (login race fix, pending
+queue changes, hang protection). None of them could be tested against the real Schoolhelp from the
+build container. Round 27 restored the connection layer exactly to round 21 (commit b220059):
+Http.kt, McpClient.kt, SchoolhelpAuth.kt, SecretStore.kt, PendingQueue.kt, LiveBriefRepository.kt,
+RecordingParser.kt. Only additions: `retryNow()` (runs the round 21 sync and recording check now) and a
+lenient decoder in PendingQueue (keeps tasks saved by round 25). The notes in 5a to 5a4 about the
+connection describe code that is no longer there. Rule from now on: change the Schoolhelp connection
+only with a live test against Schoolhelp (the Schoolhelp MCP connector in the session, authorized by
+the user), one change at a time.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on
