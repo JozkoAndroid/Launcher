@@ -192,6 +192,19 @@ the change and continues with the next ones; dropped after `PendingOp.MaxRefusal
 refresh(forceBrief) which flushes first, so waiting tasks go out right after reconnecting.
 `PendingPolicyTest` covers it.
 
+## 5a0000. Round 30
+- Mic (`Speech.kt`): listens until the stop tap. Android's recognizer ends at every pause, so it is restarted
+  (150 ms later); text of all rounds is joined. Ends by itself only after ~12 silent rounds (about a minute).
+  Unverified on device: some phones beep at every restart.
+- Chat on "Môj deň": the conversation is rows of the page list under the tasks (`chatConversation`), not a
+  box. Quick questions stay above the mode switch during a chat. Recent chats: fixed round button top right
+  while "Opýtaj sa" is selected (`ChatRecentButton`). The page list's bottom padding follows the measured
+  bottom frame. Side panel and sheets still use `ChatPart.All` with the old box.
+- Lunch: EduPage is never a lunch source (`ContextRules.isEduPage`), also not a stored lunch or an earlier
+  choice. Device report: EduPage sends no menu, its other notifications showed as lunch.
+- Schoolhelp connection untouched.
+- Claude in the launcher: not built. Max does not cover API use; see the chat of round 30. Open decision.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on

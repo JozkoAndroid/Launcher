@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -339,6 +343,46 @@ class SchoolScreenshotTest {
                         now = this@SchoolScreenshotTest.now,
                         mode = DayBarMode.Focus, onMode = {}, canBlock = false, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
                         chat = { _, _ -> },
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun dayPageAsk() = paparazzi.snapshot {
+        MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFFA9C7FF), inversePrimary = Color(0xFF3F5F90), surface = Color(0xFF15171B), surfaceContainerHigh = Color(0xFF262A31))) {
+            CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalInspectionMode provides true,
+                androidx.activity.compose.LocalActivityResultRegistryOwner provides object : androidx.activity.result.ActivityResultRegistryOwner {
+                    override val activityResultRegistry = object : androidx.activity.result.ActivityResultRegistry() {
+                        override fun <I, O> onLaunch(requestCode: Int, contract: androidx.activity.result.contract.ActivityResultContract<I, O>, input: I, options: androidx.core.app.ActivityOptionsCompat?) {}
+                    }
+                },
+            ) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF15171B))) {
+                    DayContent(
+                        feed = feed,
+                        today = de.mm20.launcher2.schoolbrief.TodayData(
+                            "2026-11-10",
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.PlanStep(0, "Nach Hause kommen und kurz entspannen", 15, "", true),
+                                de.mm20.launcher2.schoolbrief.PlanStep(1, "Für den Ethik-Leistungsnachweis lernen", 25, "Ethik", false),
+                                de.mm20.launcher2.schoolbrief.PlanStep(2, "Zwei Werbeplakate als Dummy entwerfen", 35, "Wirtschaft", false),
+                            ),
+                            listOf(
+                                de.mm20.launcher2.schoolbrief.Todo("a", "Venček info", false),
+                                de.mm20.launcher2.schoolbrief.Todo("b", "Vrátiť knihu do knižnice", true),
+                            ),
+                        ),
+                        now = this@SchoolScreenshotTest.now,
+                        mode = DayBarMode.Ask, onMode = {}, onAdd = {}, onTodo = { _, _ -> }, onStep = { _, _ -> },
+                        chat = { part, m -> if (part == ChatPart.Bar) androidx.compose.foundation.layout.Box(m.height(56.dp).fillMaxWidth().background(Color(0xFF262A31))) },
+                        conversation = {
+                            item { Text("Spýtaj sa", color = Color.White, modifier = Modifier.padding(top = 20.dp)) }
+                            items(3) { Text("Správa ${it + 1}", color = Color.White, modifier = Modifier.padding(vertical = 8.dp)) }
+                        },
+                        topAction = { m -> androidx.compose.foundation.layout.Box(m.size(48.dp).background(Color(0xFF262A31), androidx.compose.foundation.shape.CircleShape)) },
                     )
                 }
             }

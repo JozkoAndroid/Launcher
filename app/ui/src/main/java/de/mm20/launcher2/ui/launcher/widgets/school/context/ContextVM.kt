@@ -68,7 +68,7 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         .shareIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     /**
-     * Today's lunch from the EduPage food app's notification (chosen in settings, or detected by name).
+     * Today's lunch from the lunch app's notification (never EduPage) (chosen in settings, or detected by name).
      * Kept until 15:00 even after the notification is dismissed.
      */
     private val lunchCard: Flow<ContextCard.Lunch?> = combine(notificationRepository.notifications, lunchPackage, polled) { list, chosen, _ ->
@@ -76,7 +76,10 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
         val zone = ZoneId.systemDefault()
         val now = java.time.LocalDateTime.now(zone)
         // Chosen app, else any app whose name looks like a lunch app (e.g. "Lunch Bell").
-        val isLunchApp = { pkg: String -> if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(labels.getOrPut(pkg) { ContextSources.appLabel(ctx, pkg) }) }
+        val label = { pkg: String -> labels.getOrPut(pkg) { ContextSources.appLabel(ctx, pkg) } }
+        val isLunchApp = { pkg: String ->
+            !ContextRules.isEduPage(pkg, label(pkg)) && (if (chosen != null) pkg == chosen else ContextRules.looksLikeLunchApp(label(pkg)))
+        }
         list.filter { isLunchApp(it.packageName) }.maxByOrNull { it.postTime }?.let { n ->
             val day = ContextRules.lunchDay(java.time.Instant.ofEpochMilli(n.postTime).atZone(zone).toLocalDateTime())
             ContextRules.lunchText(
@@ -85,7 +88,7 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
                 n.extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT)?.toString(),
             )?.let { store.storeLunch(day, n.packageName, it) }
         }
-        store.storedLunch()?.takeIf { (day, _, _) -> ContextRules.lunchVisible(day, now) }?.let { (day, pkg, text) ->
+        store.storedLunch()?.takeIf { (day, pkg, _) -> ContextRules.lunchVisible(day, now) && !ContextRules.isEduPage(pkg, label(pkg)) }?.let { (day, pkg, text) ->
             ContextCard.Lunch(text, pkg, tomorrow = day.isAfter(now.toLocalDate()))
         }
     }.flowOn(kotlinx.coroutines.Dispatchers.Default)

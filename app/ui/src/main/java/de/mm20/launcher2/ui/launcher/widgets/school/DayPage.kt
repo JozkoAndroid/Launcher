@@ -50,6 +50,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -117,6 +119,7 @@ fun DayPage(
         canBlock = FocusGuard.canBlock(context)
         onPauseOrDispose {}
     }
+    val chatVM: SchoolChatVM = viewModel(key = "school-chat")
     DayContent(
         feed = feed, today = today, now = now, listState = listState,
         mode = mode, onMode = { mode = it },
@@ -124,6 +127,9 @@ fun DayPage(
         retry = { SyncRow() },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { part, modifier -> ChatDock(modifier, bottomInset = 0.dp, part = part) },
+        conversation = { chatConversation(chatVM) },
+        conversationKey = chatVM.messages.size.takeIf { it > 0 }?.let { it to chatVM.thinking },
+        topAction = { ChatRecentButton(it) },
         barProgress = progress,
     )
 }
@@ -143,6 +149,9 @@ internal fun DayContent(
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
     chat: @Composable (ChatPart, Modifier) -> Unit,
+    conversation: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {},
+    conversationKey: Any? = null,
+    topAction: @Composable (Modifier) -> Unit = {},
     barProgress: () -> Float = { 1f },
 ) {
     val locale = LocalConfiguration.current.locales[0]
@@ -155,6 +164,18 @@ internal fun DayContent(
     val showLessons = lessons.isNotEmpty() && lessons.last().end > time
     val openTodos = today?.todos?.count { !it.done } ?: 0
     val openSteps = today?.steps?.count { !it.done } ?: 0
+    // The list ends above the bottom frame, whatever its height in each mode (the chat's last message
+    // stays visible above the bar).
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    var frameHeight by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val listBottom = if (frameHeight > 0) with(density) { frameHeight.toDp() } else bottom + 180.dp
+    // A new message or answer: scroll to the end of the chat (round 30: the chat is part of the page).
+    LaunchedEffect(conversationKey, mode) {
+        if (mode != DayBarMode.Ask || conversationKey == null) return@LaunchedEffect
+        androidx.compose.runtime.withFrameNanos { }
+        val n = listState.layoutInfo.totalItemsCount
+        if (n > 0) listState.animateScrollToItem(n - 1)
+    }
 
     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
         // Transparent like the widget panel (round 13): the scaffold's page scrim slides with the page.
@@ -162,7 +183,7 @@ internal fun DayContent(
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = listState,
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = top + 28.dp, bottom = bottom + 180.dp),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = top + 28.dp, bottom = listBottom),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 item {
@@ -209,6 +230,17 @@ internal fun DayContent(
                     // Open first, then the done ones (struck through) until Schoolhelp clears them.
                     items(today.todos.sortedBy { it.done }, key = { "t" + it.id }) { t -> TodoLine(t, onTodo) }
                 }
+                if (mode == DayBarMode.Ask) conversation()
+            }
+
+            if (mode == DayBarMode.Ask) {
+                topAction(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = top + 16.dp, end = 16.dp)
+                        // Fades with the page swipe like the bar (read in the draw lambda only).
+                        .graphicsLayer { alpha = barProgress().coerceIn(0f, 1f) }
+                )
             }
 
             val travel = pillTravelPx()
@@ -217,6 +249,7 @@ internal fun DayContent(
                     .align(Alignment.BottomCenter)
                     // The task bar arrives like the search pill (round 14).
                     .pillArriving(travel, barProgress)
+                    .onSizeChanged { frameHeight = it.height }
                     .fillMaxWidth()
                     .padding(top = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

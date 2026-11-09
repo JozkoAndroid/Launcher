@@ -130,7 +130,7 @@ internal object ContextSources {
         val pm = context.packageManager
         pm.getInstalledApplications(0)
             .map { it.packageName to it.loadLabel(pm).toString() }
-            .filter { ContextRules.looksLikeLunchApp(it.second) }
+            .filter { ContextRules.looksLikeLunchApp(it.second) && !ContextRules.isEduPage(it.first, it.second) }
             .distinctBy { it.first }
     }.getOrDefault(emptyList())
 
@@ -165,7 +165,7 @@ internal object ContextSources {
 internal class ContextSettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("schoolbrief_context", Context.MODE_PRIVATE)
 
-    /** Package of the EduPage food app; null = detect by name. */
+    /** Package of the lunch app (Lunch Bell); null = detect by name. EduPage is never used. */
     var lunchPackage: String?
         get() = prefs.getString("lunch_package", null)
         set(v) { prefs.edit().putString("lunch_package", v).apply() }

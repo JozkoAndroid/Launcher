@@ -221,6 +221,52 @@ private fun Bubble(m: ChatMessage) {
     }
 }
 
+/**
+ * The conversation as rows of the "Môj deň" list, under the tasks (round 30, user: "not a pop-up, the chat
+ * goes underneath my tasks and I scroll down"). Nothing while there is no chat.
+ */
+internal fun androidx.compose.foundation.lazy.LazyListScope.chatConversation(vm: SchoolChatVM) {
+    if (vm.messages.isEmpty() && !vm.thinking) return
+    item(key = "chat-head", contentType = "chat-head") {
+        Row(
+            Modifier.widthIn(max = 640.dp).fillMaxWidth().padding(top = 20.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.chat_title),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
+            )
+            // A new chat; this one stays under recent chats.
+            androidx.compose.material3.TextButton(onClick = { vm.clear() }, enabled = !vm.thinking) { Text(stringResource(R.string.chat_new)) }
+        }
+    }
+    items(vm.messages.size, key = { "chat$it" }, contentType = { "bubble" }) { i ->
+        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(vm.messages[i]) }
+    }
+    if (vm.thinking) item(key = "chat-thinking", contentType = "bubble") {
+        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, "…")) }
+    }
+}
+
+/** Recent chats, always at hand in "Opýtaj sa" (round 30, user: "the recent chats button has to be there constantly"). */
+@Composable
+fun ChatRecentButton(modifier: Modifier) {
+    val vm: SchoolChatVM = viewModel(key = "school-chat")
+    var show by remember { mutableStateOf(false) }
+    if (show) RecentChatsSheet(vm, onDismiss = { show = false })
+    val label = stringResource(R.string.chat_recent)
+    Box(
+        modifier
+            .size(48.dp)
+            .pillSurface(androidx.compose.foundation.shape.CircleShape)
+            .clickable(role = Role.Button, onClickLabel = label) { show = true },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(painterResource(R.drawable.history_24px), contentDescription = label, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
+    }
+}
+
 // ---------------------------------------------------------------- Week ("Týždeň")
 
 /** The week as what is due ([WeekOverview]); round 15 dropped the per-day timetable. */
@@ -295,7 +341,9 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
         val frame = if (part == ChatPart.All) modifier.fillMaxWidth().widthIn(max = 640.dp).padding(horizontal = 12.dp).padding(bottom = bottomInset + 8.dp)
         else modifier.fillMaxWidth()
         Column(frame) {
-            if (part != ChatPart.Bar && vm.messages.isNotEmpty()) {
+            // On "Môj deň" the conversation is part of the page (round 30, [chatConversation]); only the
+            // side panel and the sheets keep the box.
+            if (part == ChatPart.All && vm.messages.isNotEmpty()) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(8.dp),
                 ) {
@@ -318,7 +366,10 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                 }
                 Spacer(Modifier.height(8.dp))
             }
-            if (part != ChatPart.Bar && hasKey && vm.messages.isEmpty()) QuickActions(vm, onRecent = { showRecent = true })
+            // Round 30 (user: "the suggested questions stay there"): on "Môj deň" they stay during a chat too;
+            // recent chats have their own button at the top there.
+            if (part == ChatPart.Above && hasKey) QuickActions(vm, onRecent = null)
+            if (part == ChatPart.All && hasKey && vm.messages.isEmpty()) QuickActions(vm, onRecent = { showRecent = true })
             if (part == ChatPart.Above) return@Column
             if (!hasKey) {
                 KeyRow(onSave = { vm.saveKey(it) })
@@ -342,7 +393,7 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
  * Fach's lesson topics from Schoolhelp, so Gemini knows what is meant; the bubble shows only the label.
  */
 @Composable
-private fun QuickActions(vm: SchoolChatVM, onRecent: () -> Unit = {}) {
+private fun QuickActions(vm: SchoolChatVM, onRecent: (() -> Unit)?) {
     val brief: SchoolBriefVM = viewModel(key = "school-brief")
     val feed by brief.feed.collectAsState(null)
     val rec by brief.recording.collectAsState()
@@ -394,7 +445,7 @@ private fun QuickActions(vm: SchoolChatVM, onRecent: () -> Unit = {}) {
         }
     }
 
-    if (vm.recent.isNotEmpty()) actions.add(0, stringResource(R.string.chat_recent) to onRecent)
+    if (onRecent != null && vm.recent.isNotEmpty()) actions.add(0, stringResource(R.string.chat_recent) to onRecent)
     Row(
         Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -456,6 +507,7 @@ private fun RecentChatsSheet(vm: SchoolChatVM, onDismiss: () -> Unit) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp)) {
             Text(stringResource(R.string.chat_recent), style = SchoolFonts.serifDisplay(28))
             Spacer(Modifier.height(12.dp))
+            if (vm.recent.isEmpty()) Secondary(stringResource(R.string.chat_recent_empty))
             for (c in vm.recent) {
                 Column(
                     Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(SchoolTokens.ItemRadius))

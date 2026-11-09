@@ -101,7 +101,9 @@ class ContextRulesTest {
 
     @Test
     fun lunchAppAndTextDetection() {
-        assertTrue(ContextRules.looksLikeLunchApp("EduPage Jedálny lístok"))
+        // EduPage never sends the menu (device test): never a lunch source.
+        assertFalse(ContextRules.looksLikeLunchApp("EduPage Jedálny lístok"))
+        assertTrue(ContextRules.isEduPage("sk.edupage.android"))
         assertTrue(ContextRules.looksLikeLunchApp("School Food"))
         assertTrue(ContextRules.looksLikeLunchApp("Lunch Bell"))
         assertEquals("2", ContextRules.menuNumber("2"))

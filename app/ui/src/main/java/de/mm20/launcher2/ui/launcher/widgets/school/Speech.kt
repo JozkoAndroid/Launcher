@@ -50,11 +50,26 @@ class SpeechInput internal constructor() {
 
 private class RecognizerHolder {
     var recognizer: SpeechRecognizer? = null
+    val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** True from the mic tap until the stop tap: the recognizer is restarted after every pause. */
+    var wanted = false
+
+    /** What was heard in the earlier rounds of this listening. */
+    var heard = ""
+
+    /** Rounds in a row that heard nothing; listening ends after [MaxSilentRounds] (mic left on by mistake). */
+    var silent = 0
+
+    /** Errors in a row other than silence. */
+    var errors = 0
 }
 
 /**
- * [onText] gets the final text, [onPartial] the text so far while speaking (null: show nothing until the
- * end). Slovak first; if the recognizer has no Slovak, the phone's language.
+ * [onText] gets the text heard so far after each pause and at the stop, [onPartial] the text so far while
+ * speaking (null: show nothing until a pause). Listens until the mic is tapped again (device test: it
+ * stopped by itself after a pause): Android's recognizer ends at every pause, so it is started again.
+ * Slovak first; if the recognizer has no Slovak, the phone's language.
  */
 @Composable
 internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) -> Unit)? = null): SpeechInput {
@@ -71,13 +86,27 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
     val sFailed = stringResource(R.string.voice_failed)
     val sMissing = stringResource(R.string.voice_unavailable)
 
+    fun joined(next: String?) = listOf(holder.heard, next.orEmpty()).filter { it.isNotBlank() }.joinToString(" ")
+
+    fun end(status: String?) {
+        holder.wanted = false
+        holder.handler.removeCallbacksAndMessages(null)
+        speech.listening = false
+        speech.status = status
+    }
+
     fun listen(language: String?) {
         val service = recognitionService(context)
         if (service == null) {
-            speech.status = sMissing
+            end(sMissing)
             return
         }
         val r = holder.recognizer ?: SpeechRecognizer.createSpeechRecognizer(context, service).also { holder.recognizer = it }
+        // The next round, a moment after the last one ended (an instant restart can find the recognizer busy).
+        fun again(delayMs: Long = 150L) {
+            holder.handler.removeCallbacksAndMessages(null)
+            holder.handler.postDelayed({ if (holder.wanted) listen(language) }, delayMs)
+        }
         r.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { speech.status = sListening }
             override fun onBeginningOfSpeech() {}
@@ -87,48 +116,89 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
             override fun onEvent(eventType: Int, params: Bundle?) {}
 
             override fun onPartialResults(results: Bundle?) {
-                results.first()?.let { partial?.invoke(it) }
+                results.first()?.let { partial?.invoke(joined(it)) }
             }
 
             override fun onResults(results: Bundle?) {
-                speech.listening = false
                 val heard = results.first()
-                speech.status = if (heard == null) sNothing else null
-                heard?.let { text(it) }
+                if (heard != null) {
+                    holder.heard = joined(heard)
+                    holder.silent = 0
+                    text(holder.heard)
+                }
+                holder.errors = 0
+                if (holder.wanted) {
+                    again()
+                } else {
+                    speech.listening = false
+                    speech.status = if (holder.heard.isBlank()) sNothing else null
+                }
             }
 
             override fun onError(error: Int) {
-                speech.listening = false
-                speech.status = when (error) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> sNothing
-                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> sDenied
-                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_SERVER -> sOffline
-                    // No Slovak on this recognizer: once more in the phone's language.
-                    ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE -> if (language != null) {
-                        listen(null); return
-                    } else sFailed
+                if (!holder.wanted) {
                     // After a stop by the user: nothing to report.
-                    SpeechRecognizer.ERROR_CLIENT -> null
-                    else -> sFailed
+                    if (error != SpeechRecognizer.ERROR_CLIENT && speech.listening) end(null)
+                    return
+                }
+                when (error) {
+                    // A pause with nothing said: keep listening.
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
+                        holder.silent++
+                        holder.errors = 0
+                        if (holder.silent >= MaxSilentRounds) end(if (holder.heard.isBlank()) sNothing else null) else again()
+                    }
+                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> {
+                        holder.errors++
+                        if (holder.errors >= 4) end(sFailed) else again(400L)
+                    }
+                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> end(sDenied)
+                    SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_SERVER -> end(sOffline)
+                    // No Slovak on this recognizer: once more in the phone's language.
+                    ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE -> if (language != null) listen(null) else end(sFailed)
+                    else -> {
+                        holder.errors++
+                        if (holder.errors >= 3) end(sFailed) else again(400L)
+                    }
                 }
             }
         })
         speech.listening = true
         speech.status = sListening
-        r.startListening(recognizeIntent(context, language).putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true))
+        runCatching {
+            r.startListening(
+                recognizeIntent(context, language)
+                    .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    // A longer pause before a round ends (recognizers may ignore it; the restart covers that).
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+                    .putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+            )
+        }.onFailure { end(sFailed) }
+    }
+
+    fun start() {
+        holder.wanted = true
+        holder.heard = ""
+        holder.silent = 0
+        holder.errors = 0
+        listen(Slovak)
     }
 
     val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) listen(Slovak) else speech.status = sDenied
+        if (granted) start() else speech.status = sDenied
     }
 
     speech.onToggle = {
         if (speech.listening) {
+            // Stop: the recognizer still delivers what it heard last (onResults), then listening ends.
+            holder.wanted = false
+            holder.handler.removeCallbacksAndMessages(null)
             holder.recognizer?.stopListening()
             speech.listening = false
             speech.status = null
+            if (holder.heard.isNotBlank()) text(holder.heard)
         } else if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            listen(Slovak)
+            start()
         } else {
             askMic.launch(Manifest.permission.RECORD_AUDIO)
         }
@@ -143,10 +213,17 @@ internal fun rememberSpeechInput(onText: (String) -> Unit, onPartial: ((String) 
         }
     }
     DisposableEffect(Unit) {
-        onDispose { holder.recognizer?.destroy(); holder.recognizer = null }
+        onDispose {
+            holder.wanted = false
+            holder.handler.removeCallbacksAndMessages(null)
+            holder.recognizer?.destroy(); holder.recognizer = null
+        }
     }
     return speech
 }
+
+/** About a minute of silence (rounds of a few seconds each) ends listening left on by mistake. */
+private const val MaxSilentRounds = 12
 
 private const val Slovak = "sk-SK"
 

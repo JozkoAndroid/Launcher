@@ -27,7 +27,7 @@ sealed interface ContextCard {
         override val rank = 3
     }
 
-    /** Today's school lunch, from the EduPage food app's notification. */
+    /** Today's school lunch, from the lunch app's notification (Lunch Bell; never EduPage). */
     data class Lunch(val text: String, val packageName: String, val tomorrow: Boolean = false) : ContextCard {
         override val rank = 4
     }
@@ -155,10 +155,18 @@ object ContextRules {
     fun lunchVisible(lunchDay: LocalDate, now: java.time.LocalDateTime): Boolean =
         now.isBefore(lunchDay.atTime(LunchUntil)) && !lunchDay.isAfter(now.toLocalDate().plusDays(1))
 
-    /** App names that look like the EduPage food app (used when no app is chosen in settings). */
-    private val lunchKeywords = listOf("lunch bell", "edupage", "jedál", "jedal", "obed", "lunch", "food", "menu", "mensa", "essen")
+    /** App names that look like a lunch app such as Lunch Bell (used when no app is chosen in settings). */
+    private val lunchKeywords = listOf("lunch bell", "jedál", "jedal", "obed", "lunch", "food", "menu", "mensa", "essen")
 
-    fun looksLikeLunchApp(label: String): Boolean = lunchKeywords.any { label.contains(it, ignoreCase = true) }
+    /**
+     * EduPage never sends the menu: its notifications (grades, messages) read as a wrong lunch (device test),
+     * so it is never a lunch source, not even when chosen before.
+     */
+    fun isEduPage(pkg: String, label: String = ""): Boolean =
+        pkg.contains("edupage", ignoreCase = true) || label.contains("edupage", ignoreCase = true)
+
+    fun looksLikeLunchApp(label: String): Boolean =
+        !isEduPage("", label) && lunchKeywords.any { label.contains(it, ignoreCase = true) }
 
     /** The notification text worth showing: big text if present, else text, else title; one line. */
     fun lunchText(title: String?, text: String?, bigText: String?): String? =
