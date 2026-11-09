@@ -58,18 +58,6 @@ internal class McpClient(private val auth: SchoolhelpAuth) {
         return Json.parseToJsonElement(sb.toString()).jsonObject
     }
 
-    /** Round 31: Schoolhelp's tools as listed for any MCP client (the Claude chat offers them to Claude). */
-    suspend fun listTools(): kotlinx.serialization.json.JsonArray {
-        if (sessionId == null) initialize()
-        return rpc("tools/list", JsonObject(emptyMap()))["tools"]?.jsonArray ?: kotlinx.serialization.json.JsonArray(emptyList())
-    }
-
-    /** Round 31: any Schoolhelp tool by name; the raw MCP result (content items, isError). */
-    suspend fun callTool(name: String, arguments: JsonObject): JsonObject {
-        if (sessionId == null) initialize()
-        return rpc("tools/call", buildJsonObject { put("name", name); put("arguments", arguments) })
-    }
-
     private suspend fun initialize() {
         rpc("initialize", buildJsonObject {
             put("protocolVersion", "2025-06-18")

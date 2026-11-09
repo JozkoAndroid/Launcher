@@ -52,7 +52,6 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     override val feed = MutableStateFlow(readCache())
     override val status = MutableStateFlow<BriefStatus>(if (auth.isLoggedIn) BriefStatus.Ok else BriefStatus.NeedsLogin)
     override val hasGeminiKey = MutableStateFlow(secrets.get(SecretStore.GeminiKey) != null)
-    override val hasClaudeKey = MutableStateFlow(secrets.get(SecretStore.ClaudeKey) != null)
 
     private var job: Job? = null
     private var lastAttempt = 0L
@@ -320,16 +319,6 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
         auth.logout()
         status.value = BriefStatus.NeedsLogin
     }
-
-    override fun setClaudeKey(key: String?) {
-        secrets.put(SecretStore.ClaudeKey, key?.trim()?.takeIf { it.isNotEmpty() })
-        hasClaudeKey.value = secrets.get(SecretStore.ClaudeKey) != null
-    }
-
-    // Round 31: the Claude chat reaches Schoolhelp through this same client (no second login or session).
-    override suspend fun schoolhelpTools(): kotlinx.serialization.json.JsonArray = mcp.listTools()
-
-    override suspend fun schoolhelpTool(name: String, arguments: kotlinx.serialization.json.JsonObject) = mcp.callTool(name, arguments)
 
     override fun setGeminiKey(key: String?) {
         secrets.put(SecretStore.GeminiKey, key?.trim()?.takeIf { it.isNotEmpty() })

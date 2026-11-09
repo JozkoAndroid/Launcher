@@ -1417,10 +1417,6 @@
     <string name="widget_tile_conditional">Shows only when there is something to show</string>
     <string name="lesson_ruler">Today\'s lessons from %1$s to %2$s</string>
     <string name="settings_your_name">Your name (greeting in the daily brief)</string>
-    <string name="brief_settings_claude">Claude API key</string>
-    <string name="brief_settings_claude_info">With a key, Claude answers in “Ask” and looks things up in Schoolhelp itself (notes, lessons, topics). It is paid from the Max plan\'s monthly $100 credit. When that runs out, Gemini answers again. Add no card and no auto-reload in the Claude Console, then nothing extra is ever charged.</string>
-    <string name="brief_settings_claude_get">Create a key in the Claude Console</string>
-    <string name="chat_claude_spent">Claude · ~%1$s this month</string>
     <string name="chat_new">New</string>
     <string name="chat_recent_empty">No chats yet.</string>
     <string name="chat_recent">Recent</string>

@@ -203,20 +203,7 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
 - Lunch: EduPage is never a lunch source (`ContextRules.isEduPage`), also not a stored lunch or an earlier
   choice. Device report: EduPage sends no menu, its other notifications showed as lunch.
 - Schoolhelp connection untouched.
-- Claude in the launcher: see round 31.
-
-## 5a00000. Round 31: Claude in "Opýtaj sa"
-- Max includes $100/month API credits (official docs, since 2026-10-07). No card in the Console = requests
-  stop when used up, never charged. User rule: no extra cost. Never suggest auto-reload or a card.
-- `ClaudeChat.kt` (`ClaudeSchoolChat`, bound in `Module.kt`): Sonnet 5.5, effort medium, raw HTTP,
-  `anthropic-version: 2026-10-21` (no temperature). Tool loop up to 10 rounds; Claude gets Schoolhelp's own
-  tools (`app_call`, `app_run`, `app_tools` from tools/list) and the launcher runs them through the existing
-  `McpClient` (additive `listTools`/`callTool`; connection code untouched). Images pass through. Cache
-  breakpoints: system block 1 and the last message. Gemini answers when no Claude key, or when Claude is
-  out of credit / overloaded / offline (with a note). Spend estimate per calendar month in prefs
-  `schoolbrief_claude`, shown as "Claude · ~$x tento mesiac" in the chat header.
-- Key: Settings > Škola (Brief block settings), `SecretStore.ClaudeKey`. Gemini stays for brief and news.
-- Unverified: a real Claude call (no key here), cost per question on real use.
+- Claude in the launcher: not built. Max does not cover API use; see the chat of round 30. Open decision.
 
 ## 5a. Round 22
 

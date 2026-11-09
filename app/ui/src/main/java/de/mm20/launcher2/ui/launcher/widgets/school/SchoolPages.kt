@@ -62,7 +62,6 @@ import de.mm20.launcher2.schoolbrief.Feed
 import de.mm20.launcher2.schoolbrief.SchoolChat
 import de.mm20.launcher2.ui.R
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -101,24 +100,8 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         messages.clear(); messages.addAll(c.messages); chatId = c.id
     }
     val hasKey: Boolean get() = chat.hasKey
-    /** Observable key state (Gemini or Claude), so the dock switches from "add key" to chat at once. */
-    val keyState = kotlinx.coroutines.flow.combine(brief.hasGeminiKey, brief.hasClaudeKey) { g, c -> g || c }
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, brief.hasGeminiKey.value || brief.hasClaudeKey.value)
-
-    /** Round 31: what Claude is doing while it looks things up in Schoolhelp; null = just "…". */
-    var progress by mutableStateOf<String?>(null)
-        private set
-
-    /** Round 31: Claude's estimated spend this month (USD), null when Gemini answers. */
-    var spent by mutableStateOf(chat.claudeSpent())
-        private set
-
-    private suspend fun answer(): String {
-        val r = chat.reply(messages.toList(), brief.feed.first()) { progress = it }
-        progress = null
-        spent = chat.claudeSpent()
-        return r.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." }
-    }
+    /** Observable key state, so the dock switches from "add key" to chat at once. */
+    val keyState = brief.hasGeminiKey
     fun saveKey(key: String) = brief.setGeminiKey(key)
 
     fun send(text: String, modelText: String? = null) {
@@ -127,7 +110,9 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         messages += ChatMessage(true, q, modelText)
         thinking = true
         viewModelScope.launch {
-            messages += ChatMessage(false, answer())
+            val feed = brief.feed.first()
+            val answer = chat.reply(messages.toList(), feed)
+            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
             persist()
         }
@@ -143,7 +128,8 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         viewModelScope.launch {
             val ctx = folder.takeIf { it.isNotBlank() }?.let { brief.studyContext(it) }
             if (at in messages.indices) messages[at] = ChatMessage(true, label, prompt(ctx))
-            messages += ChatMessage(false, answer())
+            val answer = chat.reply(messages.toList(), brief.feed.first())
+            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
             thinking = false
             persist()
         }
@@ -251,7 +237,6 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.chatConversation(vm:
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 13.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f),
             )
-            ClaudeSpent(vm)
             // A new chat; this one stays under recent chats.
             androidx.compose.material3.TextButton(onClick = { vm.clear() }, enabled = !vm.thinking) { Text(stringResource(R.string.chat_new)) }
         }
@@ -260,19 +245,8 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.chatConversation(vm:
         Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(vm.messages[i]) }
     }
     if (vm.thinking) item(key = "chat-thinking", contentType = "bubble") {
-        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, vm.progress ?: "…")) }
+        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, "…")) }
     }
-}
-
-/** "Claude · ~$0.42": this month's estimated spend of the $100 monthly credit (round 31). */
-@Composable
-private fun ClaudeSpent(vm: SchoolChatVM) {
-    val usd = vm.spent ?: return
-    Text(
-        stringResource(R.string.chat_claude_spent, String.format(java.util.Locale.US, "$%.2f", usd)),
-        style = MaterialTheme.typography.labelMedium.merge(SchoolTokens.Tabular),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 /** Recent chats, always at hand in "Opýtaj sa" (round 30, user: "the recent chats button has to be there constantly"). */
@@ -378,7 +352,6 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                             stringResource(R.string.chat_title), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             modifier = Modifier.weight(1f).padding(start = 8.dp),
                         )
-                        ClaudeSpent(vm)
                         if (vm.recent.isNotEmpty()) {
                             androidx.compose.material3.TextButton(onClick = { showRecent = true }) { Text(stringResource(R.string.chat_recent)) }
                         }
@@ -388,7 +361,7 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                     val maxChat = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.62f).dp
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxChat), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
                         items(vm.messages) { m -> Bubble(m) }
-                        if (vm.thinking) item { Bubble(ChatMessage(false, vm.progress ?: "…")) }
+                        if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))

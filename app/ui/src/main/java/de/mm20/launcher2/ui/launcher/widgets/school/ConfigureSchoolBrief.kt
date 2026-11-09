@@ -125,44 +125,4 @@ fun ColumnScope.ConfigureSchoolBrief() {
             }) { Text(stringResource(R.string.brief_settings_gemini_get)) }
         }
     }
-
-    // Round 31: Claude answers in "Opýtaj sa" from the Max plan's monthly API credits.
-    Spacer(Modifier.height(24.dp))
-    Text(stringResource(R.string.brief_settings_claude), style = MaterialTheme.typography.titleMedium)
-    Spacer(Modifier.height(8.dp))
-    Text(
-        stringResource(R.string.brief_settings_claude_info),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Spacer(Modifier.height(12.dp))
-    val hasClaude by vm.hasClaudeKey.collectAsState()
-    if (hasClaude) {
-        Text(stringResource(R.string.brief_settings_gemini_saved), style = MaterialTheme.typography.bodyLarge)
-        TextButton(onClick = { vm.setClaudeKey(null) }) { Text(stringResource(R.string.brief_settings_gemini_remove)) }
-    } else {
-        var key by remember { mutableStateOf("") }
-        val valid = key.startsWith("sk-ant-") && key.length >= 40
-        OutlinedTextField(
-            value = key,
-            onValueChange = { key = it.trim() },
-            label = { Text(stringResource(R.string.brief_settings_claude)) },
-            singleLine = true,
-            isError = key.isNotEmpty() && !key.startsWith("sk-ant-"),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = { vm.setClaudeKey(key) }, enabled = valid) {
-                Text(stringResource(R.string.brief_settings_gemini_save))
-            }
-            TextButton(onClick = {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://platform.claude.com/settings/keys")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
-            }) { Text(stringResource(R.string.brief_settings_claude_get)) }
-        }
-    }
 }

@@ -24,12 +24,7 @@ data class ChatMessage(val fromUser: Boolean, val text: String, val modelText: S
 /** "Spýtaj sa": a small Gemini chat that knows today's school data (tasks, timetable, brief). */
 interface SchoolChat {
     val hasKey: Boolean
-
-    /** [onProgress]: a short note while the answer is being put together ("Pozerám do Schoolhelp…"). */
-    suspend fun reply(history: List<ChatMessage>, feed: Feed?, onProgress: (String) -> Unit = {}): Result<String>
-
-    /** Claude's estimated spend this calendar month in USD; null when Gemini answers. */
-    fun claudeSpent(): Double? = null
+    suspend fun reply(history: List<ChatMessage>, feed: Feed?): Result<String>
 }
 
 internal class GeminiSchoolChat(context: Context) : SchoolChat {
@@ -37,7 +32,7 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
 
     override val hasKey: Boolean get() = secrets.get(SecretStore.GeminiKey) != null
 
-    override suspend fun reply(history: List<ChatMessage>, feed: Feed?, onProgress: (String) -> Unit): Result<String> = runCatching {
+    override suspend fun reply(history: List<ChatMessage>, feed: Feed?): Result<String> = runCatching {
         val key = secrets.get(SecretStore.GeminiKey) ?: error("Chýba kľúč Gemini. Vlož ho v Nastavenia > Škola.")
         val body = Json.encodeToString(JsonObject.serializer(), request(history, feed, LocalDateTime.now()))
         // Round 16 (device test: only "Gemini 401" was shown): the default model, and if Google no longer
@@ -106,26 +101,8 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
         }
 
         fun request(history: List<ChatMessage>, feed: Feed?, now: LocalDateTime): JsonObject {
-            val data = schoolData(feed, now)
-            return buildJsonObject {
-                putJsonObject("systemInstruction") {
-                    putJsonArray("parts") { add(buildJsonObject { put("text", System + "\nschool_data: " + data.toString()) }) }
-                }
-                putJsonArray("contents") {
-                    history.takeLast(16).forEach { m ->
-                        add(buildJsonObject {
-                            put("role", if (m.fromUser) "user" else "model")
-                            putJsonArray("parts") { add(buildJsonObject { put("text", m.modelText ?: m.text) }) }
-                        })
-                    }
-                }
-                putJsonObject("generationConfig") { put("temperature", 0.5) }
-            }
-        }
-
-        /** Today's school data for a chat model: date and time, brief, visible tasks, timetable, days off. */
-        fun schoolData(feed: Feed?, now: LocalDateTime): JsonObject {
-            return buildJsonObject {
+            val sk = Locale.forLanguageTag("sk")
+            val data = buildJsonObject {
                 put("today", skDay(now.toLocalDate(), now.toLocalDate()) + ", " + now.toLocalTime().withNano(0).withSecond(0))
                 if (feed != null) {
                     put("brief", feed.brief)
@@ -147,6 +124,20 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
                     }
                     putJsonArray("days_off") { feed.daysOff.forEach { add(buildJsonObject { put("title", it.title); put("start", it.start); put("end", it.end) }) } }
                 }
+            }
+            return buildJsonObject {
+                putJsonObject("systemInstruction") {
+                    putJsonArray("parts") { add(buildJsonObject { put("text", System + "\nschool_data: " + data.toString()) }) }
+                }
+                putJsonArray("contents") {
+                    history.takeLast(16).forEach { m ->
+                        add(buildJsonObject {
+                            put("role", if (m.fromUser) "user" else "model")
+                            putJsonArray("parts") { add(buildJsonObject { put("text", m.modelText ?: m.text) }) }
+                        })
+                    }
+                }
+                putJsonObject("generationConfig") { put("temperature", 0.5) }
             }
         }
     }
