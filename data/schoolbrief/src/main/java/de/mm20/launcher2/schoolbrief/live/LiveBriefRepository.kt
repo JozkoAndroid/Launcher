@@ -162,20 +162,26 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     /** True when the queue is empty afterwards. Stops at the first failure so the order is kept. */
     private suspend fun flush(): Boolean {
+        var allSent = true
         for (op in pending.all()) {
             // A task added and ticked off before it was ever uploaded needs no upload.
             if (op.localId != null && today.value?.todos?.any { it.id == op.localId && it.done } == true) {
                 pending.remove(op); continue
             }
             val result = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }
-            // Schoolhelp answered but refused the change: drop it, or it would block every later change.
             val refused = (result.exceptionOrNull() as? IllegalStateException)?.message?.startsWith("Schoolhelp:") == true
+            // Not reachable at all: keep everything in order and stop.
             if (result.isFailure && !refused) return false
+            if (refused) {
+                // A tool error: kept and tried again (see PendingOp.afterRefusal); the others still go out.
+                val next = op.afterRefusal()
+                if (next != null) { pending.replace(op, next); allSent = false; continue }
+            }
             pending.remove(op)
             pendingChanges.value = pending.all().size
             if (op.action == "calendar.add_private") { lastAttempt = 0; prefs.edit().putLong(KeyDataAt, 0).apply() }
         }
-        return true
+        return allSent
     }
 
     /** Tasks still waiting in the queue, shown after the ones Schoolhelp returned. */

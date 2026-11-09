@@ -185,6 +185,13 @@ client id for ever, so refresh and every new login failed. `SchoolhelpAuth.begin
 client at every login (verified live: /register 201, /authorize with the new id goes to the consent page).
 lessons.status with no recording (Nov 9): `lesson: null, alive: [], mic: null, now_subject: "Ma"`.
 
+## 5a000. Round 29
+
+Pending queue only (connection untouched): a tool error ("Schoolhelp: ...", Schoolhelp's app away) keeps
+the change and continues with the next ones; dropped after `PendingOp.MaxRefusals` (20). Login runs
+refresh(forceBrief) which flushes first, so waiting tasks go out right after reconnecting.
+`PendingPolicyTest` covers it.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on
