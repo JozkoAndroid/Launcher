@@ -49,6 +49,8 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
 
     fun logout() = repository.logout()
     fun setGeminiKey(key: String?) = repository.setGeminiKey(key)
+    val hasClaudeKey: StateFlow<Boolean> = repository.hasClaudeKey
+    fun setClaudeKey(key: String?) = repository.setClaudeKey(key)
     fun retry() = repository.refreshIfDue()
 
     fun addEvent(kind: String, title: String, date: java.time.LocalDate, subject: String?) = repository.addEvent(kind, title, date, subject)

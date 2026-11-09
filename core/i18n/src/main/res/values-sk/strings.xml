@@ -1263,6 +1263,10 @@
     <string name="widget_tile_conditional">Ukáže sa, len keď je čo ukázať</string>
     <string name="lesson_ruler">Dnešné hodiny od %1$s do %2$s</string>
     <string name="settings_your_name">Tvoje meno (pozdrav v Prehľade dňa)</string>
+    <string name="brief_settings_claude">Kľúč Claude API</string>
+    <string name="brief_settings_claude_info">S kľúčom odpovedá v „Opýtaj sa“ Claude a sám si pozrie Schoolhelp (poznámky, hodiny, učivo). Platí sa z mesačného kreditu $100 v pláne Max. Keď sa minie, odpovedá znova Gemini. Do Claude Console nepridávaj kartu ani automatické dobíjanie, potom nikdy nezaplatíš nič navyše.</string>
+    <string name="brief_settings_claude_get">Vytvoriť kľúč v Claude Console</string>
+    <string name="chat_claude_spent">Claude · ~%1$s tento mesiac</string>
     <string name="chat_new">Nový</string>
     <string name="chat_recent_empty">Zatiaľ žiadne rozhovory.</string>
     <string name="chat_recent">Nedávne</string>

@@ -67,6 +67,16 @@ interface BriefRepository {
     /** Stored encrypted on the device; null removes it (the brief then uses the template). */
     fun setGeminiKey(key: String?)
 
+    /** Round 31: Claude API key for "Opýtaj sa" (the plan's monthly API credits); stored like the Gemini key. */
+    val hasClaudeKey: StateFlow<Boolean> get() = MutableStateFlow(false)
+    fun setClaudeKey(key: String?) {}
+
+    /** Round 31: Schoolhelp's tools (name, description, inputSchema) through the launcher's own connection. */
+    suspend fun schoolhelpTools(): kotlinx.serialization.json.JsonArray = error("offline")
+
+    /** Round 31: one Schoolhelp tool call for the Claude chat; the raw MCP result. */
+    suspend fun schoolhelpTool(name: String, arguments: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject = error("offline")
+
     /** Lesson recording in Schoolhelp, checked every 2 minutes while the home screen is visible. */
     val recording: StateFlow<Recording?>
 

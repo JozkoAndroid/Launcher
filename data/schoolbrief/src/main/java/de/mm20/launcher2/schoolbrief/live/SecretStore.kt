@@ -53,6 +53,7 @@ internal class SecretStore(context: Context) {
     companion object {
         private const val Alias = "schoolbrief_secrets_v1"
         const val GeminiKey = "gemini_key"
+        const val ClaudeKey = "claude_key"
         const val ClientId = "sh_client_id"
         const val ClientSecret = "sh_client_secret"
         const val RefreshToken = "sh_refresh_token"
