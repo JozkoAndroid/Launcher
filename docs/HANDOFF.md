@@ -177,6 +177,14 @@ connection describe code that is no longer there. Rule from now on: change the S
 only with a live test against Schoolhelp (the Schoolhelp MCP connector in the session, authorized by
 the user), one change at a time.
 
+## 5a00. Round 28: the real cause of the Schoolhelp failures
+
+Device screenshot at login: `{"error":"invalid_request","error_description":"Client ID '...' not found"}`.
+Schoolhelp lost its dynamically registered OAuth clients in an outage; the launcher reused its stored
+client id for ever, so refresh and every new login failed. `SchoolhelpAuth.begin()` now registers a new
+client at every login (verified live: /register 201, /authorize with the new id goes to the consent page).
+lessons.status with no recording (Nov 9): `lesson: null, alive: [], mic: null, now_subject: "Ma"`.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on

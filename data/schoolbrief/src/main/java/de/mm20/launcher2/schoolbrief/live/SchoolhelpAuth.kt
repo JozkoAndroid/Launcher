@@ -29,14 +29,17 @@ internal class SchoolhelpAuth(private val secrets: SecretStore) {
     val isLoggedIn: Boolean get() = secrets.get(SecretStore.RefreshToken) != null
 
     /**
-     * Step 1: register this app once (client reused afterwards) and build the login URL.
+     * Step 1: register this app and build the login URL.
+     * Round 28 (device test: login showed "Client ID ... not found"): Schoolhelp lost its registered apps in
+     * an outage, and the launcher kept logging in with its old client id for ever. Now every login registers
+     * afresh (checked live: a new registration goes straight to Schoolhelp's consent page).
      * The pending PKCE secret and state are kept encrypted, so the login survives the launcher
      * process being killed while the browser is open.
      */
     suspend fun begin(): String = withContext(Dispatchers.IO) {
-        var clientId = secrets.get(SecretStore.ClientId)
-        var clientSecret = secrets.get(SecretStore.ClientSecret)
-        if (clientId == null || secrets.get(SecretStore.RedirectUri) != RedirectUri) {
+        var clientId: String?
+        var clientSecret: String?
+        run {
             val reg = Http.request(
                 "$Base/register", "POST",
                 body = Json.encodeToString(JsonObject.serializer(), buildJsonObject {
