@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
 
 /** A lesson recording running in Schoolhelp. */
+/** Markers for [BriefRepository.syncState]; anything else is an error text (round 26). */
+const val SyncWorking = "…"
+const val SyncDone = "✓"
+
 data class Recording(val subject: String, val paused: Boolean, val seconds: Long)
 
 /**
@@ -98,6 +102,8 @@ interface BriefRepository {
     /** When Schoolhelp last answered (ms), and the last failure in words (settings diagnostics, round 25). */
     val lastContact: StateFlow<Long> get() = MutableStateFlow(0L)
     val lastProblem: StateFlow<String?> get() = MutableStateFlow(null)
+
+    val syncState: StateFlow<String?> get() = MutableStateFlow(null)
 
     /** Send waiting changes and reread now. */
     fun retryNow() {}

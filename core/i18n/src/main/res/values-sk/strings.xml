@@ -1268,6 +1268,9 @@
     <string name="school_last_problem">Posledná chyba: %1$s</string>
     <string name="school_retry_now">Skúsiť znova teraz</string>
     <string name="week_open_calendar">Otvoriť kalendár v Schoolhelp</string>
+    <string name="school_reconnect">Pripojiť Schoolhelp znova</string>
+    <string name="school_sending">Odosielam…</string>
+    <string name="school_sent">Odoslané, všetko je v Schoolhelp.</string>
     <string name="focus_label">Sústredenie</string>
     <string name="focus_finish">Hotovo</string>
     <string name="focus_cancel">Zastaviť</string>

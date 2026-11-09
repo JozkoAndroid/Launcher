@@ -3,6 +3,8 @@ package de.mm20.launcher2.schoolbrief.live
 import android.content.Context
 import android.util.Log
 import de.mm20.launcher2.schoolbrief.BriefRepository
+import de.mm20.launcher2.schoolbrief.SyncDone
+import de.mm20.launcher2.schoolbrief.SyncWorking
 import de.mm20.launcher2.schoolbrief.BriefRules
 import de.mm20.launcher2.schoolbrief.BriefStatus
 import de.mm20.launcher2.schoolbrief.Feed
@@ -60,6 +62,8 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     override val unreadChats = MutableStateFlow(0)
     override val lastContact = MutableStateFlow(0L)
     override val lastProblem = MutableStateFlow<String?>(null)
+    /** What "try again" shows: working, done, or the error (round 26). */
+    override val syncState = MutableStateFlow<String?>(null)
     private var recordingJob: Job? = null
     private var lastRecordingCheck = 0L
 
@@ -141,7 +145,10 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
     /** "Odoslať teraz": send waiting changes and read today now, whatever the timers say. */
     override fun retryNow() {
         lastRecordingCheck = 0
-        if (auth.isLoggedIn && !syncLock.isLocked) scope.launch { sync(); readRecording() }
+        if (!auth.isLoggedIn) { status.value = BriefStatus.NeedsLogin; syncState.value = null; return }
+        if (syncLock.isLocked) { syncState.value = SyncWorking; return }
+        syncState.value = SyncWorking
+        scope.launch { sync(); readRecording(); readUnreadChats() }
     }
 
     /** While the Day page is visible: every 3 minutes, or every minute while changes are waiting. */
@@ -153,14 +160,26 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
 
     /** Sends waiting changes in order, then reads today.read; on failure the phone's copy stays (offline). */
     private suspend fun sync() = syncLock.withLock {
+        // Round 26: never longer than 90 s, so the lock always comes back (a hang used to block every sync).
+        syncState.value = SyncWorking
+        val done = kotlinx.coroutines.withTimeoutOrNull(90_000) { syncNow() }
+        if (done == null) { lastProblem.value = "Schoolhelp did not answer within 90 s"; syncState.value = lastProblem.value }
+    }
+
+    private suspend fun syncNow() {
         todayAt = System.currentTimeMillis()
         val sent = flush()
         // Parsing inside the runCatching (round 25): an answer the parser cannot read is offline, not a crash
         // that silently stops every later sync.
         runCatching { TodayParser.parse(mcp.appCallAll("today.read"), LocalDate.now()) }
-            .onSuccess { d -> lastContact.value = System.currentTimeMillis(); setToday(withPending(d).copy(offline = !sent)) }
+            .onSuccess { d ->
+                lastContact.value = System.currentTimeMillis(); setToday(withPending(d).copy(offline = !sent))
+                syncState.value = if (sent) SyncDone else lastProblem.value
+            }
             .onFailure { e ->
+                if (e is McpClient.LoggedOut) status.value = BriefStatus.NeedsLogin
                 lastProblem.value = "today.read: ${e.message}"
+                syncState.value = lastProblem.value
                 Log.w(Tag, "today.read failed", e)
                 setToday((today.value ?: de.mm20.launcher2.schoolbrief.TodayData(LocalDate.now().toString(), emptyList(), emptyList())).copy(offline = true))
             }
@@ -173,7 +192,10 @@ internal class LiveBriefRepository(context: Context) : BriefRepository {
             if (op.localId != null && today.value?.todos?.any { it.id == op.localId && it.done } == true) {
                 pending.remove(op); continue
             }
-            val result = runCatching { mcp.appCall(op.action, op.args) }.onFailure { Log.w(Tag, "${op.action} failed", it) }
+            val result = runCatching { mcp.appCall(op.action, op.args) }.onFailure {
+                Log.w(Tag, "${op.action} failed", it)
+                if (it is McpClient.LoggedOut) status.value = BriefStatus.NeedsLogin
+            }
             result.exceptionOrNull()?.let { lastProblem.value = "${op.action}: ${it.message}" }
             // A tool error can also mean "Schoolhelp's app is not reachable right now" (device test: a task
             // added while Schoolhelp was down was dropped and stayed "waiting"). Keep it and retry; only the

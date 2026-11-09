@@ -35,6 +35,23 @@ internal class SchoolhelpAuth(private val secrets: SecretStore) {
      */
     private val refreshLock = kotlinx.coroutines.sync.Mutex()
 
+    /**
+     * Rejections in a row (a fresh token refused, or a refresh refused without invalid_grant). Two mean the
+     * login is gone for real: log out so the app asks to connect again, instead of failing silently for
+     * ever (round 26). Any accepted call resets it.
+     */
+    @Volatile private var rejections = 0
+
+    /** True when this rejection means: log in again (the tokens are cleared). */
+    fun reportRejected(): Boolean {
+        rejections++
+        if (rejections >= 2) { rejections = 0; logout(); return true }
+        accessToken = null
+        return false
+    }
+
+    fun reportAccepted() { rejections = 0 }
+
     val isLoggedIn: Boolean get() = secrets.get(SecretStore.RefreshToken) != null
 
     /**
@@ -149,6 +166,7 @@ internal class SchoolhelpAuth(private val secrets: SecretStore) {
             if ((error == "invalid_grant" && secrets.get(SecretStore.RefreshToken) == refresh) || error == "invalid_client") {
                 logout(); return null
             }
+            if (reportRejected()) return null
             throw HttpException(res.code, "Schoolhelp token refresh failed (${res.code}${error?.let { ": $it" } ?: ""})")
         }
         if (!res.ok) throw HttpException(res.code, "Schoolhelp token refresh failed (${res.code})")

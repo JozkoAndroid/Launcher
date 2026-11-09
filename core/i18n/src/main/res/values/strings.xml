@@ -1422,6 +1422,9 @@
     <string name="school_last_problem">Last error: %1$s</string>
     <string name="school_retry_now">Try again now</string>
     <string name="week_open_calendar">Open the calendar in Schoolhelp</string>
+    <string name="school_reconnect">Reconnect Schoolhelp</string>
+    <string name="school_sending">Sending…</string>
+    <string name="school_sent">Sent, everything is in Schoolhelp.</string>
     <string name="focus_label">Focus</string>
     <string name="focus_finish">Done</string>
     <string name="focus_cancel">Stop</string>

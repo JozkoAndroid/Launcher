@@ -25,6 +25,7 @@ class SchoolBriefVM : ViewModel(), KoinComponent {
     val lastContact: StateFlow<Long> = repository.lastContact
     val lastProblem: StateFlow<String?> = repository.lastProblem
     fun retryNow() = repository.retryNow()
+    val syncState: StateFlow<String?> = repository.syncState
 
     /** Schoolhelp's lesson topics for a subject (stoff.read); null when offline or unknown. */
     suspend fun studyContext(folder: String) = runCatching { repository.studyContext(folder) }.getOrNull()

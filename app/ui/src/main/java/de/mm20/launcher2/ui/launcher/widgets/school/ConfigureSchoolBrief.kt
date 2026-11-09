@@ -76,7 +76,7 @@ fun ColumnScope.ConfigureSchoolBrief() {
             problem?.let {
                 Text(stringResource(R.string.school_last_problem, it.take(160)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            androidx.compose.material3.TextButton(onClick = { vm.retryNow() }) { Text(stringResource(R.string.school_retry_now)) }
+            SyncRow()
             (status as? BriefStatus.Error)?.let {
                 Spacer(Modifier.height(4.dp))
                 Text(

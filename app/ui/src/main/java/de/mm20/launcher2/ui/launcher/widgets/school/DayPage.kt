@@ -121,7 +121,7 @@ fun DayPage(
         feed = feed, today = today, now = now, listState = listState,
         mode = mode, onMode = { mode = it },
         canBlock = canBlock, onEnableBlocking = { FocusGuard.requestMissing(context) },
-        onRetry = vm::retry,
+        retry = { SyncRow() },
         onAdd = vm::add, onTodo = vm::setTodo, onStep = vm::setStep,
         chat = { part, modifier -> ChatDock(modifier, bottomInset = 0.dp, part = part) },
         barProgress = progress,
@@ -138,7 +138,7 @@ internal fun DayContent(
     onMode: (DayBarMode) -> Unit,
     canBlock: Boolean = true,
     onEnableBlocking: () -> Unit = {},
-    onRetry: () -> Unit = {},
+    retry: @Composable () -> Unit = {},
     onAdd: (String) -> Unit,
     onTodo: (String, Boolean) -> Unit,
     onStep: (Int, Boolean) -> Unit,
@@ -183,11 +183,7 @@ internal fun DayContent(
                             Secondary(stringResource(R.string.day_offline))
                         }
                         // Round 25: waiting changes can be sent on demand (device test: stuck after an outage).
-                        if (today?.offline == true || today?.todos?.any { it.pending } == true) {
-                            androidx.compose.material3.TextButton(onClick = onRetry, contentPadding = PaddingValues(0.dp)) {
-                                Text(stringResource(R.string.school_retry_now))
-                            }
-                        }
+                        if (today?.offline == true || today?.todos?.any { it.pending } == true) retry()
                     }
                 }
                 item { FocusPanel() }

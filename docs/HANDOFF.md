@@ -199,6 +199,17 @@ steps,data,instagram` and `ChipWidgetConfig` style/font/icon/accent). Registered
   a recording on ANOTHER device is still unknown: check lessons.status live during one.
 - Week strip opens Schoolhelp at `SchoolhelpUrl + "kalender"` (guessed path; unverified).
 
+## 5a4. Round 26 (Schoolhelp reliability)
+
+- Root cause of "nothing syncs, try again does nothing": MCP answers arrive as SSE; `Http.request` read
+  to EOF and keep-alive pings reset the read timeout, so a call could hang for ever while holding
+  `syncLock`. Now: hard deadline per request (watchdog disconnects), SSE read until the event that
+  answers the request id (`stopWhen`), `sync()` bounded to 90 s, one MCP call at a time (`callLock`).
+  Tested in `HttpDeadlineTest` with a local server.
+- Login: two rejections in a row (fresh token refused, or refresh refused) log out, so the app asks to
+  reconnect instead of failing silently; accepted calls reset the count.
+- `SyncRow`: try again with visible state (sending, sent, error) or "reconnect" when logged out.
+
 ## 5b. Design language: "instrument panel" (round 21)
 
 Monochrome ink on the wallpaper or one surface; the accent means only "now / progress"; hairlines (1dp,
