@@ -1263,6 +1263,9 @@
     <string name="widget_tile_conditional">Ukáže sa, len keď je čo ukázať</string>
     <string name="lesson_ruler">Dnešné hodiny od %1$s do %2$s</string>
     <string name="settings_your_name">Tvoje meno (pozdrav v Prehľade dňa)</string>
+    <string name="chat_in_claude">Claude ↗</string>
+    <string name="chat_claude_copied">Otázka je skopírovaná: vlož ju v Claude.</string>
+    <string name="chat_retry">Skúsiť znova</string>
     <string name="chat_new">Nový</string>
     <string name="chat_recent_empty">Zatiaľ žiadne rozhovory.</string>
     <string name="chat_recent">Nedávne</string>

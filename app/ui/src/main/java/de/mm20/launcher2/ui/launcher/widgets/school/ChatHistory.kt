@@ -23,7 +23,7 @@ class ChatHistory(context: Context) {
             val ms = o.getJSONArray("m")
             SavedChat(o.getLong("id"), o.getString("t"), (0 until ms.length()).map { j ->
                 val m = ms.getJSONObject(j)
-                ChatMessage(m.getBoolean("u"), m.getString("x"), m.optString("p").takeIf { it.isNotEmpty() })
+                ChatMessage(m.getBoolean("u"), m.getString("x"), m.optString("p").takeIf { it.isNotEmpty() }, failed = m.optBoolean("f"))
             })
         }
     }.getOrDefault(emptyList())
@@ -35,7 +35,7 @@ class ChatHistory(context: Context) {
         val arr = JSONArray()
         for (c in chats.take(Max)) {
             arr.put(JSONObject().put("id", c.id).put("t", c.title).put("m", JSONArray().apply {
-                for (m in c.messages) put(JSONObject().put("u", m.fromUser).put("x", m.text).put("p", m.modelText ?: ""))
+                for (m in c.messages) put(JSONObject().put("u", m.fromUser).put("x", m.text).put("p", m.modelText ?: "").put("f", m.failed))
             }))
         }
         prefs.edit().putString("chats", arr.toString()).apply()

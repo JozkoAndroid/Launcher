@@ -104,6 +104,38 @@ class SchoolChatVM : ViewModel(), KoinComponent {
     val keyState = brief.hasGeminiKey
     fun saveKey(key: String) = brief.setGeminiKey(key)
 
+    /** The chat field's text, shared by the bar and the Claude button (round 31). */
+    var draft by mutableStateOf("")
+
+    /** Gemini's answer, or the failure in words marked [ChatMessage.failed] (shown with "Skúsiť znova"). */
+    private fun reply(answer: Result<String>) = answer.fold(
+        { ChatMessage(false, it) },
+        { ChatMessage(false, it.message ?: "Odpoveď sa nepodarilo načítať.", failed = true) },
+    )
+
+    /** Asks again after a failed answer (round 31: the failure is not sent to Gemini as context). */
+    fun retry() {
+        if (thinking || messages.lastOrNull()?.failed != true) return
+        messages.removeAt(messages.lastIndex)
+        if (messages.lastOrNull()?.fromUser != true) return
+        thinking = true
+        viewModelScope.launch {
+            messages += reply(chat.reply(messages.toList(), brief.feed.first()))
+            thinking = false
+            persist()
+        }
+    }
+
+    /**
+     * Round 31 (user: "just a Claude button"): the question goes to the Claude app, which has the Max plan
+     * and the Schoolhelp connector. The field's text, else the last question asked here.
+     */
+    fun askClaude(context: android.content.Context) {
+        val q = draft.trim().ifEmpty { messages.lastOrNull { it.fromUser }?.let { it.modelText ?: it.text }.orEmpty() }
+        Links.askClaude(context, q)
+        if (draft.isNotBlank()) draft = ""
+    }
+
     fun send(text: String, modelText: String? = null) {
         val q = text.trim()
         if (q.isEmpty() || thinking) return
@@ -111,8 +143,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         thinking = true
         viewModelScope.launch {
             val feed = brief.feed.first()
-            val answer = chat.reply(messages.toList(), feed)
-            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
+            messages += reply(chat.reply(messages.toList(), feed))
             thinking = false
             persist()
         }
@@ -128,8 +159,7 @@ class SchoolChatVM : ViewModel(), KoinComponent {
         viewModelScope.launch {
             val ctx = folder.takeIf { it.isNotBlank() }?.let { brief.studyContext(it) }
             if (at in messages.indices) messages[at] = ChatMessage(true, label, prompt(ctx))
-            val answer = chat.reply(messages.toList(), brief.feed.first())
-            messages += ChatMessage(false, answer.getOrElse { it.message ?: "Odpoveď sa nepodarilo načítať. Skús to znova." })
+            messages += reply(chat.reply(messages.toList(), brief.feed.first()))
             thinking = false
             persist()
         }
@@ -212,7 +242,11 @@ private fun Bubble(m: ChatMessage) {
         Text(
             m.text,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (m.fromUser) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+            color = when {
+                m.fromUser -> MaterialTheme.colorScheme.onPrimaryContainer
+                m.failed -> MaterialTheme.colorScheme.onSurfaceVariant
+                else -> MaterialTheme.colorScheme.onSurface
+            },
             modifier = Modifier.widthIn(max = 520.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(if (m.fromUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -246,7 +280,15 @@ internal fun androidx.compose.foundation.lazy.LazyListScope.chatConversation(vm:
     }
     if (vm.thinking) item(key = "chat-thinking", contentType = "bubble") {
         Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { Bubble(ChatMessage(false, "…")) }
+    } else if (vm.messages.lastOrNull()?.failed == true) item(key = "chat-retry", contentType = "retry") {
+        Box(Modifier.widthIn(max = 640.dp).fillMaxWidth()) { RetryButton(vm) }
     }
+}
+
+/** After a failed answer: ask again with one tap (round 31). */
+@Composable
+private fun RetryButton(vm: SchoolChatVM) {
+    androidx.compose.material3.TextButton(onClick = { vm.retry() }) { Text(stringResource(R.string.chat_retry)) }
 }
 
 /** Recent chats, always at hand in "Opýtaj sa" (round 30, user: "the recent chats button has to be there constantly"). */
@@ -329,7 +371,6 @@ enum class ChatPart { All, Above, Bar }
 fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part: ChatPart = ChatPart.All) {
     val vm: SchoolChatVM = viewModel(key = "school-chat")
     val hasKey by vm.keyState.collectAsState()
-    var input by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
     LaunchedEffect(vm.messages.size, vm.thinking) { if (vm.messages.isNotEmpty()) listState.animateScrollToItem(vm.messages.size) }
     val surface = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -362,6 +403,7 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
                     LazyColumn(Modifier.fillMaxWidth().heightIn(max = maxChat), state = listState, contentPadding = PaddingValues(horizontal = 4.dp)) {
                         items(vm.messages) { m -> Bubble(m) }
                         if (vm.thinking) item { Bubble(ChatMessage(false, "…")) }
+                        else if (vm.messages.lastOrNull()?.failed == true) item { RetryButton(vm) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -376,12 +418,12 @@ fun ChatDock(modifier: Modifier, bottomInset: androidx.compose.ui.unit.Dp, part:
             } else {
                 // Same bar as the dock and the task bar; dictation fills the field to edit or send.
                 InputBar(
-                    value = input, onValue = { input = it },
+                    value = vm.draft, onValue = { vm.draft = it },
                     hint = stringResource(R.string.chat_hint),
                     submitIcon = R.drawable.arrow_forward_20px, submitLabel = stringResource(R.string.chat_send),
-                    onSubmit = { vm.send(input); input = "" },
+                    onSubmit = { vm.send(vm.draft); vm.draft = "" },
                     // Dictation fills the field while speaking; the user edits or sends it.
-                    voice = rememberSpeechInput(onText = { input = it }, onPartial = { input = it }),
+                    voice = rememberSpeechInput(onText = { vm.draft = it }, onPartial = { vm.draft = it }),
                 )
             }
         }
@@ -445,6 +487,9 @@ private fun QuickActions(vm: SchoolChatVM, onRecent: (() -> Unit)?) {
         }
     }
 
+    // Round 31: the same question in the Claude app (Max plan, Schoolhelp connector there).
+    val context = androidx.compose.ui.platform.LocalContext.current
+    actions.add(0, stringResource(R.string.chat_in_claude) to { vm.askClaude(context) })
     if (onRecent != null && vm.recent.isNotEmpty()) actions.add(0, stringResource(R.string.chat_recent) to onRecent)
     Row(
         Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(bottom = 8.dp),

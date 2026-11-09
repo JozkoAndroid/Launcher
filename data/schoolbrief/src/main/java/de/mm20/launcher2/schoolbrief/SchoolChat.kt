@@ -18,8 +18,11 @@ import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** [modelText]: what the model gets instead of [text] (quick buttons show a short label, send a full prompt). */
-data class ChatMessage(val fromUser: Boolean, val text: String, val modelText: String? = null)
+/**
+ * [modelText]: what the model gets instead of [text] (quick buttons show a short label, send a full prompt).
+ * [failed]: an error shown in place of an answer; never sent to the model (round 31).
+ */
+data class ChatMessage(val fromUser: Boolean, val text: String, val modelText: String? = null, val failed: Boolean = false)
 
 /** "Spýtaj sa": a small Gemini chat that knows today's school data (tasks, timetable, brief). */
 interface SchoolChat {
@@ -35,17 +38,29 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
     override suspend fun reply(history: List<ChatMessage>, feed: Feed?): Result<String> = runCatching {
         val key = secrets.get(SecretStore.GeminiKey) ?: error("Chýba kľúč Gemini. Vlož ho v Nastavenia > Škola.")
         val body = Json.encodeToString(JsonObject.serializer(), request(history, feed, LocalDateTime.now()))
-        // Round 16 (device test: only "Gemini 401" was shown): the default model, and if Google no longer
-        // knows it (404) the fallbacks; every failure says what is wrong and what to do.
-        var res = ask(GeminiWriter.DefaultModel, body, key)
-        for (m in FallbackModels) {
-            if (res.code != 404) break
-            res = ask(m, body, key)
+        // Round 16: every failure says what is wrong and what to do. Round 31 (user: "make Gemini more
+        // reliable"): a busy or failing model is tried once more, then the next model (each has its own
+        // free quota); a blocked or empty answer also moves on. Key problems stop at once.
+        val started = java.lang.System.currentTimeMillis()
+        var last: String? = null
+        models@ for (model in listOf(GeminiWriter.DefaultModel) + FallbackModels) {
+            for (attempt in 0 until 2) {
+                if (java.lang.System.currentTimeMillis() - started > TotalBudgetMs) break@models
+                val res = try {
+                    ask(model, body, key)
+                } catch (e: java.io.IOException) {
+                    last = "Gemini sa nedá zastihnúť. Skontroluj pripojenie a skús znova."
+                    if (attempt == 0) { kotlinx.coroutines.delay(1500); continue } else break@models
+                }
+                when (val step = next(res.code, res.body)) {
+                    is Step.Answer -> return@runCatching step.text
+                    is Step.Stop -> error(step.message)
+                    is Step.Retry -> { last = step.message; if (attempt == 0) kotlinx.coroutines.delay(1500) else continue@models }
+                    is Step.NextModel -> { last = step.message; continue@models }
+                }
+            }
         }
-        if (!res.ok) error(explain(res.code, res.body))
-        Json.parseToJsonElement(res.body).jsonObject["candidates"]!!.jsonArray[0].jsonObject["content"]!!.jsonObject["parts"]!!
-            .jsonArray.mapNotNull { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull }.joinToString("").trim()
-            .ifEmpty { error("Prázdna odpoveď.") }
+        error(last ?: "Gemini neodpovedal. Skús to znova.")
     }
 
     private suspend fun ask(model: String, body: String, key: String) = Http.request(
@@ -55,7 +70,59 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
         timeoutMs = 30_000,
     )
 
+    /** What to do after one Gemini response. */
+    internal sealed interface Step {
+        data class Answer(val text: String) : Step
+        data class Stop(val message: String) : Step
+        data class Retry(val message: String) : Step
+        data class NextModel(val message: String) : Step
+    }
+
     companion object {
+        /** All tries of one question together stop after this (each request has its own 30 s timeout). */
+        private const val TotalBudgetMs = 60_000L
+
+        /** One response decides: the answer, stop (key problem), the same model once more, or the next model. */
+        internal fun next(code: Int, body: String): Step {
+            if (code in 200..299) {
+                val text = answerText(body)
+                return if (text != null) Step.Answer(text) else Step.NextModel(blocked(body))
+            }
+            val message = explain(code, body)
+            return when {
+                code == 401 || code == 403 -> Step.Stop(message)
+                code == 400 && body.contains("API_KEY", ignoreCase = true) -> Step.Stop(message)
+                code == 429 || code == 404 || code == 400 -> Step.NextModel(message)
+                else -> Step.Retry(message)
+            }
+        }
+
+        /** The answer's text, or null when Gemini gave none (blocked, cut off before any text, empty). */
+        internal fun answerText(body: String): String? = runCatching {
+            Json.parseToJsonElement(body).jsonObject["candidates"]!!.jsonArray[0].jsonObject["content"]!!.jsonObject["parts"]!!
+                .jsonArray.mapNotNull { it.jsonObject["text"]?.jsonPrimitive?.contentOrNull }.joinToString("").trim()
+        }.getOrNull()?.takeIf { it.isNotEmpty() }
+
+        private fun blocked(body: String): String {
+            val o = runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()
+            val reason = o?.get("promptFeedback")?.jsonObject?.get("blockReason")?.jsonPrimitive?.contentOrNull
+                ?: o?.get("candidates")?.jsonArray?.firstOrNull()?.jsonObject?.get("finishReason")?.jsonPrimitive?.contentOrNull
+            return "Gemini neodpovedal" + (reason?.let { " ($it)" } ?: "") + ". Skús otázku napísať inak."
+        }
+
+        /** The chat as Gemini turns: failed answers left out, roles alternating, starting with the user. */
+        internal fun turns(history: List<ChatMessage>): List<Pair<Boolean, String>> {
+            val out = mutableListOf<Pair<Boolean, String>>()
+            for (m in history.filter { !it.failed }.takeLast(16)) {
+                val t = (m.modelText ?: m.text).trim()
+                if (t.isEmpty()) continue
+                if (out.isNotEmpty() && out.last().first == m.fromUser) out[out.lastIndex] = m.fromUser to out.last().second + "\n\n" + t
+                else out += m.fromUser to t
+            }
+            while (out.isNotEmpty() && !out.first().first) out.removeAt(0)
+            return out
+        }
+
         /** Tried in order when the default model answers 404 (renamed or retired). */
         internal val FallbackModels = listOf("gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash")
 
@@ -130,10 +197,10 @@ internal class GeminiSchoolChat(context: Context) : SchoolChat {
                     putJsonArray("parts") { add(buildJsonObject { put("text", System + "\nschool_data: " + data.toString()) }) }
                 }
                 putJsonArray("contents") {
-                    history.takeLast(16).forEach { m ->
+                    turns(history).forEach { (user, text) ->
                         add(buildJsonObject {
-                            put("role", if (m.fromUser) "user" else "model")
-                            putJsonArray("parts") { add(buildJsonObject { put("text", m.modelText ?: m.text) }) }
+                            put("role", if (user) "user" else "model")
+                            putJsonArray("parts") { add(buildJsonObject { put("text", text) }) }
                         })
                     }
                 }

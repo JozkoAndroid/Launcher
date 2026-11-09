@@ -1417,6 +1417,9 @@
     <string name="widget_tile_conditional">Shows only when there is something to show</string>
     <string name="lesson_ruler">Today\'s lessons from %1$s to %2$s</string>
     <string name="settings_your_name">Your name (greeting in the daily brief)</string>
+    <string name="chat_in_claude">Claude ↗</string>
+    <string name="chat_claude_copied">Question copied: paste it in Claude.</string>
+    <string name="chat_retry">Try again</string>
     <string name="chat_new">New</string>
     <string name="chat_recent_empty">No chats yet.</string>
     <string name="chat_recent">Recent</string>

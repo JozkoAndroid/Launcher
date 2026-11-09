@@ -203,7 +203,17 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
 - Lunch: EduPage is never a lunch source (`ContextRules.isEduPage`), also not a stored lunch or an earlier
   choice. Device report: EduPage sends no menu, its other notifications showed as lunch.
 - Schoolhelp connection untouched.
-- Claude in the launcher: not built. Max does not cover API use; see the chat of round 30. Open decision.
+- Claude in the launcher: see round 32.
+
+## 5a00000. Round 32 (round 31, Claude API chat, was reverted: user wants no API key)
+- Gemini chat reliability (`SchoolChat.kt`): per question up to 60 s; 5xx/offline retried once after 1.5 s,
+  429/404/400/blocked or empty answer moves to the next model (`FallbackModels`), key errors stop at once
+  (`GeminiSchoolChat.next`). Failed answers are `ChatMessage.failed`: grey, "Skúsiť znova" under them, never
+  sent to Gemini as context; turns alternate and start with the user (`turns`).
+- "Claude ↗" chip first in the quick questions: the field's text (else the last question) goes to the Claude
+  app (`Links.askClaude`): share intent to `com.anthropic.claude`; else copied + app opened; else
+  claude.ai/new?q=. The chat field text lives in `SchoolChatVM.draft`.
+- Unverified on device: whether the Claude app takes shared text into a new chat.
 
 ## 5a. Round 22
 

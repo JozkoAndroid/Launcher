@@ -46,6 +46,32 @@ internal object Links {
         runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
+    /** The Claude app's package (Anthropic's Android app). */
+    const val ClaudePackage = "com.anthropic.claude"
+
+    /**
+     * Round 31: [text] goes to the Claude app as a shared text (a new chat with it). If the app takes no
+     * shared text, the text is copied and the app opens to paste it; without the app, claude.ai opens with
+     * the question filled in. Empty [text]: just open Claude.
+     */
+    fun askClaude(context: Context, text: String) {
+        fun start(i: Intent) = runCatching { context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        if (text.isNotBlank() &&
+            start(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text).setPackage(ClaudePackage))
+        ) return
+        val launch = context.packageManager.getLaunchIntentForPackage(ClaudePackage)
+        if (launch != null) {
+            if (text.isNotBlank()) {
+                context.getSystemService(android.content.ClipboardManager::class.java)
+                    ?.setPrimaryClip(android.content.ClipData.newPlainText("Otázka", text))
+                android.widget.Toast.makeText(context, de.mm20.launcher2.ui.R.string.chat_claude_copied, android.widget.Toast.LENGTH_LONG).show()
+            }
+            if (start(launch)) return
+        }
+        val url = "https://claude.ai/new" + if (text.isNotBlank()) "?q=" + Uri.encode(text) else ""
+        start(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
     /** Articles open in a browser sheet over the launcher (Custom Tabs), not in a separate browser. */
     fun openArticle(context: Context, url: String) {
         runCatching {
