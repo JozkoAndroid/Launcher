@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -39,7 +40,11 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     /** App labels by package: looked up once, not on every notification. */
     private val labels = java.util.concurrent.ConcurrentHashMap<String, String>()
 
-    val settings = MutableStateFlow(store.load())
+    /**
+     * Round 36 (device: "I set the steps goal to 10 000, the tile still says 8 000"): one value for the whole
+     * app. The settings screen has its own ViewModel; a copy per ViewModel left home with the old goal.
+     */
+    val settings: MutableStateFlow<ContextSettings> = ContextSettingsStore.shared(store)
 
     /** Usage access (mobile data, Instagram): a dedicated block without it shows a setup chip. */
     val usageAccess = MutableStateFlow(true)
@@ -58,6 +63,8 @@ class ContextVM(app: Application) : AndroidViewModel(app), KoinComponent {
     /** Polled cards: every 5 minutes while a block is on screen, and at once on [refresh] (back to home). */
     private val polled: Flow<List<ContextCard>> = kotlinx.coroutines.flow.channelFlow {
         launch { refreshes.collect { send(readPolled()) } }
+        // A changed goal or plan shows at once, not after the next 5-minute read.
+        launch { settings.drop(1).collect { send(readPolled()) } }
         while (true) {
             send(readPolled())
             delay(5 * 60_000L)

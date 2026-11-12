@@ -243,6 +243,13 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
 - Test countdown: `testSoon` looks 7 days ahead (feed horizon) instead of 3; "Práve teraz" still lists it
   only from 3 days (`ContextRules.urgent`, `UrgentTestDays`). Plural `context_test_in_days`.
 
+## Round 36
+- Steps goal stuck at 8 000: each `ContextVM` (home, settings activity) had its own settings copy. Now one
+  process-wide flow (`ContextSettingsStore.shared`); a change triggers an immediate re-read.
+- Steps lower than Samsung Health: not the launcher. It reads Health Connect on every return home and every
+  5 min; Samsung Health writes to Health Connect only when it syncs (opening Samsung Health forces it).
+  Samsung's own data SDK needs partner approval, so there is no direct read.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on

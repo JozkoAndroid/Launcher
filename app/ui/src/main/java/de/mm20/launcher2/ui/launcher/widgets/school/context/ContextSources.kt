@@ -191,6 +191,14 @@ internal class ContextSettingsStore(context: Context) {
         )
     }
 
+    companion object {
+        private var live: kotlinx.coroutines.flow.MutableStateFlow<ContextSettings>? = null
+
+        /** The settings as one flow for every screen (round 36). */
+        @Synchronized
+        fun shared(store: ContextSettingsStore) = live ?: kotlinx.coroutines.flow.MutableStateFlow(store.load()).also { live = it }
+    }
+
     fun save(s: ContextSettings) {
         prefs.edit()
             .putLong("plan_bytes", s.planBytes)
