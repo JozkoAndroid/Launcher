@@ -84,13 +84,17 @@ class ContextRulesTest {
     }
 
     @Test
-    fun testCountdownPicksNearestOpenTestWithinThreeDays() {
+    fun testCountdownPicksNearestOpenTestWithinTheWeek() {
         val d = LocalDate.parse("2026-11-10")
         fun t(id: String, due: String, done: Boolean = false, kind: String = "test") =
             de.mm20.launcher2.schoolbrief.SchoolTask(id, kind, "T$id", "Bio", due, done = done)
         val tasks = listOf(t("far", "2026-11-14"), t("done", "2026-11-11", done = true), t("hw", "2026-11-11", kind = "hausaufgabe"), t("soon", "2026-11-12"))
         assertEquals(ContextCard.TestSoon("Tsoon", "Bio", 2), ContextRules.testSoon(tasks, d))
-        assertEquals(null, ContextRules.testSoon(listOf(t("far", "2026-11-14")), d))
+        // Round 35: a test 4 days ahead (Thursday to Monday) has its countdown; "Práve teraz" waits until 3 days.
+        val monday = ContextRules.testSoon(listOf(t("far", "2026-11-14")), d)
+        assertEquals(ContextCard.TestSoon("Tfar", "Bio", 4), monday)
+        assertFalse(ContextRules.urgent(monday!!, java.time.LocalTime.NOON, ContextSettings()))
+        assertEquals(null, ContextRules.testSoon(listOf(t("later", "2026-11-18")), d))
     }
 
     @Test
@@ -119,6 +123,9 @@ class ContextRulesTest {
         assertFalse(ContextRules.looksLikeLunchApp("Instagram"))
         assertEquals("Polievka, rizoto", ContextRules.lunchText("Obed", "Polievka,\n  rizoto", null))
         assertEquals("Obed dnes", ContextRules.lunchText("Obed dnes", " ", null))
+        // Round 35: Lunch Bell puts the menu in the title.
+        assertEquals("Z2", ContextRules.lunchText("Z2", "Your lunch is ready", null))
+        assertEquals("Z1", ContextRules.lunchText("Lunch Bell", "Your lunch is ready", "Z1"))
     }
 
     @Test

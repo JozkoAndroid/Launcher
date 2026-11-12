@@ -236,6 +236,13 @@ refresh(forceBrief) which flushes first, so waiting tasks go out right after rec
 - `InputBar`: X inside the pill while there is text (clears the field). The launcher search bar already
   had it (Kvaesitso's menu icon turns into an X).
 
+## Round 35
+- Lunch: `ContextRules.lunchText` returns a menu code from title, text or big text first (Lunch Bell: title
+  "Z2", text "your lunch is ready"), else big text, text, title as before. An old stored text stays until
+  the next notification or 15:00.
+- Test countdown: `testSoon` looks 7 days ahead (feed horizon) instead of 3; "Práve teraz" still lists it
+  only from 3 days (`ContextRules.urgent`, `UrgentTestDays`). Plural `context_test_in_days`.
+
 ## 5a. Round 22
 
 - Schoolhelp login: `SchoolhelpAuth.token()` refreshes single-flight (Mutex); logout only on

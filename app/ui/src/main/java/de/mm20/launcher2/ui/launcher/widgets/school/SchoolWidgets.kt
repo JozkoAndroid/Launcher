@@ -591,7 +591,7 @@ internal fun contextItem(c: ContextCard, locale: Locale, vm: ContextVM?): Contex
             when (c.days) {
                 0L -> stringResource(R.string.context_test_today, c.subject.ifBlank { c.title })
                 1L -> stringResource(R.string.context_test_tomorrow, c.subject.ifBlank { c.title })
-                else -> stringResource(R.string.context_test_in, c.subject.ifBlank { c.title }, c.days.toInt())
+                else -> pluralStringResource(R.plurals.context_test_in_days, c.days.toInt(), c.subject.ifBlank { c.title }, c.days.toInt())
             },
             R.drawable.history_edu_24px, onClick = open,
             // Countdown tile: the time left is the value, the subject the label.

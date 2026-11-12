@@ -1070,6 +1070,12 @@
     <string name="context_lunch_menu">Obed dnes: menu %1$s</string>
     <string name="context_test_today">Test z predmetu %1$s dnes</string>
     <string name="context_test_tomorrow">Test z predmetu %1$s zajtra</string>
+    <plurals name="context_test_in_days">
+        <item quantity="one">Test z predmetu %1$s o %2$d deň</item>
+        <item quantity="few">Test z predmetu %1$s o %2$d dni</item>
+        <item quantity="many">Test z predmetu %1$s o %2$d dňa</item>
+        <item quantity="other">Test z predmetu %1$s o %2$d dní</item>
+    </plurals>
     <string name="context_test_in">Test z predmetu %1$s o %2$d dni</string>
     <plurals name="context_chats">
         <item quantity="one">%1$d nová správa v Schoolhelp</item>

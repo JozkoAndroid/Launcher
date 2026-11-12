@@ -12,7 +12,7 @@ sealed interface ContextCard {
         override val rank = 0
     }
 
-    /** A test within the next 3 days. */
+    /** The next test within the week (its own chip block); "Práve teraz" shows it from 3 days before. */
     data class TestSoon(val title: String, val subject: String, val days: Long) : ContextCard {
         override val rank = 1
     }
@@ -90,6 +90,7 @@ object ContextRules {
         is ContextCard.MobileData -> showData(c.usedBytes, s)
         is ContextCard.Steps -> showSteps(now, c.steps, s)
         is ContextCard.Instagram -> showInstagram(c.minutes)
+        is ContextCard.TestSoon -> c.days <= UrgentTestDays
         else -> true
     }
 
@@ -139,8 +140,15 @@ object ContextRules {
 
     fun pick(cards: List<ContextCard>): List<ContextCard> = cards.sortedBy { it.rank }.take(MaxCards)
 
-    /** The nearest open test in the next [days] days, if any. */
-    fun testSoon(tasks: List<de.mm20.launcher2.schoolbrief.SchoolTask>, today: LocalDate, days: Long = 3): ContextCard.TestSoon? =
+    /** "Práve teraz" lists a test from this many days before it. */
+    const val UrgentTestDays = 3L
+
+    /**
+     * The nearest open test in the next [days] days, if any. Round 35 (device: "the test countdown is
+     * sometimes not there"): a week, as far as the feed reaches, not 3 days; a test on Monday was
+     * missing from Thursday on.
+     */
+    fun testSoon(tasks: List<de.mm20.launcher2.schoolbrief.SchoolTask>, today: LocalDate, days: Long = 7): ContextCard.TestSoon? =
         tasks.asSequence()
             .filter { it.kind == de.mm20.launcher2.schoolbrief.SchoolTask.Test && !it.done }
             .mapNotNull { t -> runCatching { LocalDate.parse(t.due) }.getOrNull()?.let { t to ChronoUnit.DAYS.between(today, it) } }
@@ -168,9 +176,15 @@ object ContextRules {
     fun looksLikeLunchApp(label: String): Boolean =
         !isEduPage("", label) && lunchKeywords.any { label.contains(it, ignoreCase = true) }
 
-    /** The notification text worth showing: big text if present, else text, else title; one line. */
-    fun lunchText(title: String?, text: String?, bigText: String?): String? =
-        listOf(bigText, text, title).firstOrNull { !it.isNullOrBlank() }?.replace(Regex("\\s+"), " ")?.trim()
+    /**
+     * The notification text worth showing, one line. Round 35 (device: Lunch Bell's title is the menu
+     * "Z2", its text only "your lunch is ready"): a menu code anywhere wins, else big text, text, title.
+     */
+    fun lunchText(title: String?, text: String?, bigText: String?): String? {
+        val parts = listOf(title, text, bigText).mapNotNull { it?.replace(Regex("\\s+"), " ")?.trim()?.takeIf { t -> t.isNotEmpty() } }
+        parts.firstOrNull { menuNumber(it) != null }?.let { return it }
+        return listOf(bigText, text, title).firstOrNull { !it.isNullOrBlank() }?.replace(Regex("\\s+"), " ")?.trim()
+    }
 
     /**
      * Lunch Bell shows a short menu code ("2", "Z2"): returns it, or null when the text is a real

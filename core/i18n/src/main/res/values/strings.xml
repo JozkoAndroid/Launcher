@@ -1236,6 +1236,10 @@
     <string name="context_lunch_menu">Lunch today: menu %1$s</string>
     <string name="context_test_today">%1$s test today</string>
     <string name="context_test_tomorrow">%1$s test tomorrow</string>
+    <plurals name="context_test_in_days">
+        <item quantity="one">%1$s test in %2$d day</item>
+        <item quantity="other">%1$s test in %2$d days</item>
+    </plurals>
     <string name="context_test_in">%1$s test in %2$d days</string>
     <plurals name="context_chats">
         <item quantity="one">%1$d new message in Schoolhelp</item>
